@@ -1,11 +1,11 @@
 <!DOCTYPE html>
 <html>
 <head>
-<title>Helicopter Fixed Upward Shooter (Mobile)</title>
-<style>
-  body { margin: 0; overflow: hidden; background-color: #222; }
-  canvas { display: block; }
-</style>
+  <title>Helicopter Fixed Upward Shooter (Mobile)</title>
+  <style>
+    body { margin: 0; overflow: hidden; background-color: #222; }
+    canvas { display: block; }
+  </style>
 </head>
 <body>
   <canvas id="gameCanvas"></canvas>
@@ -32,7 +32,11 @@
     let lastZombieSpawnTime = 0;
     const zombieSpeed = 1.5;
     const zombieSize = 30;
-    const zombieColor = 'green';
+    // const zombieColor = 'green'; // No longer needed
+
+    // Load zombie image
+    const zombieImg = new Image();
+    zombieImg.src = 'zombie.png'; // Ensure this file exists in your repo
 
     // Touch state for movement
     let isTouchingLeft = false;
@@ -67,9 +71,16 @@
     }
 
     function drawZombies() {
-      ctx.fillStyle = zombieColor;
       zombies.forEach(zombie => {
-        ctx.fillRect(zombie.x - zombie.size / 2, zombie.y - zombie.size / 2, zombie.size, zombie.size);
+        if (zombieImg.complete) {
+          ctx.drawImage(
+            zombieImg,
+            zombie.x - zombie.size / 2,
+            zombie.y - zombie.size / 2,
+            zombie.size,
+            zombie.size
+          );
+        }
       });
     }
 
