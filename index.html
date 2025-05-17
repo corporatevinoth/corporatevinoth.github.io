@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Helicopter Fixed Upward Shooter (Mobile)</title>
+<style>
+  body { margin: 0; overflow: hidden; background-color: #222; }
+  canvas { display: block; }
+</style>
+</head>
+<body>
+  <canvas id="gameCanvas"></canvas>
+
+  <script>
+    const canvas = document.getElementById('gameCanvas');
+    const ctx = canvas.getContext('2d');
+
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+
+    // Helicopter properties
+    const helicopter = { x: canvas.width / 2, y: canvas.height * 0.8, speed: 5 };
+
+    // Shooting properties
+    const fireRate = 100;
+    let lastFireTime = 0;
+    const bulletSpeed = 15;
+    const bullets = [];
+
+    // Array to hold zombies
+    const zombies = [];
+    const zombieSpawnInterval = 800;
+    let lastZombieSpawnTime = 0;
+    const zombieSpeed = 1.5;
+    const zombieSize = 30;
+    const zombieColor = 'green';
+
+    // Touch state for movement
+    let isTouchingLeft = false;
+    let isTouchingRight = false;
+
+    function spawnZombie() {
+      const x = Math.random() * canvas.width;
+      const y = -zombieSize;
+      zombies.push({ x, y, size: zombieSize });
+    }
+
+    function updateZombies() {
+      for (let i = 0; i < zombies.length; i++) {
+        const zombie = zombies[i];
+        zombie.y += zombieSpeed;
+
+        const dx = helicopter.x - zombie.x;
+        const dy = helicopter.y - zombie.y;
+        const distance = Math.sqrt(dx * dx + dy * dy);
+        if (distance < zombieSize / 2) {
+          alert("Game Over! Zombies reached the helicopter.");
+          zombies.length = 0;
+          bullets.length = 0;
+          return;
+        }
+
+        if (zombie.y > canvas.height + zombieSize) {
+          zombies.splice(i, 1);
+          i--;
+        }
+      }
+    }
+
+    function drawZombies() {
+      ctx.fillStyle = zombieColor;
+      zombies.forEach(zombie => {
+        ctx.fillRect(zombie.x - zombie.size / 2, zombie.y - zombie.size / 2, zombie.size, zombie.size);
+      });
+    }
+
+    function updateBullets() {
+      for (let i = bullets.length - 1; i >= 0; i--) {
+        const bullet = bullets[i];
+        bullet.y -= bulletSpeed;
+
+        for (let j = zombies.length - 1; j >= 0; j--) {
+          const zombie = zombies[j];
+          const dx = bullet.x - zombie.x;
+          const dy = bullet.y - zombie.y;
+          const distance = Math.sqrt(dx * dx + dy * dy);
+          if (distance < zombie.size / 2) {
+            bullets.splice(i, 1);
+            zombies.splice(j, 1);
+            break;
+          }
+        }
+
+        if (bullet.y < 0) {
+          bullets.splice(i, 1);
+        }
+      }
+    }
+
+    function drawBullets() {
+      ctx.fillStyle = 'yellow';
+      bullets.forEach(bullet => {
+        ctx.beginPath();
+        ctx.arc(bullet.x, bullet.y, 3, 0, Math.PI * 2);
+        ctx.fill();
+      });
+    }
+
+    function drawHelicopter() {
+      ctx.fillStyle = 'blue';
+      ctx.fillRect(helicopter.x - 20, helicopter.y - 10, 40, 20);
+    }
+
+    function continuousFire() {
+      const currentTime = Date.now();
+      if (currentTime - lastFireTime > fireRate) {
+        bullets.push({
+          x: helicopter.x,
+          y: helicopter.y - 10,
+          vx: 0,
+          vy: -bulletSpeed
+        });
+        lastFireTime = currentTime;
+      }
+    }
+
+    function updateHelicopterMovement() {
+      if (isTouchingLeft) {
+        helicopter.x -= helicopter.speed;
+        if (helicopter.x < 20) helicopter.x = 20;
+      }
+      if (isTouchingRight) {
+        helicopter.x += helicopter.speed;
+        if (helicopter.x > canvas.width - 20) helicopter.x = canvas.width - 20;
+      }
+    }
+
+    canvas.addEventListener('touchstart', (e) => {
+      e.preventDefault(); // Prevent default touch behavior
+      for (let i = 0; i < e.touches.length; i++) {
+        const touch = e.touches[i];
+        if (touch.clientX < canvas.width / 2) {
+          isTouchingLeft = true;
+        } else {
+          isTouchingRight = true;
+        }
+      }
+    }, false);
+
+    canvas.addEventListener('touchend', (e) => {
+      e.preventDefault();
+      isTouchingLeft = false;
+      isTouchingRight = false;
+    }, false);
+
+    canvas.addEventListener('touchmove', (e) => {
+      e.preventDefault();
+      isTouchingLeft = false;
+      isTouchingRight = false;
+      for (let i = 0; i < e.touches.length; i++) {
+        const touch = e.touches[i];
+        if (touch.clientX < canvas.width / 2) {
+          isTouchingLeft = true;
+        } else {
+          isTouchingRight = true;
+        }
+      }
+    }, false);
+
+    function gameLoop() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      const currentTime = Date.now();
+      if (currentTime - lastZombieSpawnTime > zombieSpawnInterval) {
+        spawnZombie();
+        lastZombieSpawnTime = currentTime;
+      }
+
+      updateHelicopterMovement();
+      continuousFire();
+
+      updateZombies();
+      drawZombies();
+      updateBullets();
+      drawBullets();
+      drawHelicopter();
+
+      requestAnimationFrame(gameLoop);
+    }
+
+    gameLoop();
+  </script>
+</body>
+</html>
