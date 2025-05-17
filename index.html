@@ -32,11 +32,13 @@
     let lastZombieSpawnTime = 0;
     const zombieSpeed = 1.5;
     const zombieSize = 30;
-    // const zombieColor = 'green'; // No longer needed
 
     // Load zombie image
     const zombieImg = new Image();
     zombieImg.src = 'zombie.png'; // Ensure this file exists in your repo
+
+    // Score
+    let score = 0;
 
     // Touch state for movement
     let isTouchingLeft = false;
@@ -60,6 +62,7 @@
           alert("Game Over! Zombies reached the helicopter.");
           zombies.length = 0;
           bullets.length = 0;
+          score = 0; // Reset score on game over
           return;
         }
 
@@ -97,6 +100,7 @@
           if (distance < zombie.size / 2) {
             bullets.splice(i, 1);
             zombies.splice(j, 1);
+            score += 1; // Increment score when a zombie is shot
             break;
           }
         }
@@ -119,6 +123,13 @@
     function drawHelicopter() {
       ctx.fillStyle = 'blue';
       ctx.fillRect(helicopter.x - 20, helicopter.y - 10, 40, 20);
+    }
+
+    function drawScore() {
+      ctx.font = "28px Arial";
+      ctx.fillStyle = "white";
+      ctx.textAlign = "center";
+      ctx.fillText("Score: " + score, canvas.width / 2, 40);
     }
 
     function continuousFire() {
@@ -179,6 +190,8 @@
 
     function gameLoop() {
       ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      drawScore(); // Draw score at the top
 
       const currentTime = Date.now();
       if (currentTime - lastZombieSpawnTime > zombieSpawnInterval) {
