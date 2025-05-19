@@ -19,12 +19,12 @@
         }
         .container {
             background: #fff;
-            border-radius: 20px;
+            border-radius: 30px;
             box-shadow: 0 8px 32px 0 #0002;
-            padding: 6vw 4vw 16vw 4vw;
-            width: 95vw;
-            max-width: 480px;
-            min-width: 270px;
+            padding: 8vw 4vw 18vw 4vw;
+            width: 99vw;
+            max-width: 600px;
+            min-width: 280px;
             display: flex;
             flex-direction: column;
             align-items: center;
@@ -33,26 +33,27 @@
             width: 100%;
             display: flex;
             justify-content: space-between;
-            font-size: 2.2rem;
-            margin-bottom: 2.5vw;
-            font-weight: 600;
+            font-size: 3rem;
+            margin-bottom: 3vw;
+            font-weight: 700;
             color: #2a2a2a;
+            letter-spacing: 1px;
         }
         .question {
             width: 100%;
             display: grid;
             grid-template-columns: 1fr auto 1fr auto 1fr;
-            gap: 2vw;
-            margin-bottom: 7vw;
-            font-size: 3rem;
+            gap: 3vw;
+            margin-bottom: 9vw;
+            font-size: 4rem;
             font-weight: bold;
             text-align: center;
         }
         .question div {
             background-color: #e7f3ff;
-            padding: 2vw;
-            border-radius: 10px;
-            min-width: 40px;
+            padding: 3vw 2vw;
+            border-radius: 14px;
+            min-width: 58px;
         }
         #questionMark {
             background-color: #ffc107;
@@ -64,23 +65,24 @@
         .options {
             display: flex;
             flex-direction: column;
-            gap: 3vw;
+            gap: 4vw;
             width: 100%;
             margin-bottom: 0;
         }
         .option {
             background: linear-gradient(90deg, #46aef7, #1de9b6);
             color: #fff;
-            font-size: 2rem;
-            font-weight: 600;
-            padding: 3vw 0;
-            border-radius: 12px;
+            font-size: 2.8rem;
+            font-weight: 700;
+            padding: 4vw 0;
+            border-radius: 18px;
             cursor: pointer;
             transition: background 0.2s, transform 0.2s;
             text-align: center;
             border: none;
             outline: none;
-            box-shadow: 0 2px 12px #1de9b633;
+            box-shadow: 0 2px 16px #1de9b633;
+            letter-spacing: 1px;
         }
         .option:active {
             background: linear-gradient(90deg, #1de9b6, #46aef7);
@@ -92,7 +94,7 @@
             bottom: 0;
             left: 0;
             width: 100vw;
-            height: 22px;
+            height: 36px;
             background: #e0e0e0;
             z-index: 10;
         }
@@ -101,14 +103,20 @@
             background: linear-gradient(90deg, #46aef7, #1de9b6 90%);
             width: 100vw;
             transition: width 0.2s linear;
-            border-top-right-radius: 11px;
-            border-bottom-right-radius: 11px;
+            border-top-right-radius: 18px;
+            border-bottom-right-radius: 18px;
         }
-        @media (max-width:540px) {
-            .container { padding: 8vw 2vw 22vw 2vw; }
-            .question { font-size: 2.2rem; }
-            .option { font-size: 1.5rem; padding: 5vw 0; }
-            .header { font-size: 1.4rem; }
+        @media (max-width:700px) {
+            .container { 
+                padding: 10vw 2vw 24vw 2vw; 
+                max-width: 99vw;
+            }
+            .header { font-size: 2.1rem; }
+            .question { font-size: 2.4rem; }
+            .option { font-size: 1.6rem; padding: 6vw 0; }
+            .question div { padding: 2vw 1vw; min-width: 38px; }
+            .loader-bar-bg { height: 26px; }
+            .loader-bar-fg { border-top-right-radius: 13px; border-bottom-right-radius: 13px;}
         }
     </style>
 </head>
@@ -236,7 +244,6 @@
         }
 
         function updateTimerAndLoader() {
-            // Smoothly reduce bar width every 100ms
             let loaderStartTime = Date.now();
             let prevTimeLeft = timeLeft;
             clearInterval(loaderInterval);
