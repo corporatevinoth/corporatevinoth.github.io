@@ -15,18 +15,24 @@
     const canvas = document.getElementById('gameCanvas');
     const ctx = canvas.getContext('2d');
 
+    // Responsive canvas setup
     function resizeCanvas() {
       canvas.width = window.innerWidth;
       canvas.height = window.innerHeight;
+      updateUnits();
+      helicopter.x = canvas.width / 2;
+      helicopter.y = canvas.height * 0.8;
     }
     window.addEventListener('resize', resizeCanvas);
-    resizeCanvas();
 
+    // Responsive game units
     function getUnit() {
       return Math.min(canvas.width, canvas.height) / 20;
     }
 
-    let unit = getUnit();
+    // Game variables
+    let unit;
+    let bulletSpeed, bulletSize, regularBalloonSize, bonusBalloonSize, balloonSpeed;
     function updateUnits() {
       unit = getUnit();
       helicopter.speed = unit * 0.5;
@@ -35,34 +41,30 @@
       bulletSize = unit * 0.2;
       bulletSpeed = unit * 1;
       regularBalloonSize = unit * 1.5;
-      bonusBalloonSize = unit * 2.4; // larger for bonus
+      bonusBalloonSize = unit * 2.4;
       balloonSpeed = unit * 0.1;
     }
 
+    // Helicopter properties
     const helicopter = { x: 0, y: 0, speed: 0, width: 0, height: 0 };
-    helicopter.x = canvas.width / 2;
-    helicopter.y = canvas.height * 0.8;
 
+    // Shooting properties
     const fireRate = 100;
     let lastFireTime = 0;
-    let bulletSpeed = 15;
-    let bulletSize = 3;
 
-    // Balloons array: now each has type, size, and score
+    // Balloons array: each has type, size, and score
     const balloons = [];
     const balloonSpawnInterval = 800;
     let lastBalloonSpawnTime = 0;
-    let balloonSpeed = 1.5;
-    let regularBalloonSize = 30;
-    let bonusBalloonSize = 50;
 
-    // Load balloon image (same for regular & bonus, or use a different one)
+    // Load balloon image
     const balloonImg = new Image();
     balloonImg.src = 'balloon.gif';
 
     let score = 0;
     let isTouchingLeft = false;
     let isTouchingRight = false;
+    const bullets = [];
 
     // Spawn either regular or bonus balloon
     function spawnBalloon() {
@@ -100,7 +102,6 @@
       balloons.forEach(balloon => {
         if (balloonImg.complete && balloonImg.naturalWidth !== 0) {
           ctx.save();
-          // Make bonus balloons a little more visually distinct (e.g. with a thick border)
           if (balloon.type === 'bonus') {
             ctx.globalAlpha = 0.8;
             ctx.beginPath();
@@ -119,7 +120,6 @@
           );
           ctx.restore();
         } else {
-          // fallback: draw a red circle if image not loaded
           ctx.beginPath();
           ctx.arc(balloon.x, balloon.y, balloon.size / 2, 0, Math.PI * 2);
           ctx.fillStyle = balloon.type === 'bonus' ? "gold" : "red";
@@ -128,7 +128,6 @@
       });
     }
 
-    const bullets = [];
     function updateBullets() {
       for (let i = bullets.length - 1; i >= 0; i--) {
         const bullet = bullets[i];
@@ -141,7 +140,7 @@
           if (distance < balloon.size / 2) {
             bullets.splice(i, 1);
             balloons.splice(j, 1);
-            score += balloon.score; // Use the balloon's score (1 or 4)
+            score += balloon.score;
             break;
           }
         }
@@ -196,6 +195,7 @@
       }
     }
 
+    // Touch controls
     canvas.addEventListener('touchstart', (e) => {
       e.preventDefault();
       for (let i = 0; i < e.touches.length; i++) {
@@ -228,15 +228,8 @@
       }
     }, false);
 
-    function onResize() {
-      resizeCanvas();
-      updateUnits();
-      helicopter.x = canvas.width / 2;
-      helicopter.y = canvas.height * 0.8;
-    }
-    window.addEventListener('resize', onResize);
-
-();
+    // Initial setup
+    resizeCanvas();
 
     function gameLoop() {
       ctx.clearRect(0, 0, canvas.width, canvas.height);
