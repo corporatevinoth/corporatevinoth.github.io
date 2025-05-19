@@ -26,16 +26,16 @@
     const bulletSpeed = 15;
     const bullets = [];
 
-    // Array to hold zombies
-    const zombies = [];
-    const zombieSpawnInterval = 800;
-    let lastZombieSpawnTime = 0;
-    const zombieSpeed = 1.5;
-    const zombieSize = 30;
+    // Array to hold balloons (previously zombies)
+    const balloons = [];
+    const balloonSpawnInterval = 800;
+    let lastBalloonSpawnTime = 0;
+    const balloonSpeed = 1.5;
+    const balloonSize = 30;
 
-    // Load zombie image
-    const zombieImg = new Image();
-    zombieImg.src = 'zombie.png'; // Ensure this file exists in your repo
+    // Load balloon GIF
+    const balloonImg = new Image();
+    balloonImg.src = 'ballon.gif'; // Ensure this file exists in your repo
 
     // Score
     let score = 0;
@@ -44,44 +44,44 @@
     let isTouchingLeft = false;
     let isTouchingRight = false;
 
-    function spawnZombie() {
+    function spawnBalloon() {
       const x = Math.random() * canvas.width;
-      const y = -zombieSize;
-      zombies.push({ x, y, size: zombieSize });
+      const y = -balloonSize;
+      balloons.push({ x, y, size: balloonSize });
     }
 
-    function updateZombies() {
-      for (let i = 0; i < zombies.length; i++) {
-        const zombie = zombies[i];
-        zombie.y += zombieSpeed;
+    function updateBalloons() {
+      for (let i = 0; i < balloons.length; i++) {
+        const balloon = balloons[i];
+        balloon.y += balloonSpeed;
 
-        const dx = helicopter.x - zombie.x;
-        const dy = helicopter.y - zombie.y;
+        const dx = helicopter.x - balloon.x;
+        const dy = helicopter.y - balloon.y;
         const distance = Math.sqrt(dx * dx + dy * dy);
-        if (distance < zombieSize / 2) {
-          alert("Game Over! Zombies reached the helicopter.");
-          zombies.length = 0;
+        if (distance < balloonSize / 2) {
+          alert("Game Over! Balloons reached the helicopter.");
+          balloons.length = 0;
           bullets.length = 0;
           score = 0; // Reset score on game over
           return;
         }
 
-        if (zombie.y > canvas.height + zombieSize) {
-          zombies.splice(i, 1);
+        if (balloon.y > canvas.height + balloonSize) {
+          balloons.splice(i, 1);
           i--;
         }
       }
     }
 
-    function drawZombies() {
-      zombies.forEach(zombie => {
-        if (zombieImg.complete) {
+    function drawBalloons() {
+      balloons.forEach(balloon => {
+        if (balloonImg.complete) {
           ctx.drawImage(
-            zombieImg,
-            zombie.x - zombie.size / 2,
-            zombie.y - zombie.size / 2,
-            zombie.size,
-            zombie.size
+            balloonImg,
+            balloon.x - balloon.size / 2,
+            balloon.y - balloon.size / 2,
+            balloon.size,
+            balloon.size
           );
         }
       });
@@ -92,15 +92,15 @@
         const bullet = bullets[i];
         bullet.y -= bulletSpeed;
 
-        for (let j = zombies.length - 1; j >= 0; j--) {
-          const zombie = zombies[j];
-          const dx = bullet.x - zombie.x;
-          const dy = bullet.y - zombie.y;
+        for (let j = balloons.length - 1; j >= 0; j--) {
+          const balloon = balloons[j];
+          const dx = bullet.x - balloon.x;
+          const dy = bullet.y - balloon.y;
           const distance = Math.sqrt(dx * dx + dy * dy);
-          if (distance < zombie.size / 2) {
+          if (distance < balloon.size / 2) {
             bullets.splice(i, 1);
-            zombies.splice(j, 1);
-            score += 1; // Increment score when a zombie is shot
+            balloons.splice(j, 1);
+            score += 1; // Increment score when a balloon is shot
             break;
           }
         }
@@ -191,19 +191,19 @@
     function gameLoop() {
       ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-      drawScore(); // Draw score at the top
+      drawScore();
 
       const currentTime = Date.now();
-      if (currentTime - lastZombieSpawnTime > zombieSpawnInterval) {
-        spawnZombie();
-        lastZombieSpawnTime = currentTime;
+      if (currentTime - lastBalloonSpawnTime > balloonSpawnInterval) {
+        spawnBalloon();
+        lastBalloonSpawnTime = currentTime;
       }
 
       updateHelicopterMovement();
       continuousFire();
 
-      updateZombies();
-      drawZombies();
+      updateBalloons();
+      drawBalloons();
       updateBullets();
       drawBullets();
       drawHelicopter();
