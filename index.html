@@ -57,9 +57,16 @@
     const balloonSpawnInterval = 800;
     let lastBalloonSpawnTime = 0;
 
-    // Load balloon image
+    // Load images
     const balloonImg = new Image();
     balloonImg.src = 'balloon.gif';
+
+    const explosionImg = new Image();
+    explosionImg.src = 'explosion.gif';
+
+    // Explosions array
+    const explosions = [];
+    const explosionDuration = 500; // ms
 
     let score = 0;
     let isTouchingLeft = false;
@@ -138,6 +145,13 @@
           const dy = bullet.y - balloon.y;
           const distance = Math.sqrt(dx * dx + dy * dy);
           if (distance < balloon.size / 2) {
+            // Add explosion at balloon hit
+            explosions.push({
+              x: balloon.x,
+              y: balloon.y,
+              startTime: Date.now(),
+              size: balloon.size * 1.2 // explosion size proportional
+            });
             bullets.splice(i, 1);
             balloons.splice(j, 1);
             score += balloon.score;
@@ -147,6 +161,37 @@
         if (bullet.y < 0) {
           bullets.splice(i, 1);
         }
+      }
+    }
+
+    function drawExplosions() {
+      const now = Date.now();
+      for (let i = explosions.length - 1; i >= 0; i--) {
+        const explosion = explosions[i];
+        const elapsed = now - explosion.startTime;
+        if (elapsed > explosionDuration) {
+          explosions.splice(i, 1);
+          continue;
+        }
+        const alpha = 1 - elapsed / explosionDuration;
+        ctx.save();
+        ctx.globalAlpha = alpha;
+        if (explosionImg.complete && explosionImg.naturalWidth !== 0) {
+          ctx.drawImage(
+            explosionImg,
+            explosion.x - explosion.size / 2,
+            explosion.y - explosion.size / 2,
+            explosion.size,
+            explosion.size
+          );
+        } else {
+          // Fallback: draw a white expanding circle
+          ctx.beginPath();
+          ctx.arc(explosion.x, explosion.y, explosion.size / 2, 0, Math.PI * 2);
+          ctx.fillStyle = "white";
+          ctx.fill();
+        }
+        ctx.restore();
       }
     }
 
@@ -247,6 +292,7 @@
       updateBalloons();
       drawBalloons();
       updateBullets();
+      drawExplosions();
       drawBullets();
       drawHelicopter();
 
