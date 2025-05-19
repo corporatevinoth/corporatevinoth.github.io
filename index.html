@@ -53,27 +53,44 @@
       max-width: 220px;
       position: relative;
       border: 2px solid #00c6ff22;
+      outline: none;
     }
     .game-card:hover, .game-card:focus-visible, .game-card:active {
       transform: translateY(-8px) scale(1.04);
       box-shadow: 0 12px 48px 0 #00c6ff44, 0 2px 8px 0 #0003;
       border-color: #00c6ff;
     }
-    .game-icon {
+    .game-icon, .game-icon-number {
       width: 64px;
       height: 64px;
       margin-bottom: 16px;
       object-fit: contain;
-      filter: drop-shadow(0 4px 8px #00c6ff88);
       background: transparent;
       border-radius: 50%;
       border: 2px solid #fff8;
       padding: 6px;
       box-sizing: border-box;
       transition: border-color 0.2s;
+      display: flex;
+      align-items: center;
+      justify-content: center;
     }
-    .game-card:hover .game-icon, .game-card:focus-visible .game-icon {
+    .game-card:hover .game-icon,
+    .game-card:focus-visible .game-icon,
+    .game-card:hover .game-icon-number,
+    .game-card:focus-visible .game-icon-number {
       border-color: #00c6ff;
+    }
+    .game-icon-number {
+      background: linear-gradient(135deg, #ffe259 0%, #ffa751 100%);
+      font-size: 2.6rem;
+      font-weight: bold;
+      color: #fff;
+      text-shadow: 0 3px 8px #000a, 0 1px 1px #ffb700;
+      justify-content: center;
+      align-items: center;
+      display: flex;
+      font-family: 'Segoe UI', 'Arial', sans-serif;
     }
     .game-name {
       font-size: 1.3rem;
@@ -95,7 +112,7 @@
       .title { font-size: 2.1rem; margin-top: 24px; }
       .games-list { gap: 18px; }
       .game-card { min-width: 120px; max-width: 160px; padding: 18px 12px; }
-      .game-icon { width: 44px; height: 44px; }
+      .game-icon, .game-icon-number { width: 44px; height: 44px; font-size: 1.5rem; }
       .game-name { font-size: 1rem; }
     }
   </style>
@@ -105,10 +122,15 @@
     🎮 Game Arcade
   </div>
   <div class="games-list">
-    <!-- Balloon Shooter game card -->
-    <div class="game-card" tabindex="0" onclick="window.location.href='balloon.html'" onkeydown="if(event.key==='Enter'){window.location.href='balloon.html'}">
+    <!-- Balloon Shooter Game -->
+    <div class="game-card" tabindex="0" onclick="window.location.href='balloon.html'" onkeydown="if(event.key==='Enter'){window.location.href='balloon.html'}" title="Play Balloon Shooter">
       <img src="balloon.gif" alt="Balloon Shooter Icon" class="game-icon">
       <div class="game-name">Balloon Shooter</div>
+    </div>
+    <!-- Math Game -->
+    <div class="game-card" tabindex="0" onclick="window.location.href='math.html'" onkeydown="if(event.key==='Enter'){window.location.href='math.html'}" title="Play Math Game">
+      <div class="game-icon-number">1</div>
+      <div class="game-name">Math Game</div>
     </div>
     <!-- Example for future games -->
     <div class="game-card" style="opacity:0.6; pointer-events:none;">
