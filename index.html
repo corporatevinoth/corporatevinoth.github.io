@@ -4,26 +4,9 @@
   <title>Helicopter Shooter (Mobile)</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
   <style>
-    html, body {
-      height: 100%;
-      margin: 0;
-      padding: 0;
-      background: #222;
-      overflow: hidden;
-    }
-    body {
-      width: 100vw;
-      height: 100vh;
-    }
-    canvas {
-      display: block;
-      position: absolute;
-      top: 0; left: 0;
-      width: 100vw;
-      height: 100vh;
-      touch-action: none;
-      background: #222;
-    }
+    html, body { height: 100%; margin: 0; padding: 0; background: #222; overflow: hidden; }
+    body { width: 100vw; height: 100vh; }
+    canvas { display: block; position: absolute; top: 0; left: 0; width: 100vw; height: 100vh; touch-action: none; background: #222; }
   </style>
 </head>
 <body>
@@ -32,7 +15,6 @@
     const canvas = document.getElementById('gameCanvas');
     const ctx = canvas.getContext('2d');
 
-    // Responsive canvas setup
     function resizeCanvas() {
       canvas.width = window.innerWidth;
       canvas.height = window.innerHeight;
@@ -40,13 +22,10 @@
     window.addEventListener('resize', resizeCanvas);
     resizeCanvas();
 
-    // Responsive game units
     function getUnit() {
-      // Use smaller of width/height as base, so game scales well in portrait/landscape
       return Math.min(canvas.width, canvas.height) / 20;
     }
 
-    // Game variables (all sizes are now relative units)
     let unit = getUnit();
     function updateUnits() {
       unit = getUnit();
@@ -55,55 +34,55 @@
       helicopter.height = unit;
       bulletSize = unit * 0.2;
       bulletSpeed = unit * 1;
-      balloonSize = unit * 1.5;
+      regularBalloonSize = unit * 1.5;
+      bonusBalloonSize = unit * 2.4; // larger for bonus
       balloonSpeed = unit * 0.1;
     }
 
-    // Helicopter properties
     const helicopter = { x: 0, y: 0, speed: 0, width: 0, height: 0 };
     helicopter.x = canvas.width / 2;
     helicopter.y = canvas.height * 0.8;
 
-    // Shooting properties
     const fireRate = 100;
     let lastFireTime = 0;
     let bulletSpeed = 15;
     let bulletSize = 3;
-    const bullets = [];
 
-    // Balloons
+    // Balloons array: now each has type, size, and score
     const balloons = [];
     const balloonSpawnInterval = 800;
     let lastBalloonSpawnTime = 0;
     let balloonSpeed = 1.5;
-    let balloonSize = 30;
+    let regularBalloonSize = 30;
+    let bonusBalloonSize = 50;
 
-    // Load balloon image
+    // Load balloon image (same for regular & bonus, or use a different one)
     const balloonImg = new Image();
-    balloonImg.src = 'balloon.gif'; // Place your balloon.gif in the same folder
+    balloonImg.src = 'balloon.gif';
 
-    // Score
     let score = 0;
-
-    // Touch state for movement
     let isTouchingLeft = false;
     let isTouchingRight = false;
 
+    // Spawn either regular or bonus balloon
     function spawnBalloon() {
-      const x = Math.random() * (canvas.width - balloonSize) + balloonSize / 2;
-      const y = -balloonSize;
-      balloons.push({ x, y, size: balloonSize });
+      const isBonus = Math.random() < 0.15; // 15% chance for bonus
+      const size = isBonus ? bonusBalloonSize : regularBalloonSize;
+      const balloonType = isBonus ? 'bonus' : 'regular';
+      const balloonScore = isBonus ? 4 : 1;
+      const x = Math.random() * (canvas.width - size) + size / 2;
+      const y = -size;
+      balloons.push({ x, y, size, type: balloonType, score: balloonScore });
     }
 
     function updateBalloons() {
       for (let i = 0; i < balloons.length; i++) {
         const balloon = balloons[i];
         balloon.y += balloonSpeed;
-
         const dx = helicopter.x - balloon.x;
         const dy = helicopter.y - balloon.y;
         const distance = Math.sqrt(dx * dx + dy * dy);
-        if (distance < balloonSize / 2) {
+        if (distance < balloon.size / 2) {
           alert("Game Over! Balloons reached the helicopter.");
           balloons.length = 0;
           bullets.length = 0;
@@ -120,6 +99,17 @@
     function drawBalloons() {
       balloons.forEach(balloon => {
         if (balloonImg.complete && balloonImg.naturalWidth !== 0) {
+          ctx.save();
+          // Make bonus balloons a little more visually distinct (e.g. with a thick border)
+          if (balloon.type === 'bonus') {
+            ctx.globalAlpha = 0.8;
+            ctx.beginPath();
+            ctx.arc(balloon.x, balloon.y, balloon.size / 2 + 4, 0, Math.PI * 2);
+            ctx.strokeStyle = "gold";
+            ctx.lineWidth = 6;
+            ctx.stroke();
+            ctx.globalAlpha = 1.0;
+          }
           ctx.drawImage(
             balloonImg,
             balloon.x - balloon.size / 2,
@@ -127,16 +117,18 @@
             balloon.size,
             balloon.size
           );
+          ctx.restore();
         } else {
           // fallback: draw a red circle if image not loaded
           ctx.beginPath();
-          ctx.arc(balloon.x, balloon.y, balloon.size/2, 0, Math.PI*2);
-          ctx.fillStyle = "red";
+          ctx.arc(balloon.x, balloon.y, balloon.size / 2, 0, Math.PI * 2);
+          ctx.fillStyle = balloon.type === 'bonus' ? "gold" : "red";
           ctx.fill();
         }
       });
     }
 
+    const bullets = [];
     function updateBullets() {
       for (let i = bullets.length - 1; i >= 0; i--) {
         const bullet = bullets[i];
@@ -149,7 +141,7 @@
           if (distance < balloon.size / 2) {
             bullets.splice(i, 1);
             balloons.splice(j, 1);
-            score += 1;
+            score += balloon.score; // Use the balloon's score (1 or 4)
             break;
           }
         }
@@ -171,7 +163,6 @@
     function drawHelicopter() {
       ctx.fillStyle = 'blue';
       ctx.fillRect(helicopter.x - helicopter.width / 2, helicopter.y - helicopter.height / 2, helicopter.width, helicopter.height);
-      // You can draw rotor or add further details here for better look
     }
 
     function drawScore() {
@@ -205,7 +196,6 @@
       }
     }
 
-    // Touch controls (left/right)
     canvas.addEventListener('touchstart', (e) => {
       e.preventDefault();
       for (let i = 0; i < e.touches.length; i++) {
@@ -238,7 +228,6 @@
       }
     }, false);
 
-    // Recalculate units and positions on resize
     function onResize() {
       resizeCanvas();
       updateUnits();
@@ -247,14 +236,11 @@
     }
     window.addEventListener('resize', onResize);
 
-    // Initial unit/size setup
-    updateUnits();
+();
 
     function gameLoop() {
       ctx.clearRect(0, 0, canvas.width, canvas.height);
       drawScore();
-
-      // Responsive units update
       updateUnits();
 
       const currentTime = Date.now();
@@ -265,7 +251,6 @@
 
       updateHelicopterMovement();
       continuousFire();
-
       updateBalloons();
       drawBalloons();
       updateBullets();
