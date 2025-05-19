@@ -9,13 +9,21 @@
             height: 100%;
             margin: 0;
             padding: 0;
-            background: linear-gradient(135deg, #e0eafc, #cfdef3 80%);
+            background: #e0eafc;
+            overflow: hidden;
         }
         body {
             min-height: 100vh;
             display: flex;
             justify-content: center;
             align-items: center;
+            position: relative;
+        }
+        #snow-canvas {
+            position: fixed;
+            top: 0; left: 0; width: 100vw; height: 100vh;
+            pointer-events: none;
+            z-index: 1;
         }
         .container {
             background: #fff;
@@ -28,6 +36,8 @@
             display: flex;
             flex-direction: column;
             align-items: center;
+            z-index: 2;
+            position: relative;
         }
         .header {
             width: 100%;
@@ -56,36 +66,18 @@
             min-width: 58px;
         }
         #questionMark {
-            background-color: #ffc107;
-            color: #2a2a2a;
-        }
-        #equalsSign {
-            background-color: #e7f3ff;
-        }
-        .options {
-            display: flex;
-            flex-direction: column;
-            gap: 4vw;
-            width: 100%;
-            margin-bottom: 0;
-        }
-        .option {
-            background: linear-gradient(90deg, #46aef7, #1de9b6);
-            color: #fff;
-            font-size: 2.8rem;
-            font-weight: 700;
-            padding: 4vw 0;
-            border-radius: 18px;
-            cursor: pointer;
+            background-color: #9e9e9e !important;
+            color: cursor: pointer;
             transition: background 0.2s, transform 0.2s;
             text-align: center;
             border: none;
             outline: none;
-            box-shadow: 0 2px 16px #1de9b633;
+            box-shadow: 0 2px 16px #15734733;
             letter-spacing: 1px;
+            z-index: 2;
         }
         .option:active {
-            background: linear-gradient(90deg, #1de9b6, #46aef7);
+            background: #0b3b23;
             transform: scale(0.97);
         }
         /* Timer loader bar styles */
@@ -100,7 +92,7 @@
         }
         .loader-bar-fg {
             height: 100%;
-            background: linear-gradient(90deg, #46aef7, #1de9b6 90%);
+            background: linear-gradient(90deg, #157347, #228f47 90%);
             width: 100vw;
             transition: width 0.2s linear;
             border-top-right-radius: 18px;
@@ -121,6 +113,7 @@
     </style>
 </head>
 <body>
+    <canvas id="snow-canvas"></canvas>
     <div class="container">
         <div class="header">
             <div id="score">Score: 0</div>
@@ -143,6 +136,83 @@
         <div class="loader-bar-fg" id="loaderBar"></div>
     </div>
     <script>
+        // Snow effect
+        const canvas = document.getElementById('snow-canvas');
+        const ctx = canvas.getContext('2d');
+        let snowflakes = [];
+
+        function randomBetween(a, b) {
+            return a + Math.random() * (b - a);
+        }
+
+        function resizeSnowCanvas() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+        }
+
+        function createSnowflakes() {
+            let maxSnowflakes = Math.floor(window.innerWidth / 8); // density based on width
+            snowflakes = [];
+            for (let i = 0; i < maxSnowflakes; i++) {
+                snowflakes.push({
+                    x: Math.random() * canvas.width,
+                    y: Math.random() * canvas.height,
+                    r: randomBetween(1.2, 3.7),
+                    d: randomBetween(1, 2.5),
+                    drift: randomBetween(-0.5, 0.5),
+                    wind: randomBetween(-0.4, 0.4)
+                });
+            }
+        }
+
+        function drawSnow() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            ctx.save();
+            ctx.globalAlpha = 0.7;
+            ctx.fillStyle = "#fff";
+            for (let i = 0; i < snowflakes.length; i++) {
+                let f = snowflakes[i];
+                ctx.beginPath();
+                ctx.arc(f.x, f.y, f.r, 0, Math.PI * 2, true);
+                ctx.closePath();
+                ctx.fill();
+            }
+            ctx.restore();
+            moveSnow();
+        }
+
+        function moveSnow() {
+            for (let i = 0; i < snowflakes.length; i++) {
+                let f = snowflakes[i];
+                f.y += f.d;
+                f.x += f.wind + Math.sin(f.y / 35) * f.drift;
+                // respawn to top if out of screen
+                if (f.y > canvas.height + 10) {
+                    f.y = -5;
+                    f.x = Math.random() * canvas.width;
+                }
+                if (f.x > canvas.width + 5) f.x = -5;
+                if (f.x < -5) f.x = canvas.width + 5;
+            }
+        }
+
+        function snowLoop() {
+            drawSnow();
+            requestAnimationFrame(snowLoop);
+        }
+
+        // Responsive setup
+        window.addEventListener('resize', () => {
+            resizeSnowCanvas();
+            createSnowflakes();
+        });
+
+        // Start snow effect
+        resizeSnowCanvas();
+        createSnowflakes();
+        snowLoop();
+
+        // Math game logic
         const num1Element = document.getElementById('num1');
         const operatorElement = document.getElementById('operator');
         const num2Element = document.getElementById('num2');
