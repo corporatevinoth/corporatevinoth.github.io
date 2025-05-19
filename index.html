@@ -1,305 +1,121 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-  <title>Helicopter Shooter (Mobile)</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <meta charset="UTF-8">
+  <title>Game Arcade</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <style>
-    html, body { height: 100%; margin: 0; padding: 0; background: #222; overflow: hidden; }
-    body { width: 100vw; height: 100vh; }
-    canvas { display: block; position: absolute; top: 0; left: 0; width: 100vw; height: 100vh; touch-action: none; background: #222; }
+    html, body {
+      height: 100%;
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+      background: linear-gradient(135deg, #0f2027, #2c5364, #00c6ff 80%);
+      font-family: 'Segoe UI', 'Arial', sans-serif;
+      min-height: 100vh;
+    }
+    body {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      min-height: 100vh;
+    }
+    .title {
+      margin-top: 40px;
+      margin-bottom: 24px;
+      font-size: 3rem;
+      color: #fff;
+      letter-spacing: 3px;
+      font-weight: bold;
+      text-shadow: 0 4px 24px #000, 0 2px 8px #00c6ff55;
+      text-align: center;
+    }
+    .games-list {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 32px;
+      width: 100%;
+      max-width: 900px;
+      margin-top: 32px;
+    }
+    .game-card {
+      background: rgba(255,255,255,0.10);
+      border-radius: 22px;
+      box-shadow: 0 6px 40px rgba(0,0,0,0.25);
+      padding: 28px 36px 24px 36px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      transition: transform 0.2s, box-shadow 0.2s;
+      cursor: pointer;
+      min-width: 180px;
+      max-width: 220px;
+      position: relative;
+      border: 2px solid #00c6ff22;
+    }
+    .game-card:hover, .game-card:focus-visible, .game-card:active {
+      transform: translateY(-8px) scale(1.04);
+      box-shadow: 0 12px 48px 0 #00c6ff44, 0 2px 8px 0 #0003;
+      border-color: #00c6ff;
+    }
+    .game-icon {
+      width: 64px;
+      height: 64px;
+      margin-bottom: 16px;
+      object-fit: contain;
+      filter: drop-shadow(0 4px 8px #00c6ff88);
+      background: transparent;
+      border-radius: 50%;
+      border: 2px solid #fff8;
+      padding: 6px;
+      box-sizing: border-box;
+      transition: border-color 0.2s;
+    }
+    .game-card:hover .game-icon, .game-card:focus-visible .game-icon {
+      border-color: #00c6ff;
+    }
+    .game-name {
+      font-size: 1.3rem;
+      color: #fff;
+      font-weight: bold;
+      text-align: center;
+      letter-spacing: 1px;
+      text-shadow: 0 2px 8px #000a;
+      margin-bottom: 8px;
+    }
+    .coming-soon {
+      font-size: 0.97rem;
+      color: #fff9;
+      text-align: center;
+      font-style: italic;
+      margin-top: 8px;
+    }
+    @media (max-width: 700px) {
+      .title { font-size: 2.1rem; margin-top: 24px; }
+      .games-list { gap: 18px; }
+      .game-card { min-width: 120px; max-width: 160px; padding: 18px 12px; }
+      .game-icon { width: 44px; height: 44px; }
+      .game-name { font-size: 1rem; }
+    }
   </style>
 </head>
 <body>
-  <canvas id="gameCanvas"></canvas>
-  <script>
-    const canvas = document.getElementById('gameCanvas');
-    const ctx = canvas.getContext('2d');
-
-    // Responsive canvas setup
-    function resizeCanvas() {
-      canvas.width = window.innerWidth;
-      canvas.height = window.innerHeight;
-      updateUnits();
-      helicopter.x = canvas.width / 2;
-      helicopter.y = canvas.height * 0.8;
-    }
-    window.addEventListener('resize', resizeCanvas);
-
-    // Responsive game units
-    function getUnit() {
-      return Math.min(canvas.width, canvas.height) / 20;
-    }
-
-    // Game variables
-    let unit;
-    let bulletSpeed, bulletSize, regularBalloonSize, bonusBalloonSize, balloonSpeed;
-    function updateUnits() {
-      unit = getUnit();
-      helicopter.speed = unit * 0.5;
-      helicopter.width = unit * 2;
-      helicopter.height = unit;
-      bulletSize = unit * 0.2;
-      bulletSpeed = unit * 1;
-      regularBalloonSize = unit * 1.5;
-      bonusBalloonSize = unit * 2.4;
-      balloonSpeed = unit * 0.1;
-    }
-
-    // Helicopter properties
-    const helicopter = { x: 0, y: 0, speed: 0, width: 0, height: 0 };
-
-    // Shooting properties
-    const fireRate = 100;
-    let lastFireTime = 0;
-
-    // Balloons array: each has type, size, and score
-    const balloons = [];
-    const balloonSpawnInterval = 800;
-    let lastBalloonSpawnTime = 0;
-
-    // Load images
-    const balloonImg = new Image();
-    balloonImg.src = 'balloon.gif';
-
-    const explosionImg = new Image();
-    explosionImg.src = 'explosion.gif';
-
-    // Explosions array
-    const explosions = [];
-    const explosionDuration = 500; // ms
-
-    let score = 0;
-    let isTouchingLeft = false;
-    let isTouchingRight = false;
-    const bullets = [];
-
-    // Spawn either regular or bonus balloon
-    function spawnBalloon() {
-      const isBonus = Math.random() < 0.15; // 15% chance for bonus
-      const size = isBonus ? bonusBalloonSize : regularBalloonSize;
-      const balloonType = isBonus ? 'bonus' : 'regular';
-      const balloonScore = isBonus ? 4 : 1;
-      const x = Math.random() * (canvas.width - size) + size / 2;
-      const y = -size;
-      balloons.push({ x, y, size, type: balloonType, score: balloonScore });
-    }
-
-    function updateBalloons() {
-      for (let i = 0; i < balloons.length; i++) {
-        const balloon = balloons[i];
-        balloon.y += balloonSpeed;
-        const dx = helicopter.x - balloon.x;
-        const dy = helicopter.y - balloon.y;
-        const distance = Math.sqrt(dx * dx + dy * dy);
-        if (distance < balloon.size / 2) {
-          alert("Game Over! Balloons reached the helicopter.");
-          balloons.length = 0;
-          bullets.length = 0;
-          score = 0;
-          return;
-        }
-        if (balloon.y > canvas.height + balloon.size) {
-          balloons.splice(i, 1);
-          i--;
-        }
-      }
-    }
-
-    function drawBalloons() {
-      balloons.forEach(balloon => {
-        if (balloonImg.complete && balloonImg.naturalWidth !== 0) {
-          ctx.save();
-          if (balloon.type === 'bonus') {
-            ctx.globalAlpha = 0.8;
-            ctx.beginPath();
-            ctx.arc(balloon.x, balloon.y, balloon.size / 2 + 4, 0, Math.PI * 2);
-            ctx.strokeStyle = "gold";
-            ctx.lineWidth = 6;
-            ctx.stroke();
-            ctx.globalAlpha = 1.0;
-          }
-          ctx.drawImage(
-            balloonImg,
-            balloon.x - balloon.size / 2,
-            balloon.y - balloon.size / 2,
-            balloon.size,
-            balloon.size
-          );
-          ctx.restore();
-        } else {
-          ctx.beginPath();
-          ctx.arc(balloon.x, balloon.y, balloon.size / 2, 0, Math.PI * 2);
-          ctx.fillStyle = balloon.type === 'bonus' ? "gold" : "red";
-          ctx.fill();
-        }
-      });
-    }
-
-    function updateBullets() {
-      for (let i = bullets.length - 1; i >= 0; i--) {
-        const bullet = bullets[i];
-        bullet.y -= bulletSpeed;
-        for (let j = balloons.length - 1; j >= 0; j--) {
-          const balloon = balloons[j];
-          const dx = bullet.x - balloon.x;
-          const dy = bullet.y - balloon.y;
-          const distance = Math.sqrt(dx * dx + dy * dy);
-          if (distance < balloon.size / 2) {
-            // Add explosion at balloon hit
-            explosions.push({
-              x: balloon.x,
-              y: balloon.y,
-              startTime: Date.now(),
-              size: balloon.size * 1.2 // explosion size proportional
-            });
-            bullets.splice(i, 1);
-            balloons.splice(j, 1);
-            score += balloon.score;
-            break;
-          }
-        }
-        if (bullet.y < 0) {
-          bullets.splice(i, 1);
-        }
-      }
-    }
-
-    function drawExplosions() {
-      const now = Date.now();
-      for (let i = explosions.length - 1; i >= 0; i--) {
-        const explosion = explosions[i];
-        const elapsed = now - explosion.startTime;
-        if (elapsed > explosionDuration) {
-          explosions.splice(i, 1);
-          continue;
-        }
-        const alpha = 1 - elapsed / explosionDuration;
-        ctx.save();
-        ctx.globalAlpha = alpha;
-        if (explosionImg.complete && explosionImg.naturalWidth !== 0) {
-          ctx.drawImage(
-            explosionImg,
-            explosion.x - explosion.size / 2,
-            explosion.y - explosion.size / 2,
-            explosion.size,
-            explosion.size
-          );
-        } else {
-          // Fallback: draw a white expanding circle
-          ctx.beginPath();
-          ctx.arc(explosion.x, explosion.y, explosion.size / 2, 0, Math.PI * 2);
-          ctx.fillStyle = "white";
-          ctx.fill();
-        }
-        ctx.restore();
-      }
-    }
-
-    function drawBullets() {
-      ctx.fillStyle = 'yellow';
-      bullets.forEach(bullet => {
-        ctx.beginPath();
-        ctx.arc(bullet.x, bullet.y, bulletSize, 0, Math.PI * 2);
-        ctx.fill();
-      });
-    }
-
-    function drawHelicopter() {
-      ctx.fillStyle = 'blue';
-      ctx.fillRect(helicopter.x - helicopter.width / 2, helicopter.y - helicopter.height / 2, helicopter.width, helicopter.height);
-    }
-
-    function drawScore() {
-      ctx.font = `${unit * 1.2}px Arial`;
-      ctx.fillStyle = "white";
-      ctx.textAlign = "center";
-      ctx.fillText("Score: " + score, canvas.width / 2, unit * 1.5);
-    }
-
-    function continuousFire() {
-      const currentTime = Date.now();
-      if (currentTime - lastFireTime > fireRate) {
-        bullets.push({
-          x: helicopter.x,
-          y: helicopter.y - helicopter.height / 2,
-          vx: 0,
-          vy: -bulletSpeed
-        });
-        lastFireTime = currentTime;
-      }
-    }
-
-    function updateHelicopterMovement() {
-      if (isTouchingLeft) {
-        helicopter.x -= helicopter.speed;
-        if (helicopter.x < helicopter.width / 2) helicopter.x = helicopter.width / 2;
-      }
-      if (isTouchingRight) {
-        helicopter.x += helicopter.speed;
-        if (helicopter.x > canvas.width - helicopter.width / 2) helicopter.x = canvas.width - helicopter.width / 2;
-      }
-    }
-
-    // Touch controls
-    canvas.addEventListener('touchstart', (e) => {
-      e.preventDefault();
-      for (let i = 0; i < e.touches.length; i++) {
-        const touch = e.touches[i];
-        if (touch.clientX < canvas.width / 2) {
-          isTouchingLeft = true;
-        } else {
-          isTouchingRight = true;
-        }
-      }
-    }, false);
-
-    canvas.addEventListener('touchend', (e) => {
-      e.preventDefault();
-      isTouchingLeft = false;
-      isTouchingRight = false;
-    }, false);
-
-    canvas.addEventListener('touchmove', (e) => {
-      e.preventDefault();
-      isTouchingLeft = false;
-      isTouchingRight = false;
-      for (let i = 0; i < e.touches.length; i++) {
-        const touch = e.touches[i];
-        if (touch.clientX < canvas.width / 2) {
-          isTouchingLeft = true;
-        } else {
-          isTouchingRight = true;
-        }
-      }
-    }, false);
-
-    // Initial setup
-    resizeCanvas();
-
-    function gameLoop() {
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-      drawScore();
-      updateUnits();
-
-      const currentTime = Date.now();
-      if (currentTime - lastBalloonSpawnTime > balloonSpawnInterval) {
-        spawnBalloon();
-        lastBalloonSpawnTime = currentTime;
-      }
-
-      updateHelicopterMovement();
-      continuousFire();
-      updateBalloons();
-      drawBalloons();
-      updateBullets();
-      drawExplosions();
-      drawBullets();
-      drawHelicopter();
-
-      requestAnimationFrame(gameLoop);
-    }
-
-    gameLoop();
-  </script>
+  <div class="title">
+    🎮 Game Arcade
+  </div>
+  <div class="games-list">
+    <!-- Balloon Shooter game card -->
+    <div class="game-card" tabindex="0" onclick="window.location.href='balloon.html'" onkeydown="if(event.key==='Enter'){window.location.href='balloon.html'}">
+      <img src="balloon.gif" alt="Balloon Shooter Icon" class="game-icon">
+      <div class="game-name">Balloon Shooter</div>
+    </div>
+    <!-- Example for future games -->
+    <div class="game-card" style="opacity:0.6; pointer-events:none;">
+      <img src="balloon.gif" alt="Coming Soon" class="game-icon" style="filter: grayscale(1) blur(1px);">
+      <div class="game-name">???</div>
+      <div class="coming-soon">Coming Soon</div>
+    </div>
+  </div>
 </body>
 </html>
