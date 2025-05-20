@@ -60,11 +60,10 @@
       box-shadow: 0 12px 48px 0 #00c6ff44, 0 2px 8px 0 #0003;
       border-color: #00c6ff;
     }
-    .game-icon, .game-icon-number {
+    .game-icon, .game-icon-number, .game-icon-chat {
       width: 64px;
       height: 64px;
       margin-bottom: 16px;
-      object-fit: contain;
       background: transparent;
       border-radius: 50%;
       border: 2px solid #fff8;
@@ -78,7 +77,9 @@
     .game-card:hover .game-icon,
     .game-card:focus-visible .game-icon,
     .game-card:hover .game-icon-number,
-    .game-card:focus-visible .game-icon-number {
+    .game-card:focus-visible .game-icon-number,
+    .game-card:hover .game-icon-chat,
+    .game-card:focus-visible .game-icon-chat {
       border-color: #00c6ff;
     }
     .game-icon-number {
@@ -91,6 +92,12 @@
       align-items: center;
       display: flex;
       font-family: 'Segoe UI', 'Arial', sans-serif;
+    }
+    .game-icon-chat {
+      background: linear-gradient(135deg, #d5f3ff 0%, #34b6ff 100%);
+      display: flex;
+      justify-content: center;
+      align-items: center;
     }
     .game-name {
       font-size: 1.3rem;
@@ -112,7 +119,7 @@
       .title { font-size: 2.1rem; margin-top: 24px; }
       .games-list { gap: 18px; }
       .game-card { min-width: 120px; max-width: 160px; padding: 18px 12px; }
-      .game-icon, .game-icon-number { width: 44px; height: 44px; font-size: 1.5rem; }
+      .game-icon, .game-icon-number, .game-icon-chat { width: 44px; height: 44px; font-size: 1.5rem; }
       .game-name { font-size: 1rem; }
     }
   </style>
@@ -131,6 +138,23 @@
     <div class="game-card" tabindex="0" onclick="window.location.href='math.html'" onkeydown="if(event.key==='Enter'){window.location.href='math.html'}" title="Play Math Game">
       <div class="game-icon-number">1</div>
       <div class="game-name">Math Game</div>
+    </div>
+    <!-- Chat Game -->
+    <div class="game-card" tabindex="0" onclick="window.location.href='Chat.html'" onkeydown="if(event.key==='Enter'){window.location.href='Chat.html'}" title="Play Chat">
+      <div class="game-icon-chat">
+        <!-- Simple SVG chat bubble icon -->
+        <svg width="40" height="40" viewBox="0 0 48 48" fill="none">
+          <ellipse cx="24" cy="22" rx="18" ry="13" fill="#fff"/>
+          <ellipse cx="24" cy="22" rx="18" ry="13" stroke="#2c5364" stroke-width="2"/>
+          <ellipse cx="24" cy="22" rx="18" ry="13" fill="#fff"/>
+          <ellipse cx="24" cy="22" rx="18" ry="13" stroke="#2c5364" stroke-width="2"/>
+          <circle cx="18" cy="22" r="2.3" fill="#2c5364"/>
+          <circle cx="24" cy="22" r="2.3" fill="#2c5364"/>
+          <circle cx="30" cy="22" r="2.3" fill="#2c5364"/>
+          <path d="M21 35c-6.5-2.5-7-5-7-5 .7 0 2.8 1.2 4.3 1.2C19.6 31.2 21 30 21 30s2.3 1.2 6.7 1.2c1.5 0 3.6-1.2 4.3-1.2 0 0-.5 2.5-7 5z" fill="#fff" stroke="#2c5364" stroke-width="2"/>
+        </svg>
+      </div>
+      <div class="game-name">Chat</div>
     </div>
     <!-- Example for future games -->
     <div class="game-card" style="opacity:0.6; pointer-events:none;">
