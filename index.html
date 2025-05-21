@@ -36,7 +36,7 @@
       justify-content: center;
       gap: 32px;
       width: 100%;
-      max-width: 900px;
+      max-width: 1100px;
       margin-top: 32px;
     }
     .game-card {
@@ -60,7 +60,7 @@
       box-shadow: 0 12px 48px 0 #00c6ff44, 0 2px 8px 0 #0003;
       border-color: #00c6ff;
     }
-    .game-icon, .game-icon-number, .game-icon-chat, .game-icon-weather {
+    .game-icon, .game-icon-number, .game-icon-chat, .game-icon-weather, .game-icon-coin {
       width: 64px;
       height: 64px;
       margin-bottom: 16px;
@@ -81,7 +81,9 @@
     .game-card:hover .game-icon-chat,
     .game-card:focus-visible .game-icon-chat,
     .game-card:hover .game-icon-weather,
-    .game-card:focus-visible .game-icon-weather {
+    .game-card:focus-visible .game-icon-weather,
+    .game-card:hover .game-icon-coin,
+    .game-card:focus-visible .game-icon-coin {
       border-color: #00c6ff;
     }
     .game-icon-number {
@@ -107,6 +109,12 @@
       justify-content: center;
       align-items: center;
     }
+    .game-icon-coin {
+      background: linear-gradient(135deg, #fffbe7 0%, #f7e38d 100%);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
     .game-name {
       font-size: 1.3rem;
       color: #fff;
@@ -123,12 +131,12 @@
       font-style: italic;
       margin-top: 8px;
     }
-    @media (max-width: 700px) {
-      .title { font-size: 2.1rem; margin-top: 24px; }
+    @media (max-width: 900px) {
       .games-list { gap: 18px; }
       .game-card { min-width: 120px; max-width: 160px; padding: 18px 12px; }
-      .game-icon, .game-icon-number, .game-icon-chat, .game-icon-weather { width: 44px; height: 44px; font-size: 1.5rem; }
+      .game-icon, .game-icon-number, .game-icon-chat, .game-icon-weather, .game-icon-coin { width: 44px; height: 44px; font-size: 1.5rem; }
       .game-name { font-size: 1rem; }
+      .title { font-size: 2.1rem; margin-top: 24px; }
     }
   </style>
 </head>
@@ -150,7 +158,7 @@
     <!-- Chat Game -->
     <div class="game-card" tabindex="0" onclick="window.location.href='Chat.html'" onkeydown="if(event.key==='Enter'){window.location.href='Chat.html'}" title="Play Chat">
       <div class="game-icon-chat">
-        <!-- Simple SVG chat bubble icon -->
+        <!-- SVG chat bubble icon -->
         <svg width="40" height="40" viewBox="0 0 48 48" fill="none">
           <ellipse cx="24" cy="22" rx="18" ry="13" fill="#fff"/>
           <ellipse cx="24" cy="22" rx="18" ry="13" stroke="#2c5364" stroke-width="2"/>
@@ -175,6 +183,18 @@
         </svg>
       </div>
       <div class="game-name">Weather</div>
+    </div>
+    <!-- Toss Coin Game -->
+    <div class="game-card" tabindex="0" onclick="window.location.href='toss.html'" onkeydown="if(event.key==='Enter'){window.location.href='toss.html'}" title="Toss Coin">
+      <div class="game-icon-coin">
+        <!-- SVG coin icon -->
+        <svg width="44" height="44" viewBox="0 0 44 44" fill="none">
+          <ellipse cx="22" cy="22" rx="18" ry="18" fill="#FFD700" stroke="#FFC300" stroke-width="3"/>
+          <ellipse cx="22" cy="22" rx="13" ry="13" fill="#FFF8DC" stroke="#FFC300" stroke-width="2"/>
+          <text x="22" y="29" text-anchor="middle" font-size="16" font-weight="bold" fill="#FFC300">₹</text>
+        </svg>
+      </div>
+      <div class="game-name">Toss Coin</div>
     </div>
     <!-- Example for future games -->
     <div class="game-card" style="opacity:0.6; pointer-events:none;">
