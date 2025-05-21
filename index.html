@@ -60,7 +60,7 @@
       box-shadow: 0 12px 48px 0 #00c6ff44, 0 2px 8px 0 #0003;
       border-color: #00c6ff;
     }
-    .game-icon, .game-icon-number, .game-icon-chat {
+    .game-icon, .game-icon-number, .game-icon-chat, .game-icon-weather {
       width: 64px;
       height: 64px;
       margin-bottom: 16px;
@@ -79,7 +79,9 @@
     .game-card:hover .game-icon-number,
     .game-card:focus-visible .game-icon-number,
     .game-card:hover .game-icon-chat,
-    .game-card:focus-visible .game-icon-chat {
+    .game-card:focus-visible .game-icon-chat,
+    .game-card:hover .game-icon-weather,
+    .game-card:focus-visible .game-icon-weather {
       border-color: #00c6ff;
     }
     .game-icon-number {
@@ -95,6 +97,12 @@
     }
     .game-icon-chat {
       background: linear-gradient(135deg, #d5f3ff 0%, #34b6ff 100%);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+    .game-icon-weather {
+      background: linear-gradient(135deg, #e0eafc 0%, #a1c4fd 100%);
       display: flex;
       justify-content: center;
       align-items: center;
@@ -119,7 +127,7 @@
       .title { font-size: 2.1rem; margin-top: 24px; }
       .games-list { gap: 18px; }
       .game-card { min-width: 120px; max-width: 160px; padding: 18px 12px; }
-      .game-icon, .game-icon-number, .game-icon-chat { width: 44px; height: 44px; font-size: 1.5rem; }
+      .game-icon, .game-icon-number, .game-icon-chat, .game-icon-weather { width: 44px; height: 44px; font-size: 1.5rem; }
       .game-name { font-size: 1rem; }
     }
   </style>
@@ -146,8 +154,6 @@
         <svg width="40" height="40" viewBox="0 0 48 48" fill="none">
           <ellipse cx="24" cy="22" rx="18" ry="13" fill="#fff"/>
           <ellipse cx="24" cy="22" rx="18" ry="13" stroke="#2c5364" stroke-width="2"/>
-          <ellipse cx="24" cy="22" rx="18" ry="13" fill="#fff"/>
-          <ellipse cx="24" cy="22" rx="18" ry="13" stroke="#2c5364" stroke-width="2"/>
           <circle cx="18" cy="22" r="2.3" fill="#2c5364"/>
           <circle cx="24" cy="22" r="2.3" fill="#2c5364"/>
           <circle cx="30" cy="22" r="2.3" fill="#2c5364"/>
@@ -155,6 +161,20 @@
         </svg>
       </div>
       <div class="game-name">Chat</div>
+    </div>
+    <!-- Weather Game -->
+    <div class="game-card" tabindex="0" onclick="window.location.href='weather.html'" onkeydown="if(event.key==='Enter'){window.location.href='weather.html'}" title="Weather">
+      <div class="game-icon-weather">
+        <!-- SVG weather icon: sun behind cloud -->
+        <svg width="44" height="44" viewBox="0 0 44 44" fill="none">
+          <!-- Sun -->
+          <circle cx="30" cy="17" r="8" fill="#ffe259"/>
+          <!-- Cloud -->
+          <ellipse cx="20" cy="28" rx="12" ry="7" fill="#fff"/>
+          <ellipse cx="28" cy="30" rx="8" ry="5" fill="#e3f2fd"/>
+        </svg>
+      </div>
+      <div class="game-name">Weather</div>
     </div>
     <!-- Example for future games -->
     <div class="game-card" style="opacity:0.6; pointer-events:none;">
