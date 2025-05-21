@@ -115,9 +115,8 @@
         }
         .loader-bar-fg {
             height: 100%;
-            background: linear-gradient(90deg, #157347, #228f47 90%);
             width: 100vw;
-            transition: width 0.2s linear;
+            transition: width 0.2s linear, background 0.2s linear;
             border-top-right-radius: 13px;
             border-bottom-right-radius: 13px;
         }
@@ -178,7 +177,7 @@
                     x: Math.random() * snowCanvas.width,
                     y: Math.random() * snowCanvas.height,
                     value: Math.floor(Math.random()*10),
-                    fontSize: randomBetween(22, 36),
+                    fontSize: randomBetween(14, 22), // reduced for beauty
                     d: randomBetween(1.1, 2.7),
                     drift: randomBetween(-0.5, 0.5),
                     wind: randomBetween(-0.4, 0.4)
@@ -207,7 +206,7 @@
                     f.y = -10;
                     f.x = Math.random() * snowCanvas.width;
                     f.value = Math.floor(Math.random()*10); // new random number when re-spawn
-                    f.fontSize = randomBetween(22, 36);
+                    f.fontSize = randomBetween(14, 22); // reduced for beauty
                 }
                 if (f.x > snowCanvas.width + 5) f.x = -5;
                 if (f.x < -5) f.x = snowCanvas.width + 5;
@@ -243,6 +242,7 @@
         let correctAnswer;
         let numberRange = 10;
         let timerInterval, loaderInterval;
+        const maxNumberRange = 100; // Prevents number growing indefinitely
 
         function getRandomNumber(max) {
             return Math.floor(Math.random() * max) + 1;
@@ -305,7 +305,7 @@
                 score++;
                 timeLeft += 5;
                 maxTime = timeLeft;
-                if (score % 5 === 0) numberRange += 5;
+                if (score % 5 === 0 && numberRange < maxNumberRange) numberRange += 5;
                 scoreElement.textContent = `Score: ${score}`;
                 timerElement.textContent = `Time: ${timeLeft}`;
                 generateQuestion();
@@ -331,6 +331,22 @@
                 if (displayTime < 0) displayTime = 0;
                 let widthPercent = (displayTime / maxTime) * 100;
                 loaderBar.style.width = widthPercent + "vw";
+
+                // Loader color: green (#157347) to orange to red (#e53935)
+                // When timeLeft <= 2, fully red.
+                if (displayTime > 2) {
+                    loaderBar.style.background = 'linear-gradient(90deg, #157347, #228f47 90%)';
+                } else {
+                    // Interpolate: orange at 2, red at 0
+                    let ratio = Math.max(0, Math.min(1, displayTime / 2)); // 2 → 1, 0 → 0
+                    // From #ff9800 (orange) to #e53935 (red)
+                    let r = Math.round(255 * ratio + 229 * (1 - ratio));
+                    let g = Math.round(152 * ratio + 57 * (1 - ratio));
+                    let b = Math.round(0 * ratio + 53 * (1 - ratio));
+                    let color = `rgb(${r},${g},${b})`;
+                    loaderBar.style.background = color;
+                }
+
                 if (displayTime <= 0) {
                     clearInterval(loaderInterval);
                 }
