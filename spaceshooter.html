@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gesture Space Shooter</title>
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/handpose"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            background: #0f0f23;
+            color: white;
+            margin: 0;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        .game-area {
+            position: relative;
+            margin: 20px auto;
+            width: 640px;
+            height: 480px;
+        }
+
+        video, canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            border: 2px solid #444;
+            border-radius: 8px;
+        }
+
+        canvas {
+            z-index: 10;
+            background-color: rgba(0, 0, 0, 0.5);
+        }
+
+        button {
+            padding: 10px 20px;
+            font-size: 16px;
+            background: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+
+        button:hover {
+            background: #45a049;
+        }
+
+        #score {
+            font-size: 20px;
+            margin-top: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>👽 Gesture Space Shooter</h1>
+        <p>Move your index finger to dodge asteroids!</p>
+        
+        <div class="game-area">
+            <video id="webcam" playsinline></video>
+            <canvas id="gameCanvas"></canvas>
+        </div>
+        
+        <div class="controls">
+            <button id="startBtn">Start Game</button>
+            <div id="score">Score: 0</div>
+        </div>
+    </div>
+
+    <script>
+        // Game elements
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        const video = document.getElementById('webcam');
+        const startBtn = document.getElementById('startBtn');
+        const scoreElement = document.getElementById('score');
+
+        // Game settings
+        canvas.width = 640;
+        canvas.height = 480;
+        let score = 0;
+        let gameRunning = false;
+
+        // Game objects
+        const ship = {
+            x: canvas.width / 2,
+            y: canvas.height / 2,
+            radius: 15,
+            color: '#00FF00'
+        };
+
+        let asteroids = [];
+        let lastAsteroidTime = 0;
+
+        // Initialize handpose model
+        let model;
+        async function initHandpose() {
+            model = await handpose.load();
+            console.log("Handpose model loaded");
+            detectHand();
+        }
+
+        // Access webcam
+        async function setupWebcam() {
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+                video.srcObject = stream;
+                video.play();
+                return true;
+            } catch (err) {
+                console.error("Error accessing webcam:", err);
+                return false;
+            }
+        }
+
+        // Detect hand gestures
+        async function detectHand() {
+            if (!gameRunning) return;
+            
+            const predictions = await model.estimateHands(video);
+            if (predictions.length > 0) {
+                const landmarks = predictions[0].landmarks;
+                // Use index finger tip (landmark 8) to control ship
+                const indexFinger = landmarks[8];
+                
+                // Convert video coordinates to canvas coordinates
+                const videoRatio = video.videoWidth / video.videoHeight;
+                const displayRatio = video.offsetWidth / video.offsetHeight;
+                
+                let scaleX, scaleY;
+                if (displayRatio > videoRatio) {
+                    scaleY = video.offsetHeight / video.videoHeight;
+                    scaleX = scaleY;
+                } else {
+                    scaleX = video.offsetWidth / video.videoWidth;
+                    scaleY = scaleX;
+                }
+                
+                ship.x = (indexFinger[0] - (video.offsetWidth - video.videoWidth * scaleX) / 2) / scaleX;
+                ship.y = (indexFinger[1] - (video.offsetHeight - video.videoHeight * scaleY) / 2) / scaleY;
+            }
+            
+            requestAnimationFrame(detectHand);
+        }
+
+        // Game functions
+        function spawnAsteroid() {
+            asteroids.push({
+                x: Math.random() * canvas.width,
+                y: -30,
+                radius: 10 + Math.random() * 20,
+                speed: 1 + Math.random() * 3,
+                color: `hsl(${Math.random() * 60 + 20}, 70%, 50%)`
+            });
+        }
+
+        function updateGame() {
+            if (!gameRunning) return;
+            
+            // Clear canvas
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
+            // Draw ship
+            ctx.beginPath();
+            ctx.arc(ship.x, ship.y, ship.radius, 0, Math.PI * 2);
+            ctx.fillStyle = ship.color;
+            ctx.fill();
+            
+            // Update and draw asteroids
+            const now = Date.now();
+            if (now - lastAsteroidTime > 1000) {
+                spawnAsteroid();
+                lastAsteroidTime = now;
+            }
+            
+            for (let i = asteroids.length - 1; i >= 0; i--) {
+                const asteroid = asteroids[i];
+                asteroid.y += asteroid.speed;
+                
+                // Draw asteroid
+                ctx.beginPath();
+                ctx.arc(asteroid.x, asteroid.y, asteroid.radius, 0, Math.PI * 2);
+                ctx.fillStyle = asteroid.color;
+                ctx.fill();
+                
+                // Check collision
+                const dx = ship.x - asteroid.x;
+                const dy = ship.y - asteroid.y;
+                const distance = Math.sqrt(dx * dx + dy * dy);
+                
+                if (distance < ship.radius + asteroid.radius) {
+                    gameOver();
+                    return;
+                }
+                
+                // Remove off-screen asteroids
+                if (asteroid.y > canvas.height + asteroid.radius) {
+                    asteroids.splice(i, 1);
+                    score++;
+                    scoreElement.textContent = `Score: ${score}`;
+                }
+            }
+            
+            requestAnimationFrame(updateGame);
+        }
+
+        function gameOver() {
+            gameRunning = false;
+            alert(`Game Over! Your score: ${score}`);
+            startBtn.textContent = "Restart Game";
+        }
+
+        // Start game
+        startBtn.addEventListener('click', async () => {
+            if (!gameRunning) {
+                const webcamReady = await setupWebcam();
+                if (webcamReady) {
+                    gameRunning = true;
+                    score = 0;
+                    asteroids = [];
+                    scoreElement.textContent = `Score: ${score}`;
+                    startBtn.textContent = "Playing...";
+                    initHandpose();
+                    updateGame();
+                } else {
+                    alert("Please allow webcam access to play!");
+                }
+            }
+        });
+    </script>
+</body>
+</html>
