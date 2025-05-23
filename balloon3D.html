@@ -59,8 +59,8 @@
   <script>
     let scene, camera, renderer, gun, zombies = [], bullets = [], score = 0;
     let GUN_Y = -8.5, GUN_X_LIMIT = 9.5, gunMoving = false, soundMuted = false;
-    let targetGunX = 0; // New: Target X position for smoother gun movement
-    const dragSensitivity = 0.05; // New: Adjust this value for desired responsiveness
+    let targetGunX = 0; // Target X position for smoother gun movement
+    const dragSensitivity = 0.1; // Adjust this value for desired responsiveness (0.01 for very smooth, 0.5 for very responsive)
 
     // Sound
     const zombieHitSound = document.getElementById('zombie-hit-sound');
@@ -76,17 +76,16 @@
       soundOffIcon.style.display = muted ? "" : "none";
     }
 
+    // Event listener for first user interaction to resume AudioContext
     muteBtn.addEventListener('click', () => {
-      // Initialize and resume AudioContext on first user interaction
       if (!audioContext) {
         audioContext = new (window.AudioContext || window.webkitAudioContext)();
         if (audioContext.state === 'suspended') {
           audioContext.resume().then(() => {
             console.log('AudioContext resumed!');
-          });
+          }).catch(e => console.error("Failed to resume AudioContext:", e));
         }
       }
-
       soundMuted = !soundMuted;
       setMuteUI(soundMuted);
     });
@@ -108,25 +107,34 @@
       new THREE.MeshBasicMaterial({color: 0x23272a, side:THREE.BackSide})
     ));
 
-    // Gun Model
+    // Gun Model - Modified to point upwards
     function createGun() {
       const gunGroup = new THREE.Group();
+      // Body of the gun (base)
       const body = new THREE.Mesh(
-        new THREE.BoxGeometry(1.7, 0.6, 0.5),
+        new THREE.BoxGeometry(0.6, 0.8, 0.5), // width, height, depth
         new THREE.MeshPhongMaterial({color: 0x333333})
       );
+      body.position.y = 0.4; // Center at 0.4 for a height of 0.8, putting base at 0
+
+      // Barrel of the gun
       const barrel = new THREE.Mesh(
-        new THREE.CylinderGeometry(0.14, 0.14, 1.3, 18),
+        new THREE.CylinderGeometry(0.14, 0.14, 1.5, 18), // radius, radius, height, segments
         new THREE.MeshPhongMaterial({color: 0x90caf9})
       );
-      barrel.rotation.z = Math.PI / 2;
-      barrel.position.set(1.05, 0, 0); // Position relative to gunGroup's center
+      // Cylinder is by default aligned with Y-axis, so no rotation needed for 'up'
+      barrel.position.y = 0.8 + (1.5 / 2); // Position on top of the body
+
+      // Muzzle (top of the barrel)
       const muzzle = new THREE.Mesh(
         new THREE.SphereGeometry(0.18, 12, 12),
         new THREE.MeshPhongMaterial({color: 0xffab00})
       );
-      muzzle.position.set(1.7, 0, 0); // Position relative to gunGroup's center
-      gunGroup.add(body); gunGroup.add(barrel); gunGroup.add(muzzle);
+      muzzle.position.y = 0.8 + 1.5; // Position at the very top of the barrel
+
+      gunGroup.add(body);
+      gunGroup.add(barrel);
+      gunGroup.add(muzzle);
       gunGroup.position.set(0, GUN_Y, 0); // Initial global position of the gun
       return gunGroup;
     }
@@ -157,14 +165,21 @@
     // Zombies
     function createZombie() {
       const zombie = new THREE.Group();
+
+      // Randomize zombie colors (greenish to brownish hues)
+      const hue = Math.random() * 0.2 + 0.3; // Hue from ~green (0.3) to ~yellow-green (0.5)
+      const saturation = 0.7 + Math.random() * 0.2; // 0.7 to 0.9
+      const lightnessBody = 0.3 + Math.random() * 0.1; // 0.3 to 0.4 for body
+      const lightnessHead = 0.4 + Math.random() * 0.1; // 0.4 to 0.5 for head
+
       const head = new THREE.Mesh(
         new THREE.BoxGeometry(1.1, 1.2, 1.1),
-        new THREE.MeshPhongMaterial({color: 0x44ff44})
+        new THREE.MeshPhongMaterial({color: new THREE.Color().setHSL(hue, saturation, lightnessHead)})
       );
       head.position.y = 0.7;
       const body = new THREE.Mesh(
         new THREE.BoxGeometry(0.7, 1.2, 0.7),
-        new THREE.MeshPhongMaterial({color: 0x388e3c})
+        new THREE.MeshPhongMaterial({color: new THREE.Color().setHSL(hue, saturation, lightnessBody)})
       );
       body.position.y = -0.4;
       zombie.add(head); zombie.add(body);
@@ -193,11 +208,18 @@
     // Bullets
     function createBullet() {
       const geometry = new THREE.CylinderGeometry(0.11, 0.11, 0.7, 12);
-      const material = new THREE.MeshPhongMaterial({color: 0xfbc02d, shininess: 60});
-      const bullet = new THREE.Mesh(geometry, material);
-      bullet.rotation.z = Math.PI/2;
-      // FIX: Set bullet's x position to the gun's x position.
-      bullet.position.set(gun.position.x, GUN_Y + 0.08, 0); 
+      // Randomize bullet color
+      const bulletHue = Math.random(); // Full spectrum of colors
+      const bulletMaterial = new THREE.MeshPhongMaterial({color: new THREE.Color().setHSL(bulletHue, 0.9, 0.6), shininess: 60});
+      const bullet = new THREE.Mesh(geometry, bulletMaterial);
+      
+      // Rotate bullet to point upwards, similar to gun's barrel
+      bullet.rotation.x = Math.PI / 2; // Make cylinder point along Z-axis (default is Y)
+      bullet.rotation.z = Math.PI / 2; // Then rotate around Z to make it point along Y-axis
+
+      // Set bullet's initial position at the top of the gun
+      // Gun's total height is approx 2.3 (0.8 body + 1.5 barrel)
+      bullet.position.set(gun.position.x, GUN_Y + 2.3, 0); 
       bullet.userData = { speed: 0.55, alive: true };
       return bullet;
     }
@@ -211,7 +233,7 @@
       for (let i = bullets.length-1; i >= 0; i--) {
         const bullet = bullets[i];
         bullet.position.y += bullet.userData.speed;
-        if (bullet.position.y > 14) {
+        if (bullet.position.y > 14) { // Bullet goes off screen
           scene.remove(bullet);
           bullets.splice(i,1);
           continue;
@@ -220,16 +242,21 @@
           const zombie = zombies[j];
           if (zombie.userData.dead) continue;
           const dist = bullet.position.distanceTo(zombie.position);
-          if (dist < 1.05) { // Adjusted for the combined size of bullet and zombie
+          if (dist < 1.05) { // Collision detected
             zombie.userData.dead = true;
             if (!soundMuted) {
-              try { zombieHitSound.currentTime = 0; zombieHitSound.play(); } catch(e){ console.error("Sound play error:", e); }
+              try { 
+                zombieHitSound.currentTime = 0; // Reset sound to beginning
+                zombieHitSound.play(); 
+              } catch(e){ 
+                console.error("Sound play error:", e); 
+              }
             }
             score++;
             document.getElementById('score').textContent = 'Score: ' + score;
             scene.remove(bullet);
             bullets.splice(i,1);
-            break;
+            break; // Bullet can only hit one zombie
           }
         }
       }
@@ -250,25 +277,30 @@
         if (z.userData.dead) {
           z.scale.multiplyScalar(1.14);
           z.children.forEach(child => {
-            // Ensure material has opacity property, default to 1 if not present
             if (child.material && child.material.opacity !== undefined) {
                 child.material.opacity *= 0.80;
                 child.material.transparent = true;
-            } else if (child.material) { // If opacity is not defined, set it for the first time
+            } else if (child.material) {
                 child.material.opacity = 0.8;
                 child.material.transparent = true;
             }
           });
-          if (z.scale.x > 2.4) {
+          if (z.scale.x > 2.4) { // Remove faded zombie
             scene.remove(z);
             zombies.splice(i,1);
           }
         } else {
           z.position.y -= z.userData.speed;
           z.rotation.y += 0.004;
-          if (z.position.y < GUN_Y - 0.7) {
+          if (z.position.y < GUN_Y - 0.7) { // Zombie passed the gun
             if (!soundMuted) {
-              try { zombieHitSound.currentTime = 0.18; zombieHitSound.play(); } catch(e){ console.error("Sound play error:", e); }
+              try { 
+                // Play a different sound or effect for missed zombies, or just the same hit sound
+                zombieHitSound.currentTime = 0.18; // A different part of the sound, or a distinct 'miss' sound
+                zombieHitSound.play(); 
+              } catch(e){ 
+                console.error("Sound play error (missed zombie):", e); 
+              }
             }
             scene.remove(z);
             zombies.splice(i,1);
