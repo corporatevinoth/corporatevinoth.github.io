@@ -158,7 +158,7 @@
     @media (max-width: 900px) {
       .games-list { gap: 18px; }
       .game-card { min-width: 120px; max-width: 160px; padding: 18px 12px; }
-      .game-icon, .game-icon-number, .game-icon-chat, .game-icon-weather, .game-icon-coin, .game-icon-gun, .game-icon-imgdetect, .game-icon-workout, .game-icon-balloon3d { width: 44px; height: 44px; font-size: 1.5rem; }
+      .game-icon, .game-icon-number, .game-icon-chat, .game-icon-weather, .game-icon-coin, .game-icon-gun, .game-icon-imgdetect, .game-icon-workout, .game-icon-balloon3d { width: 44px; height: 44px; }
       .game-name { font-size: 1rem; }
       .title { font-size: 2.1rem; margin-top: 24px; }
     }
@@ -283,6 +283,18 @@
         </svg>
       </div>
       <div class="game-name">Balloon 3D</div>
+    </div>
+    <!-- Card Game (NEW CARD) -->
+    <div class="game-card" tabindex="0" onclick="window.location.href='cardgame.html'" onkeydown="if(event.key==='Enter'){window.location.href='cardgame.html'}" title="Play Card Game">
+      <div class="game-icon" style="background: linear-gradient(135deg, #fffde4 0%, #005aa7 100%);">
+        <!-- SVG Playing Card Icon -->
+        <svg width="44" height="44" viewBox="0 0 44 44" fill="none">
+          <rect x="9" y="7" width="26" height="30" rx="4" fill="#fff" stroke="#005aa7" stroke-width="2"/>
+          <text x="15" y="22" text-anchor="middle" font-size="16" font-weight="bold" fill="#e53935">A</text>
+          <text x="29" y="36" text-anchor="middle" font-size="14" font-weight="bold" fill="#005aa7">♠</text>
+        </svg>
+      </div>
+      <div class="game-name">Card Game</div>
     </div>
     <!-- Example for future games -->
     <div class="game-card" style="opacity:0.6; pointer-events:none;">
