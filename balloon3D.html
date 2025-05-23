@@ -13,7 +13,8 @@
     }
     #info {
       position: absolute; top: 16px; left: 50%; transform: translateX(-50%);
-      color: #fff;: Arial, sans-serif; letter-spacing: 0.5px; box-shadow: 0 2px 12px #0001;
+      color: #fff; font-family: Arial, sans-serif; letter-spacing: 0.5px; box-shadow: 0 2px 12px #0001;
+      background: rgba(44,83,100,0.6); border-radius: 10px; padding: 7px 22px; z-index: 2;
     }
     #mute-btn {
       position: absolute;
@@ -34,7 +35,8 @@
       transition: background 0.2s;
       padding: 0;
     }
-    #mute-btn:active { background: rgba(44,83mute-btn svg { width: 28px; height: 28px; }
+    #mute-btn:active { background: rgba(44,83,100,0.8); }
+    #mute-btn svg { width: 28px; height: 28px; }
     @media (max-width: 700px) {
       #score { font-size: 1.1rem; padding: 5px 13px;}
       #info { font-size: 0.8rem; padding: 5px 9px;}
@@ -51,8 +53,9 @@
     <svg id="sound-on" viewBox="0 0 24 24" fill="none"><path d="M5 9v6h4l5 5V4l-5 5H5z" fill="#fff"/><path d="M16.5 12c0-1.77-.77-3.29-2-4.29v8.58c1.23-1 2-2.52 2-4.29z" fill="#fff"/></svg>
     <svg id="sound-off" viewBox="0 0 24 24" fill="none" style="display:none"><path d="M16.5 12c0-1.77-.77-3.29-2-4.29v8.58c1.23-1 2-2.52 2-4.29z" fill="#fff"/><path d="M5 9v6h4l5 5V4l-5 5H5z" fill="#fff"/><line x1="19" y1="5" x2="5" y2="19" stroke="#fff" stroke-width="2"/></svg>
   </button>
-  <!-- Zombie hit sound (short, soft) -->
-  <audio id="zombie-hit-sound" src="https://cdn.pixabay.com/audio/2022/10/16/audio_12d9e/build/three.min.js"></script>
+  <audio id="zombie-hit-sound" src="https://cdn.pixabay.com/audio/2022/10/16/audio_12d9e.mp3"></audio>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
   <script>
     let scene, camera, renderer, gun, zombies = [], bullets = [], score = 0;
     let GUN_Y = -8.5, GUN_X_LIMIT = 9.5, gunMoving = false, soundMuted = false;
@@ -100,14 +103,14 @@
         new THREE.MeshPhongMaterial({color: 0x90caf9})
       );
       barrel.rotation.z = Math.PI / 2;
-      barrel.position.set(1.05, 0, 0);
+      barrel.position.set(1.05, 0, 0); // Position relative to gunGroup's center
       const muzzle = new THREE.Mesh(
         new THREE.SphereGeometry(0.18, 12, 12),
         new THREE.MeshPhongMaterial({color: 0xffab00})
       );
-      muzzle.position.set(1.7, 0, 0);
+      muzzle.position.set(1.7, 0, 0); // Position relative to gunGroup's center
       gunGroup.add(body); gunGroup.add(barrel); gunGroup.add(muzzle);
-      gunGroup.position.set(0, GUN_Y, 0);
+      gunGroup.position.set(0, GUN_Y, 0); // Initial global position of the gun
       return gunGroup;
     }
     gun = createGun(); scene.add(gun);
@@ -175,7 +178,9 @@
       const material = new THREE.MeshPhongMaterial({color: 0xfbc02d, shininess: 60});
       const bullet = new THREE.Mesh(geometry, material);
       bullet.rotation.z = Math.PI/2;
-      bullet.position.set(gun.position.x + 1.05, GUN_Y + 0.08, 0);
+      // FIX: Set bullet's x position to the gun's x position.
+      // The gun's internal components are already positioned relative to its origin.
+      bullet.position.set(gun.position.x, GUN_Y + 0.08, 0); 
       bullet.userData = { speed: 0.55, alive: true };
       return bullet;
     }
@@ -198,7 +203,7 @@
           const zombie = zombies[j];
           if (zombie.userData.dead) continue;
           const dist = bullet.position.distanceTo(zombie.position);
-          if (dist < 1.05) {
+          if (dist < 1.05) { // Adjusted for the combined size of bullet and zombie
             zombie.userData.dead = true;
             if (!soundMuted) {
               try { zombieHitSound.currentTime = 0; zombieHitSound.play(); } catch(e){}
@@ -221,7 +226,16 @@
         let z = zombies[i];
         if (z.userData.dead) {
           z.scale.multiplyScalar(1.14);
-          z.children.forEach(child => { child.material.opacity = (child.material.opacity||1) * 0.80; child.material.transparent = true; });
+          z.children.forEach(child => {
+            // Ensure material has opacity property, default to 1 if not present
+            if (child.material && child.material.opacity !== undefined) {
+                child.material.opacity *= 0.80;
+                child.material.transparent = true;
+            } else if (child.material) { // If opacity is not defined, set it for the first time
+                child.material.opacity = 0.8;
+                child.material.transparent = true;
+            }
+          });
           if (z.scale.x > 2.4) {
             scene.remove(z);
             zombies.splice(i,1);
