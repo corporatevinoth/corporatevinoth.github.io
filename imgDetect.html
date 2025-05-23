@@ -1,645 +1,162 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AI Object Detector</title>
-    <style>
-        /* --- General Styles --- */
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            display: flex;
-            justify-content: center;
-            align-items: flex-start;
-            min-height: 100vh;
-            background-color: #e0f2f7; /* Light blue background */
-            margin: 0;
-            padding: 20px;
-            box-sizing: border-box;
-        }
-
-        .container {
-            background-color: #ffffff;
-            padding: 25px;
-            border-radius: 12px;
-            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15); /* More prominent shadow */
-            text-align: center;
-            max-width: 900px;
-            width: 100%;
-            margin-top: 20px; /* Space from top on larger screens */
-        }
-
-        h1 {
-            color: #2c3e50; /* Darker blue heading */
-            margin-bottom: 25px;
-            font-size: 2.2em;
-        }
-
-        /* --- Controls Section --- */
-        .controls-section {
-            display: flex;
-            flex-wrap: wrap; /* Allows wrapping on smaller screens */
-            justify-content: center;
-            gap: 20px; /* Space between webcam and upload controls */
-            margin-bottom: 30px;
-            border-bottom: 1px solid #e0e0e0;
-            padding-bottom: 20px;
-        }
-
-        .webcam-controls, .upload-controls {
-            flex: 1; /* Allows sections to grow */
-            min-width: 280px; /* Minimum width before wrapping */
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            gap: 12px;
-            padding: 20px;
-            border: 1px solid #b3e0ff; /* Lighter blue border */
-            border-radius: 10px;
-            background-color: #f0faff; /* Very light blue background */
-            box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.05);
-        }
-
-        .or-divider {
-            font-weight: bold;
-            color: #7f8c8d; /* Greyish color */
-            margin: 10px 0;
-            align-self: center; /* Center vertically in flex container */
-            font-size: 1.1em;
-        }
-
-        /* --- Input & Button Styling --- */
-        input[type="file"], select {
-            padding: 10px 12px;
-            border: 1px solid #a7d9ed; /* Matching border color */
-            border-radius: 8px;
-            width: calc(100% - 24px); /* Full width minus padding */
-            max-width: 280px;
-            font-size: 1em;
-            color: #34495e;
-            background-color: #ffffff;
-            appearance: none; /* Remove default select arrow on some browsers */
-            background-image: url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%232c3e50%22%20d%3D%22M287%2069.4L146.2%20205.9%205.4%2069.4c-1.6-1.6-3.7-2.5-5.9-2.5s-4.3%200.9-5.9%202.5c-3.2%203.2-3.2%208.3%200%2011.5l141.4%20141.4c3.2%203.2%208.3%203.2%2011.5%200l141.4-141.4c3.2-3.2%203.2-8.3%200-11.5c-1.6-1.6-3.7-2.5-5.9-2.5z%22%2F%3E%3C%2Fsvg%3E');
-            background-repeat: no-repeat;
-            background-position: right 10px center;
-            background-size: 12px;
-        }
-
-        button {
-            background-color: #3498db; /* Blue button */
-            color: white;
-            padding: 12px 25px;
-            border: none;
-            border-radius: 8px;
-            cursor: pointer;
-            font-size: 1.1em;
-            font-weight: 600;
-            transition: background-color 0.3s ease, transform 0.2s ease;
-            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
-        }
-
-        button:hover:not(:disabled) {
-            background-color: #2980b9; /* Darker blue on hover */
-            transform: translateY(-2px);
-        }
-
-        button:disabled {
-            background-color: #cccccc;
-            cursor: not-allowed;
-            box-shadow: none;
-            transform: none;
-        }
-
-        /* --- Display Area --- */
-        .display-area {
-            position: relative;
-            margin: 25px auto;
-            border: 2px solid #bdc3c7; /* Lighter grey border */
-            border-radius: 8px;
-            max-width: 100%;
-            overflow: hidden;
-            min-height: 250px; /* Placeholder height */
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            background-color: #ecf0f1; /* Light grey background */
-            box-shadow: inset 0 1px 5px rgba(0, 0, 0, 0.05);
-        }
-
-        #webcamVideo, #uploadedImageDisplay {
-            display: none; /* Initially hidden, managed by JS */
-            max-width: 100%;
-            height: auto;
-            /* transform: scaleX(-1); /* Mirror for webcam only, handled in JS dynamically */
-            border-radius: 6px; /* Slightly rounded corners */
-        }
-
-        #canvas {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            pointer-events: none;
-            background-color: transparent;
-        }
-
-        /* --- Results Section --- */
-        .results-section {
-            margin-top: 30px;
-            text-align: left;
-            border-top: 1px solid #e0e0e0;
-            padding-top: 20px;
-        }
-
-        .results-section h2 {
-            color: #34495e;
-            margin-bottom: 15px;
-            font-size: 1.5em;
-        }
-
-        #detectionList {
-            list-style: none;
-            padding: 0;
-            max-height: 250px; /* Scrollable list */
-            overflow-y: auto;
-            border: 1px solid #e0e0e0;
-            border-radius: 8px;
-            background-color: #fdfdfd;
-        }
-
-        #detectionList li {
-            background-color: #f7f9fa; /* Very light blue for list items */
-            margin: 0; /* Remove margin between items */
-            padding: 12px 15px;
-            border-bottom: 1px solid #eee;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            font-size: 0.95em;
-            color: #555;
-        }
-        #detectionList li:last-child {
-            border-bottom: none;
-        }
-
-        #detectionList li strong {
-            color: #2c3e50;
-        }
-
-        .loading {
-            margin-top: 25px;
-            font-style: italic;
-            color: #7f8c8d;
-            font-size: 1.1em;
-            animation: pulse 1.5s infinite alternate;
-        }
-
-        @keyframes pulse {
-            from { opacity: 1; }
-            to { opacity: 0.7; }
-        }
-
-        /* --- Mobile Responsiveness (Media Queries) --- */
-        @media (max-width: 768px) {
-            .container {
-                padding: 15px;
-                margin-top: 10px;
-            }
-            h1 {
-                font-size: 1.8em;
-            }
-            .controls-section {
-                flex-direction: column;
-                gap: 15px;
-                margin-bottom: 20px;
-            }
-            .webcam-controls, .upload-controls {
-                width: 100%; /* Full width on small screens */
-                min-width: unset;
-                padding: 15px;
-            }
-            .or-divider {
-                width: 100%;
-                text-align: center;
-                margin: 15px 0;
-            }
-            button {
-                width: 100%;
-                margin: 5px 0;
-                font-size: 1em;
-                padding: 10px 20px;
-            }
-            input[type="file"], select {
-                width: calc(100% - 24px);
-                max-width: unset;
-            }
-            .display-area {
-                min-height: 180px;
-            }
-            #detectionList {
-                max-height: 200px;
-            }
-            #detectionList li {
-                padding: 10px 12px;
-                font-size: 0.9em;
-            }
-        }
-
-        @media (max-width: 480px) {
-            h1 {
-                font-size: 1.5em;
-            }
-            .container {
-                padding: 10px;
-            }
-            body {
-                padding: 10px;
-            }
-            .controls-section {
-                gap: 10px;
-            }
-            .webcam-controls, .upload-controls {
-                padding: 10px;
-            }
-            .display-area {
-                min-height: 150px;
-            }
-        }
-    </style>
+  <meta charset="UTF-8">
+  <title>Image Detect</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+    body {
+      margin: 0;
+      background: #222;
+      color: #fff;
+      font-family: Arial, sans-serif;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: flex-start;
+      min-height: 100vh;
+    }
+    .container {
+      margin-top: 30px;
+      width: 100vw;
+      max-width: 430px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+    video {
+      width: 96vw;
+      max-width: 420px;
+      border-radius: 18px;
+      margin-bottom: 18px;
+      background: #000;
+    }
+    .controls {
+      margin-bottom: 12px;
+      display: flex;
+      gap: 20px;
+      align-items: center;
+    }
+    .btn {
+      background: #fff;
+      color: #222;
+      border: none;
+      padding: 10px 22px;
+      border-radius: 8px;
+      font-size: 1.1rem;
+      cursor: pointer;
+      font-weight: bold;
+      transition: background 0.2s, color 0.2s;
+    }
+    .btn:active {
+      background: #1976d2;
+      color: #fff;
+    }
+    .status {
+      margin-top: 10px;
+      font-size: 1.05em;
+      color: #ffe259;
+    }
+  </style>
 </head>
 <body>
-    <div class="container">
-        <h1>AI Object Detector</h1>
-
-        <div class="controls-section">
-            <div class="webcam-controls">
-                <label for="cameraSelect">Select Camera:</label>
-                <select id="cameraSelect" disabled>
-                    <option value="">-- No cameras found --</option>
-                </select>
-                <button id="startWebcamButton">Start Webcam</button>
-                <button id="stopWebcamButton" disabled>Stop Webcam</button>
-            </div>
-            <div class="or-divider">OR</div>
-            <div class="upload-controls">
-                <label for="imageUpload">Upload Image:</label>
-                <input type="file" id="imageUpload" accept="image/*">
-                <button id="detectImageButton" disabled>Detect Objects in Image</button>
-            </div>
-        </div>
-
-        <div class="display-area">
-            <video id="webcamVideo" autoplay muted playsinline></video>
-            <img id="uploadedImageDisplay" src="#" alt="Upload an image" style="display: none;">
-            <canvas id="canvas"></canvas>
-        </div>
-
-        <div id="results" class="results-section">
-            <h2>Detection Results:</h2>
-            <ul id="detectionList"></ul>
-        </div>
-
-        <div class="loading" id="loading">Loading model...</div>
+  <div class="container">
+    <h2>Image Detect</h2>
+    <div class="controls">
+      <button class="btn" id="toggleFlashBtn">Toggle Flashlight</button>
+      <span id="flashStatus">Flash: Off</span>
     </div>
+    <video id="video" playsinline autoplay></video>
+    <div class="status" id="status"></div>
+    <!-- Add your detection UI here -->
+  </div>
+  <script>
+    let stream = null;
+    let track = null;
+    let imageCapture = null;
+    let torchOn = false;
+    const video = document.getElementById('video');
+    const statusDiv = document.getElementById('status');
+    const toggleFlashBtn = document.getElementById('toggleFlashBtn');
+    const flashStatus = document.getElementById('flashStatus');
 
-    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/coco-ssd"></script>
-    <script>
-        const startWebcamButton = document.getElementById('startWebcamButton');
-        const stopWebcamButton = document.getElementById('stopWebcamButton');
-        const cameraSelect = document.getElementById('cameraSelect');
-        const webcamVideo = document.getElementById('webcamVideo');
+    // Helper: check if torch is supported
+    async function isTorchSupported(track) {
+      try {
+        const capabilities = track.getCapabilities();
+        return !!capabilities.torch;
+      } catch (e) {
+        return false;
+      }
+    }
 
-        const imageUpload = document.getElementById('imageUpload');
-        const detectImageButton = document.getElementById('detectImageButton');
-        const uploadedImageDisplay = document.getElementById('uploadedImageDisplay');
-
-        const canvas = document.getElementById('canvas');
-        const ctx = canvas.getContext('2d');
-        const detectionList = document.getElementById('detectionList');
-        const loadingElement = document.getElementById('loading');
-
-        let model;
-        let currentStream; // To hold the MediaStream from the webcam
-        let animationFrameId; // To control the detection loop
-
-        let currentMode = 'none'; // 'webcam', 'image', 'none'
-
-        // --- Model Loading ---
-        async function loadModel() {
-            loadingElement.innerText = 'Loading object detection model... This might take a moment.';
-            try {
-                model = await cocoSsd.load();
-                loadingElement.style.display = 'none';
-                startWebcamButton.disabled = false;
-                detectImageButton.disabled = false; // Enable image detect button
-                console.log('Model loaded successfully!');
-                await enumerateCameras(); // Populate camera dropdown after model loads
-            } catch (error) {
-                console.error('Failed to load model:', error);
-                loadingElement.innerText = 'Error loading model. Please try again.';
-                // Disable all interaction if model fails to load
-                startWebcamButton.disabled = true;
-                detectImageButton.disabled = true;
-                cameraSelect.disabled = true;
-                imageUpload.disabled = true;
-            }
-        }
-
-        // --- Camera Enumeration ---
-        async function enumerateCameras() {
-            try {
-                // Request temporary access to get device labels (crucial for accurate labels)
-                // We'll immediately stop this stream after enumeration if user cancels it.
-                let tempStream = null;
-                try {
-                    tempStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
-                } catch (e) {
-                    console.warn('Could not get temporary camera access for device enumeration. Labels might be generic.');
-                }
-
-                const devices = await navigator.mediaDevices.enumerateDevices();
-                const videoDevices = devices.filter(device => device.kind === 'videoinput');
-
-                cameraSelect.innerHTML = ''; // Clear existing options
-                if (videoDevices.length === 0) {
-                    cameraSelect.innerHTML = '<option value="">-- No cameras found --</option>';
-                    cameraSelect.disabled = true;
-                    startWebcamButton.disabled = true;
-                    console.warn('No video input devices found.');
-                    return;
-                }
-
-                videoDevices.forEach(device => {
-                    const option = document.createElement('option');
-                    option.value = device.deviceId;
-                    // Use device.label if available, otherwise default
-                    option.innerText = device.label || `Camera ${cameraSelect.options.length + 1}`;
-                    // If device has a facingMode hint, add it to the option for clarity (especially mobile)
-                    if (device.label.toLowerCase().includes('front') || device.label.toLowerCase().includes('user')) {
-                         option.innerText += ' (Front)';
-                    } else if (device.label.toLowerCase().includes('back') || device.label.toLowerCase().includes('environment')) {
-                         option.innerText += ' (Back)';
-                    }
-                    cameraSelect.appendChild(option);
-                });
-                cameraSelect.disabled = false;
-                startWebcamButton.disabled = false;
-
-                // Stop the temporary stream immediately if it was created
-                if (tempStream) {
-                    tempStream.getTracks().forEach(track => track.stop());
-                }
-
-            } catch (err) {
-                console.error('Error enumerating devices:', err);
-                cameraSelect.innerHTML = '<option value="">-- Error enumerating cameras --</option>';
-                cameraSelect.disabled = true;
-                startWebcamButton.disabled = true;
-            }
-        }
-
-        // --- Display Management ---
-        function switchToMode(mode) {
-            // Stop any ongoing webcam stream
-            if (currentMode === 'webcam') {
-                stopWebcamInternal(); // Call internal function to prevent recursive calls
-            }
-
-            // Hide all display elements first
-            webcamVideo.style.display = 'none';
-            uploadedImageDisplay.style.display = 'none';
-            ctx.clearRect(0, 0, canvas.width, canvas.height); // Clear canvas
-
-            // Enable/disable buttons and inputs based on mode
-            startWebcamButton.disabled = (mode === 'webcam');
-            stopWebcamButton.disabled = (mode !== 'webcam');
-            
-            // Re-enable image upload only if not in webcam mode
-            imageUpload.disabled = (mode === 'webcam');
-            detectImageButton.disabled = (mode === 'image' || imageUpload.files.length === 0);
-
-            cameraSelect.disabled = (mode === 'webcam'); // Disable camera select when webcam is active
-
-            // Show elements relevant to the new mode
-            if (mode === 'webcam') {
-                webcamVideo.style.display = 'block';
-                canvas.style.display = 'block';
-                // Set canvas dimensions to match video dynamically. Will be updated in onloadeddata
-                canvas.width = webcamVideo.videoWidth || 640; 
-                canvas.height = webcamVideo.videoHeight || 480;
-                // Mirror the video for front camera, or reset for back/external
-                if (cameraSelect.options[cameraSelect.selectedIndex].innerText.toLowerCase().includes('front')) {
-                    webcamVideo.style.transform = 'scaleX(-1)';
-                } else {
-                    webcamVideo.style.transform = 'none';
-                }
-
-            } else if (mode === 'image') {
-                uploadedImageDisplay.style.display = 'block';
-                canvas.style.display = 'block';
-                uploadedImageDisplay.style.transform = 'none'; // No mirroring for uploaded images
-            } else { // 'none' mode
-                // Canvas remains visible for general display/clear but empty
-                canvas.width = 640; // Reset to default size when idle
-                canvas.height = 480;
-                ctx.clearRect(0, 0, canvas.width, canvas.height);
-                detectionList.innerHTML = '';
-            }
-            currentMode = mode;
-        }
-
-        // --- Webcam Functions ---
-        async function startWebcam() {
-            if (!model) {
-                alert('Model not loaded yet. Please wait a moment.');
-                return;
-            }
-
-            // Ensure model has finished loading
-            if (loadingElement.style.display !== 'none') {
-                alert('Model is still loading. Please wait.');
-                return;
-            }
-
-            switchToMode('webcam');
-            detectionList.innerHTML = '<li>Starting webcam...</li>';
-
-            const selectedDeviceId = cameraSelect.value;
-            const constraints = {
-                video: {
-                    deviceId: selectedDeviceId ? { exact: selectedDeviceId } : undefined,
-                    // Prefer 'user' (front) camera if no specific device selected.
-                    // This is especially useful on mobile when the default camera is the back.
-                    facingMode: selectedDeviceId ? undefined : 'user'
-                },
-                audio: false
-            };
-
-            try {
-                currentStream = await navigator.mediaDevices.getUserMedia(constraints);
-                webcamVideo.srcObject = currentStream;
-
-                // When the video metadata loads, set canvas dimensions
-                webcamVideo.onloadeddata = () => {
-                    canvas.width = webcamVideo.videoWidth;
-                    canvas.height = webcamVideo.videoHeight;
-                    console.log('Webcam started:', webcamVideo.videoWidth, webcamVideo.videoHeight);
-                    // Start the detection loop only after video is ready
-                    if (currentMode === 'webcam') { // Ensure we are still in webcam mode
-                        detectWebcamFrame(); 
-                    }
-                };
-
-            } catch (err) {
-                console.error('Error accessing webcam:', err);
-                detectionList.innerHTML = '<li>Error: Could not access webcam. Please ensure you allow camera access.</li>';
-                switchToMode('none');
-            }
-        }
-
-        function stopWebcam() {
-            stopWebcamInternal(); // Call the internal function
-            switchToMode('none'); // Then switch the UI mode
-            console.log('Webcam stopped.');
-        }
-
-        function stopWebcamInternal() { // Internal function to stop stream without changing UI mode
-            if (currentStream) {
-                currentStream.getTracks().forEach(track => track.stop());
-                webcamVideo.srcObject = null;
-                cancelAnimationFrame(animationFrameId);
-            }
-        }
-
-        async function detectWebcamFrame() {
-            // Only detect if video is playing and model is loaded and in webcam mode
-            if (webcamVideo.readyState === 4 && model && currentMode === 'webcam') {
-                const predictions = await model.detect(webcamVideo);
-                ctx.clearRect(0, 0, canvas.width, canvas.height);
-                drawPredictions(predictions);
-            }
-            animationFrameId = requestAnimationFrame(detectWebcamFrame);
-        }
-
-        // --- Image Upload Functions ---
-        imageUpload.addEventListener('change', (event) => {
-            const file = event.target.files[0];
-            if (file) {
-                const reader = new FileReader();
-                reader.onload = (e) => {
-                    uploadedImageDisplay.onload = () => {
-                        // Ensure canvas matches image size for correct drawing
-                        canvas.width = uploadedImageDisplay.naturalWidth;
-                        canvas.height = uploadedImageDisplay.naturalHeight;
-                        ctx.drawImage(uploadedImageDisplay, 0, 0, canvas.width, canvas.height);
-                        detectImageButton.disabled = false;
-                        detectionList.innerHTML = '';
-                        switchToMode('image'); // Switch to image display mode
-                    };
-                    uploadedImageDisplay.src = e.target.result;
-                };
-                reader.readAsDataURL(file);
-            } else {
-                uploadedImageDisplay.src = '#'; // Clear image
-                detectImageButton.disabled = true;
-                switchToMode('none');
-            }
+    async function startCamera() {
+      if (stream) {
+        // Stop previous stream
+        stream.getTracks().forEach(t => t.stop());
+      }
+      statusDiv.textContent = "Requesting camera...";
+      try {
+        stream = await navigator.mediaDevices.getUserMedia({
+          video: {
+            facingMode: { exact: "environment" }
+          },
+          audio: false
         });
-
-        detectImageButton.addEventListener('click', async () => {
-            if (!model) {
-                alert('Model not loaded yet. Please wait a moment.');
-                return;
-            }
-             // Ensure model has finished loading
-            if (loadingElement.style.display !== 'none') {
-                alert('Model is still loading. Please wait.');
-                return;
-            }
-            if (uploadedImageDisplay.src === '#' || !uploadedImageDisplay.complete || !uploadedImageDisplay.naturalWidth) {
-                alert('Please upload an image first.');
-                return;
-            }
-
-            // Ensure webcam is off before processing image
-            stopWebcamInternal(); // Use internal function to not mess with UI mode too much
-
-            detectImageButton.disabled = true;
-            detectImageButton.innerText = 'Detecting...';
-            detectionList.innerHTML = '<li>Detecting objects...</li>';
-
-            try {
-                // The model can directly use the HTML Image element
-                const predictions = await model.detect(uploadedImageDisplay);
-                
-                // Redraw image before drawing predictions to clear old boxes
-                ctx.clearRect(0, 0, canvas.width, canvas.height); 
-                ctx.drawImage(uploadedImageDisplay, 0, 0, canvas.width, canvas.height);
-
-                drawPredictions(predictions);
-
-            } catch (error) {
-                console.error('Error during image detection:', error);
-                detectionList.innerHTML = '<li>Error during detection. Please try again.</li>';
-            } finally {
-                detectImageButton.disabled = false;
-                detectImageButton.innerText = 'Detect Objects in Image';
-            }
-        });
-
-        // --- Common Prediction Drawing Function ---
-        function drawPredictions(predictions) {
-            detectionList.innerHTML = '';
-            if (predictions.length === 0) {
-                detectionList.innerHTML = '<li>No objects detected.</li>';
-            } else {
-                predictions.forEach(prediction => {
-                    const [x, y, width, height] = prediction.bbox;
-
-                    // Draw bounding box
-                    ctx.beginPath();
-                    ctx.rect(x, y, width, height);
-                    ctx.lineWidth = 2;
-                    ctx.strokeStyle = '#27ae60'; /* Emerald green */
-                    ctx.fillStyle = 'rgba(46, 204, 113, 0.2)'; /* Semi-transparent green */
-                    ctx.stroke();
-                    ctx.fillRect(x, y, width, height);
-
-                    // Draw label background
-                    ctx.fillStyle = '#27ae60'; /* Emerald green */
-                    const fontSize = Math.max(12, Math.min(20, width / 8)); // Dynamic font size
-                    ctx.font = `${fontSize}px Arial`;
-                    const label = `${prediction.class} (${Math.round(prediction.score * 100)}%)`;
-                    const textWidth = ctx.measureText(label).width;
-                    // Draw a rectangle for the label background
-                    ctx.fillRect(x, y - fontSize - 8, textWidth + 10, fontSize + 8);
-
-                    // Draw label text
-                    ctx.fillStyle = '#FFFFFF'; /* White text */
-                    ctx.fillText(label, x + 5, y - 5);
-
-                    // Add to results list
-                    const listItem = document.createElement('li');
-                    listItem.innerHTML = `<strong>${prediction.class}</strong>: ${Math.round(prediction.score * 100)}% confidence`;
-                    detectionList.appendChild(listItem);
-                });
-            }
+        video.srcObject = stream;
+        track = stream.getVideoTracks()[0];
+        imageCapture = null;
+        // Try to create ImageCapture for torch
+        if ('ImageCapture' in window) {
+          imageCapture = new ImageCapture(track);
         }
+        // Check for torch support
+        const torchAvailable = await isTorchSupported(track);
+        toggleFlashBtn.disabled = !torchAvailable;
+        if (torchAvailable) {
+          statusDiv.textContent = "Back camera active. Torch supported.";
+        } else {
+          statusDiv.textContent = "Back camera active. Torch not supported on this device/browser.";
+        }
+      } catch (err) {
+        statusDiv.textContent = "Unable to access back camera: " + err.message;
+        // Try fallback to any camera
+        try {
+          stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
+          video.srcObject = stream;
+          statusDiv.textContent = "Using default camera (back unavailable).";
+        } catch (e2) {
+          statusDiv.textContent = "Camera access denied or unavailable.";
+        }
+        toggleFlashBtn.disabled = true;
+      }
+    }
 
-        // --- Event Listeners ---
-        startWebcamButton.addEventListener('click', startWebcam);
-        stopWebcamButton.addEventListener('click', stopWebcam);
-        cameraSelect.addEventListener('change', () => {
-            if (currentMode === 'webcam') { // If webcam is active, restart with new camera
-                stopWebcamInternal(); // Stop stream only
-                startWebcam(); // Restart webcam
-            }
-        });
+    async function setTorch(on) {
+      if (!track) return;
+      try {
+        await track.applyConstraints({ advanced: [{ torch: on }] });
+        torchOn = on;
+        flashStatus.textContent = "Flash: " + (torchOn ? "On" : "Off");
+      } catch (e) {
+        statusDiv.textContent = "Torch control not supported: " + e.message;
+        toggleFlashBtn.disabled = true;
+      }
+    }
 
-        // Initial load
-        loadModel();
-    </script>
+    toggleFlashBtn.addEventListener('click', async () => {
+      await setTorch(!torchOn);
+    });
+
+    // Auto-disable torch when page is hidden
+    document.addEventListener("visibilitychange", function() {
+      if (document.hidden && torchOn) {
+        setTorch(false);
+      }
+    });
+
+    // Start camera on load
+    startCamera();
+  </script>
 </body>
 </html>
