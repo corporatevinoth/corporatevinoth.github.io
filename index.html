@@ -36,7 +36,7 @@
       justify-content: center;
       gap: 32px;
       width: 100%;
-      max-width: 1600px;
+      max-width: 1700px;
       margin-top: 32px;
     }
     .game-card {
@@ -60,7 +60,7 @@
       box-shadow: 0 12px 48px 0 #00c6ff44, 0 2px 8px 0 #0003;
       border-color: #00c6ff;
     }
-    .game-icon, .game-icon-number, .game-icon-chat, .game-icon-weather, .game-icon-coin, .game-icon-gun, .game-icon-imgdetect, .game-icon-workout {
+    .game-icon, .game-icon-number, .game-icon-chat, .game-icon-weather, .game-icon-coin, .game-icon-gun, .game-icon-imgdetect, .game-icon-workout, .game-icon-balloon3d {
       width: 64px;
       height: 64px;
       margin-bottom: 16px;
@@ -80,16 +80,10 @@
     .game-card:focus-visible .game-icon-number,
     .game-card:hover .game-icon-chat,
     .game-card:focus-visible .game-icon-chat,
-    .game-card:hover .game-icon-weather,
-    .game-card:focus-visible .game-icon-weather,
-    .game-card:hover .game-icon-coin,
-    .game-card:focus-visible .game-icon-coin,
-    .game-card:hover .game-icon-gun,
-    .game-card:focus-visible .game-icon-gun,
-    .game-card:hover .game-icon-imgdetect,
-    .game-card:focus-visible .game-icon-imgdetect,
-    .game-card:hover .game-icon-workout,
-    .game-card:focus-visible .game-icon-workout {
+    .game-card:hover .-icon-workout,
+    .game-card:focus-visible .game-icon-workout,
+    .game-card:hover .game-icon-balloon3d,
+    .game-card:focus-visible .game-icon-balloon3d {
       border-color: #00c6ff;
     }
     .game-icon-number {
@@ -139,6 +133,12 @@
       justify-content: center;
       align-items: center;
     }
+    .game-icon-balloon3d {
+      background: linear-gradient(135deg, #fbc2eb 0%, #a6c1ee 100%);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
     .game-name {
       font-size: 1.3rem;
       color: #fff;
@@ -158,7 +158,7 @@
     @media (max-width: 900px) {
       .games-list { gap: 18px; }
       .game-card { min-width: 120px; max-width: 160px; padding: 18px 12px; }
-      .game-icon, .game-icon-number, .game-icon-chat, .game-icon-weather, .game-icon-coin, .game-icon-gun, .game-icon-imgdetect, .game-icon-workout { width: 44px; height: 44px; font-size: 1.5rem; }
+      .game-icon, .game-icon-number, .game-icon-chat, .game-icon-weather, .game-icon-coin, .game-icon-gun, .game-icon-imgdetect, .game-icon-workout, .game-icon-balloon3d { width: 44px; height: 44px; font-size: 1.5rem; }
       .game-name { font-size: 1rem; }
       .title { font-size: 2.1rem; margin-top: 24px; }
     }
@@ -188,7 +188,7 @@
           <ellipse cx="24" cy="22" rx="18" ry="13" stroke="#2c5364" stroke-width="2"/>
           <circle cx="18" cy="22" r="2.3" fill="#2c5364"/>
           <circle cx="24" cy="22" r="2.3" fill="#2c5364"/>
-          <" cy="22" r="2.3" fill="#2c5364"/>
+          <circle cx="30" cy="22" r="2.3" fill="#2c5364"/>
           <path d="M21 35c-6.5-2.5-7-5-7-5 .7 0 2.8 1.2 4.3 1.2C19.6 31.2 21 30 21 30s2.3 1.2 6.7 1.2c1.5 0 3.6-1.2 4.3-1.2 0 0-.5 2.5-7 5z" fill="#fff" stroke="#2c5364" stroke-width="2"/>
         </svg>
       </div>
@@ -224,7 +224,7 @@
         <!-- SVG gun (space blaster) icon -->
         <svg width="44" height="44" viewBox="0 0 44 44" fill="none">
           <rect x="12" y="20" width="20" height="8" rx="2" fill="#616161" stroke="#263238" stroke-width="2"/>
-          <rect x="30" y="23" width="10" height="2.5" rx="1" fill="#00c6ff" stroke="#263238" stroke-width="1.2"/>
+          <rect x="30" y="23" width="10" height="2.5" rx="1" fill="#00c="#263238" stroke-width="1.2"/>
           <rect x="14" y="28" width="5" height="8" rx="2" fill="#bdbdbd" stroke="#757575" stroke-width="1.2"/>
           <ellipse cx="18" cy="27" rx="1.3" ry="2" fill="#757575"/>
           <rect x="40" y="22" width="2.5" height="4" rx="1.2" fill="#ffecb3"/>
@@ -250,17 +250,39 @@
       <div class="game-icon-workout">
         <!-- SVG dumbbell icon -->
         <svg width="44" height="44" viewBox="0 0 44 44" fill="none">
-          <!-- Left weights -->
           <rect x="5" y="17" width="5" height="10" rx="2.2" fill="#616161" stroke="#263238" stroke-width="1.2"/>
           <rect x="10.5" y="19" width="2" height="6" rx="1" fill="#bdbdbd" stroke="#757575" stroke-width="1"/>
-          <!-- Bar -->
           <rect x="12.5" y="21" width="19" height="2" rx="1" fill="#00c6ff" stroke="#1976d2" stroke-width="1"/>
-          <!-- Right weights -->
           <rect x="34" y="17" width="5" height="10" rx="2.2" fill="#616161" stroke="#263238" stroke-width="1.2"/>
           <rect x="31.5" y="19" width="2" height="6" rx="1" fill="#bdbdbd" stroke="#757575" stroke-width="1"/>
         </svg>
       </div>
       <div class="game-name">Workout Helper</div>
+    </div>
+    <!-- Balloon 3D Game -->
+    <div class="game-card" tabindex="0" onclick="window.location.href='balloon3D.html'" onkeydown="if(event.key==='Enter'){window.location.href='balloon3D.html'}" title="Balloon 3D">
+      <div class="game-icon-balloon3d">
+        <!-- SVG 3D Balloon -->
+        <svg width="44" height="44" viewBox="0 0 44 44" fill="none">
+          <!-- Balloon Body -->
+          <ellipse cx="22" cy="18" rx="12" ry="15" fill="url(#gradballoon3d)" stroke="#b388ff" stroke-width="2"/>
+          <defs>
+            <radialGradient id="gradballoon3d" cx="60%" cy="30%" r="80%">
+              <stop offset="0%" stop-color="#fff" stop-opacity="0.85"/>
+              <stop offset="65%" stop-color="#b388ff"/>
+              <stop offset="100%" stop-color="#7c4dff"/>
+            </radialGradient>
+          </defs>
+          <!-- Balloon Highlight -->
+          <ellipse cx="18" cy="13" rx="3" ry="5" fill="#fff" fill-opacity="0.35"/>
+          <!-- String -->
+          <path d="M22 33 Q22 36, 19 39" stroke="#555" stroke-width="1.5" fill="none"/>
+          <path d="M19 39 Q21 41, 24 39" stroke="#555" stroke-width="1.2" fill="none"/>
+          <!-- Bottom knot -->
+          <ellipse cx="22" cy="32.2" rx="2" ry="1.1" fill="#7c4dff" stroke="#5e35b1" stroke-width="0.5"/>
+        </svg>
+      </div>
+      <div class="game-name">Balloon 3D</div>
     </div>
     <!-- Example for future games -->
     <div class="game-card" style="opacity:0.6; pointer-events:none;">
