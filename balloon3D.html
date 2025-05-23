@@ -49,9 +49,9 @@
 </head>
 <body>
   <div id="score">Score: 0</div>
-  <div id="info">Tap or drag to move the gun. Shoot the falling objects!</div>
+  <div id="info">Tap left/right to move the gun! Shoot the falling objects!</div>
   <button id="mute-btn" aria-label="Mute/unmute sound">
-    <svg id="sound-on" viewBox="0 0 24 24" fill="none"><path d="M5 9v6h4l5 5V4l-5 5H5z" fill="#fff"/><path d="M16.5 12c0-1.77-.77-3.29-2-4.29v8.58c1.23-1 2-2.52 2-4.29z" fill="#fff"/></svg>
+    <svg id="sound-on" viewBox="0 0 24 24" fill="none"><path d="M5 9v6h4l5 5V4l-5 5H5z" fill="#fff"/><path d="M16.5 12c0-77-.77-3.29-2-4.29v8.58c1.23-1 2-2.52 2-4.29z" fill="#fff"/></svg>
     <svg id="sound-off" viewBox="0 0 24 24" fill="none" style="display:none"><path d="M16.5 12c0-1.77-.77-3.29-2-4.29v8.58c1.23-1 2-2.52 2-4.29z" fill="#fff"/><path d="M5 9v6h4l5 5V4l-5 5H5z" fill="#fff"/><line x1="19" y1="5" x2="5" y2="19" stroke="#fff" stroke-width="2"/></svg>
   </button>
   <!-- Hit sound -->
@@ -60,7 +60,9 @@
   <script>
     // ====== Game Variables ======
     let scene, camera, renderer, gun, objects = [], bullets = [], score = 0;
-    let GUN_Y = -9, GUN_X_LIMIT = 9.5, gunMoving = false, soundMuted = false;
+    let gunTargetX = 0, gunX = 0, gunMoving = false, soundMuted = false;
+    const GUN_Y_SCREEN = -10.5; // Lowered for true bottom
+    let GUN_Y = GUN_Y_SCREEN, GUN_X_LIMIT = 9.5;
     // Sound
     const hitSound = document.getElementById('hit-sound');
     hitSound.volume = 0.18;
@@ -134,21 +136,39 @@
     }
     gun = createGun(); scene.add(gun);
 
-    // ====== Gun Movement (touch/mouse) ======
-    function pointerX(event) {
-      if (event.touches) return event.touches[0].clientX;
-      else return event.clientX;
+    // ====== Responsive Gun Y Position ======
+    function updateGunY() {
+      // Adjust gun Y so it's always at bottom edge, regardless of aspect/size
+      const camZ = camera.position.z;
+      const vFov = THREE.MathUtils.degToRad(camera.fov); // vertical fov in radians
+      const viewHeight = 2 * Math.tan(vFov / 2) * camZ;
+      GUN_Y = -viewHeight/2 + 1.1; // 1.1 is half gun height + margin
+      gun.position.y = GUN_Y;
     }
-    function moveGunToPointer(event) {
+    updateGunY();
+
+    // ====== Gun Movement (tap left/right to slide smoothly) ======
+    function screenToWorldX(screenX) {
       const rect = renderer.domElement.getBoundingClientRect();
-      let x = ((pointerX(event) - rect.left) / rect.width) * 2 - 1;
+      let x = ((screenX - rect.left) / rect.width) * 2 - 1;
       x *= camera.aspect * camera.position.z * Math.tan(camera.fov/2*Math.PI/180);
       x = Math.max(-GUN_X_LIMIT, Math.min(GUN_X_LIMIT, x));
-      gun.position.x = x;
+      return x;
     }
-    renderer.domElement.addEventListener("pointerdown", e => { gunMoving = true; moveGunToPointer(e); });
-    renderer.domElement.addEventListener("pointermove", e => { if (gunMoving) moveGunToPointer(e); });
-    window.addEventListener("pointerup", () => { gunMoving = false; });
+    function tapMoveGun(event) {
+      let clientX;
+      if (event.touches) clientX = event.touches[0].clientX;
+      else clientX = event.clientX;
+      const screenWidth = window.innerWidth;
+      // If tap/click/touch on left half, move gun target left; right half, move right
+      if (clientX < screenWidth/2) {
+        gunTargetX = Math.max(-GUN_X_LIMIT, gunTargetX - 3.5);
+      } else {
+        gunTargetX = Math.min(GUN_X_LIMIT, gunTargetX + 3.5);
+      }
+    }
+    renderer.domElement.addEventListener("pointerdown", tapMoveGun);
+    renderer.domElement.addEventListener("touchstart", tapMoveGun);
 
     // ====== Falling Objects ======
     function createRandomObject() {
@@ -233,6 +253,14 @@
     // ====== Animation Loop ======
     function animate() {
       requestAnimationFrame(animate);
+
+      // Smoothly interpolate gun X toward target X
+      gunX += (gunTargetX - gunX) * 0.18;
+      gun.position.x = gunX;
+
+      // Keep gun always at the bottom of the screen (even if resized)
+      updateGunY();
+
       // Animate objects
       for (let i = objects.length-1; i >= 0; i--) {
         let obj = objects[i];
@@ -279,6 +307,7 @@
       camera.aspect = window.innerWidth/window.innerHeight;
       camera.updateProjectionMatrix();
       renderer.setSize(window.innerWidth, window.innerHeight);
+      updateGunY();
     });
   </script>
 </body>
