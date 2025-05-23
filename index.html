@@ -36,7 +36,7 @@
       justify-content: center;
       gap: 32px;
       width: 100%;
-      max-width: 1200px;
+      max-width: 1400px;
       margin-top: 32px;
     }
     .game-card {
@@ -60,7 +60,7 @@
       box-shadow: 0 12px 48px 0 #00c6ff44, 0 2px 8px 0 #0003;
       border-color: #00c6ff;
     }
-    .game-icon, .game-icon-number, .game-icon-chat, .game-icon-weather, .game-icon-coin, .game-icon-gun {
+    .game-icon, .game-icon-number, .game-icon-chat, .game-icon-weather, .game-icon-coin, .game-icon-gun, .game-icon-imgdetect {
       width: 64px;
       height: 64px;
       margin-bottom: 16px;
@@ -85,7 +85,9 @@
     .game-card:hover .game-icon-coin,
     .game-card:focus-visible .game-icon-coin,
     .game-card:hover .game-icon-gun,
-    .game-card:focus-visible .game-icon-gun {
+    .game-card:focus-visible .game-icon-gun,
+    .game-card:hover .game-icon-imgdetect,
+    .game-card:focus-visible .game-icon-imgdetect {
       border-color: #00c6ff;
     }
     .game-icon-number {
@@ -123,6 +125,12 @@
       justify-content: center;
       align-items: center;
     }
+    .game-icon-imgdetect {
+      background: linear-gradient(135deg, #e0eafc 0%, #c6ffdd 100%);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
     .game-name {
       font-size: 1.3rem;
       color: #fff;
@@ -142,7 +150,7 @@
     @media (max-width: 900px) {
       .games-list { gap: 18px; }
       .game-card { min-width: 120px; max-width: 160px; padding: 18px 12px; }
-      .game-icon, .game-icon-number, .game-icon-chat, .game-icon-weather, .game-icon-coin, .game-icon-gun { width: 44px; height: 44px; font-size: 1.5rem; }
+      .game-icon, .game-icon-number, .game-icon-chat, .game-icon-weather, .game-icon-coin, .game-icon-gun, .game-icon-imgdetect { width: 44px; height: 44px; font-size: 1.5rem; }
       .game-name { font-size: 1rem; }
       .title { font-size: 2.1rem; margin-top: 24px; }
     }
@@ -220,6 +228,19 @@
         </svg>
       </div>
       <div class="game-name">Space Shooter</div>
+    </div>
+    <!-- Image Detect Game -->
+    <div class="game-card" tabindex="0" onclick="window.location.href='imgDetect.html'" onkeydown="if(event.key==='Enter'){window.location.href='imgDetect.html'}" title="Image Detect">
+      <div class="game-icon-imgdetect">
+        <!-- SVG camera/lens icon -->
+        <svg width="44" height="44" viewBox="0 0 44 44" fill="none">
+          <rect x="7" y="14" width="30" height="18" rx="5.5" fill="#e0eafc" stroke="#2c5364" stroke-width="2"/>
+          <circle cx="22" cy="23" r="7" fill="#90caf9" stroke="#1976d2" stroke-width="2"/>
+          <circle cx="22" cy="23" r="3.5" fill="#fff"/>
+          <rect x="17" y="11" width="10" height="5" rx="2" fill="#90caf9" stroke="#1976d2" stroke-width="1"/>
+        </svg>
+      </div>
+      <div class="game-name">Image Detect</div>
     </div>
     <!-- Example for future games -->
     <div class="game-card" style="opacity:0.6; pointer-events:none;">
