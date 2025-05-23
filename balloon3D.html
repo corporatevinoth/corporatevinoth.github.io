@@ -49,7 +49,7 @@
 </head>
 <body>
   <div id="score">Score: 0</div>
-  <div id="info">Drag to move the gun. Shoot the falling objects!</div>
+  <div id="info">Tap or drag to move the gun. Shoot the falling objects!</div>
   <button id="mute-btn" aria-label="Mute/unmute sound">
     <svg id="sound-on" viewBox="0 0 24 24" fill="none"><path d="M5 9v6h4l5 5V4l-5 5H5z" fill="#fff"/><path d="M16.5 12c0-1.77-.77-3.29-2-4.29v8.58c1.23-1 2-2.52 2-4.29z" fill="#fff"/></svg>
     <svg id="sound-off" viewBox="0 0 24 24" fill="none" style="display:none"><path d="M16.5 12c0-1.77-.77-3.29-2-4.29v8.58c1.23-1 2-2.52 2-4.29z" fill="#fff"/><path d="M5 9v6h4l5 5V4l-5 5H5z" fill="#fff"/><line x1="19" y1="5" x2="5" y2="19" stroke="#fff" stroke-width="2"/></svg>
@@ -60,7 +60,7 @@
   <script>
     // ====== Game Variables ======
     let scene, camera, renderer, gun, objects = [], bullets = [], score = 0;
-    let GUN_Y = -8.5, GUN_X_LIMIT = 9.5, gunMoving = false, soundMuted = false;
+    let GUN_Y = -9, GUN_X_LIMIT = 9.5, gunMoving = false, soundMuted = false;
     // Sound
     const hitSound = document.getElementById('hit-sound');
     hitSound.volume = 0.18;
@@ -95,28 +95,40 @@
 
     // ====== Gun Model ======
     function getRandomColor() {
-      // Vibrant random color
       const h = Math.floor(Math.random() * 360);
       return new THREE.Color("hsl(" + h + ",90%,60%)");
     }
     function createGun() {
       const gunGroup = new THREE.Group();
-      const body = new THREE.Mesh(
-        new THREE.BoxGeometry(1.7, 0.6, 0.5),
-        new THREE.MeshPhongMaterial({color: getRandomColor()})
+      // Base
+      const base = new THREE.Mesh(
+        new THREE.CylinderGeometry(0.6, 0.6, 0.3, 24),
+        new THREE.MeshPhongMaterial({color: "#222255"})
       );
+      base.position.y = -0.45;
+      gunGroup.add(base);
+      // Barrel (always upright, points up)
       const barrel = new THREE.Mesh(
-        new THREE.CylinderGeometry(0.15, 0.15, 1.35, 18),
-        new THREE.MeshPhongMaterial({color: getRandomColor()})
+        new THREE.CylinderGeometry(0.18, 0.25, 2.1, 16),
+        new THREE.MeshPhongMaterial({color: "#44e4ff"})
       );
-      barrel.rotation.z = Math.PI / 2;
-      barrel.position.set(1.07, 0, 0);
+      barrel.position.y = 0.75;
+      gunGroup.add(barrel);
+      // Body
+      const body = new THREE.Mesh(
+        new THREE.BoxGeometry(0.6, 0.5, 0.5),
+        new THREE.MeshPhongMaterial({color: "#ffb300"})
+      );
+      body.position.y = 0.1;
+      gunGroup.add(body);
+      // Muzzle tip
       const muzzle = new THREE.Mesh(
-        new THREE.SphereGeometry(0.20, 12, 12),
-        new THREE.MeshPhongMaterial({color: getRandomColor()})
+        new THREE.SphereGeometry(0.21, 12, 12),
+        new THREE.MeshPhongMaterial({color: "#ff1744"})
       );
-      muzzle.position.set(1.75, 0, 0);
-      gunGroup.add(body); gunGroup.add(barrel); gunGroup.add(muzzle);
+      muzzle.position.y = 1.8;
+      gunGroup.add(muzzle);
+      // Position at bottom center
       gunGroup.position.set(0, GUN_Y, 0);
       return gunGroup;
     }
@@ -134,44 +146,40 @@
       x = Math.max(-GUN_X_LIMIT, Math.min(GUN_X_LIMIT, x));
       gun.position.x = x;
     }
-    renderer.domElement.addEventListener("pointerdown", e => {
-      gunMoving = true; moveGunToPointer(e);
-    });
-    renderer.domElement.addEventListener("pointermove", e => {
-      if (gunMoving) moveGunToPointer(e);
-    });
+    renderer.domElement.addEventListener("pointerdown", e => { gunMoving = true; moveGunToPointer(e); });
+    renderer.domElement.addEventListener("pointermove", e => { if (gunMoving) moveGunToPointer(e); });
     window.addEventListener("pointerup", () => { gunMoving = false; });
 
     // ====== Falling Objects ======
     function createRandomObject() {
-      // Choose a random 3D shape: box, sphere, cone, torus
       const shapeType = Math.floor(Math.random() * 4);
       let mesh;
-      if (shapeType === 0) { // Box
+      const vibrantColor = getRandomColor();
+      if (shapeType === 0) {
         mesh = new THREE.Mesh(
           new THREE.BoxGeometry(1 + Math.random(), 1 + Math.random(), 1 + Math.random()*0.5),
-          new THREE.MeshPhongMaterial({color: getRandomColor(), shininess: 60, specular: 0xffffff})
+          new THREE.MeshPhongMaterial({color: vibrantColor, shininess: 60, specular: 0xffffff})
         );
-      } else if (shapeType === 1) { // Sphere
+      } else if (shapeType === 1) {
         mesh = new THREE.Mesh(
           new THREE.SphereGeometry(0.7 + Math.random()*0.5, 24, 24),
-          new THREE.MeshPhongMaterial({color: getRandomColor(), shininess: 90, specular: 0xffffff})
+          new THREE.MeshPhongMaterial({color: vibrantColor, shininess: 90, specular: 0xffffff})
         );
-      } else if (shapeType === 2) { // Cone
+      } else if (shapeType === 2) {
         mesh = new THREE.Mesh(
           new THREE.ConeGeometry(0.65 + Math.random()*0.6, 1.2 + Math.random(), 18),
-          new THREE.MeshPhongMaterial({color: getRandomColor(), shininess: 80})
+          new THREE.MeshPhongMaterial({color: vibrantColor, shininess: 80})
         );
-      } else { // Torus
+      } else {
         mesh = new THREE.Mesh(
           new THREE.TorusGeometry(0.55 + Math.random()*0.3, 0.22 + Math.random()*0.11, 16, 32),
-          new THREE.MeshPhongMaterial({color: getRandomColor(), shininess: 100})
+          new THREE.MeshPhongMaterial({color: vibrantColor, shininess: 100})
         );
       }
       mesh.position.x = (Math.random() - 0.5) * 17;
       mesh.position.y = 13 + Math.random()*2;
       mesh.position.z = (Math.random() - 0.5) * 3;
-      mesh.userData = { speed: 0.024 + Math.random()*0.021, dead: false };
+      mesh.userData = { speed: 0.024 + Math.random()*0.021, dead: false, blast: false, blastScale: 1, blastAlpha: 1 };
       return mesh;
     }
     function spawnObject() {
@@ -188,9 +196,8 @@
       const geometry = new THREE.CylinderGeometry(0.13, 0.13, 0.78, 12);
       const material = new THREE.MeshPhongMaterial({color: getRandomColor(), shininess: 80});
       const bullet = new THREE.Mesh(geometry, material);
-      bullet.rotation.z = Math.PI/2;
-      bullet.position.set(gun.position.x + 1.07, GUN_Y + 0.08, 0);
-      bullet.userData = { speed: 0.7, alive: true };
+      bullet.position.set(gun.position.x, GUN_Y + 1, 0); // fire from barrel top
+      bullet.userData = { speed: 0.75, alive: true };
       return bullet;
     }
     setInterval(() => {
@@ -198,7 +205,7 @@
       scene.add(bullets[bullets.length-1]);
     }, 110);
 
-    // ====== Bullet-Object Collision ======
+    // ====== Bullet-Object Collision (Blast Animation) ======
     function checkBulletObjectCollisions() {
       for (let i = bullets.length-1; i >= 0; i--) {
         const bullet = bullets[i];
@@ -210,8 +217,9 @@
           const obj = objects[j];
           if (obj.userData.dead) continue;
           const dist = bullet.position.distanceTo(obj.position);
-          if (dist < 1.2) {
+          if (dist < 1.1) {
             obj.userData.dead = true;
+            obj.userData.blast = true;
             if (!soundMuted) { try { hitSound.currentTime = 0; hitSound.play(); } catch(e){} }
             score++;
             document.getElementById('score').textContent = 'Score: ' + score;
@@ -228,11 +236,20 @@
       // Animate objects
       for (let i = objects.length-1; i >= 0; i--) {
         let obj = objects[i];
-        if (obj.userData.dead) {
-          obj.scale.multiplyScalar(1.13);
-          obj.material.opacity = (obj.material.opacity||1) * 0.80;
-          obj.material.transparent = true;
-          if (obj.scale.x > 2.4) {
+        if (obj.userData.blast) {
+          obj.userData.blastScale *= 1.19;
+          obj.userData.blastAlpha *= 0.78;
+          obj.scale.set(obj.userData.blastScale, obj.userData.blastScale, obj.userData.blastScale);
+          if (Array.isArray(obj.material)) {
+            obj.material.forEach(mat => {
+              mat.opacity = obj.userData.blastAlpha;
+              mat.transparent = true;
+            });
+          } else {
+            obj.material.opacity = obj.userData.blastAlpha;
+            obj.material.transparent = true;
+          }
+          if (obj.userData.blastAlpha < 0.05) {
             scene.remove(obj); objects.splice(i,1);
           }
         } else {
@@ -247,6 +264,12 @@
       }
       // Animate bullets & check for collisions
       checkBulletObjectCollisions();
+      for (let i = bullets.length-1; i >= 0; i--) {
+        bullets[i].position.y += bullets[i].userData.speed;
+        if (bullets[i].position.y > 15) {
+          scene.remove(bullets[i]); bullets.splice(i,1);
+        }
+      }
       renderer.render(scene, camera);
     }
     animate();
