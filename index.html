@@ -36,7 +36,7 @@
       justify-content: center;
       gap: 32px;
       width: 100%;
-      max-width: 1400px;
+      max-width: 1600px;
       margin-top: 32px;
     }
     .game-card {
@@ -60,7 +60,7 @@
       box-shadow: 0 12px 48px 0 #00c6ff44, 0 2px 8px 0 #0003;
       border-color: #00c6ff;
     }
-    .game-icon, .game-icon-number, .game-icon-chat, .game-icon-weather, .game-icon-coin, .game-icon-gun, .game-icon-imgdetect {
+    .game-icon, .game-icon-number, .game-icon-chat, .game-icon-weather, .game-icon-coin, .game-icon-gun, .game-icon-imgdetect, .game-icon-workout {
       width: 64px;
       height: 64px;
       margin-bottom: 16px;
@@ -87,7 +87,9 @@
     .game-card:hover .game-icon-gun,
     .game-card:focus-visible .game-icon-gun,
     .game-card:hover .game-icon-imgdetect,
-    .game-card:focus-visible .game-icon-imgdetect {
+    .game-card:focus-visible .game-icon-imgdetect,
+    .game-card:hover .game-icon-workout,
+    .game-card:focus-visible .game-icon-workout {
       border-color: #00c6ff;
     }
     .game-icon-number {
@@ -131,6 +133,12 @@
       justify-content: center;
       align-items: center;
     }
+    .game-icon-workout {
+      background: linear-gradient(135deg, #c6ffdd 0%, #f7797d 100%);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
     .game-name {
       font-size: 1.3rem;
       color: #fff;
@@ -150,7 +158,7 @@
     @media (max-width: 900px) {
       .games-list { gap: 18px; }
       .game-card { min-width: 120px; max-width: 160px; padding: 18px 12px; }
-      .game-icon, .game-icon-number, .game-icon-chat, .game-icon-weather, .game-icon-coin, .game-icon-gun, .game-icon-imgdetect { width: 44px; height: 44px; font-size: 1.5rem; }
+      .game-icon, .game-icon-number, .game-icon-chat, .game-icon-weather, .game-icon-coin, .game-icon-gun, .game-icon-imgdetect, .game-icon-workout { width: 44px; height: 44px; font-size: 1.5rem; }
       .game-name { font-size: 1rem; }
       .title { font-size: 2.1rem; margin-top: 24px; }
     }
@@ -180,7 +188,7 @@
           <ellipse cx="24" cy="22" rx="18" ry="13" stroke="#2c5364" stroke-width="2"/>
           <circle cx="18" cy="22" r="2.3" fill="#2c5364"/>
           <circle cx="24" cy="22" r="2.3" fill="#2c5364"/>
-          <circle cx="30" cy="22" r="2.3" fill="#2c5364"/>
+          <" cy="22" r="2.3" fill="#2c5364"/>
           <path d="M21 35c-6.5-2.5-7-5-7-5 .7 0 2.8 1.2 4.3 1.2C19.6 31.2 21 30 21 30s2.3 1.2 6.7 1.2c1.5 0 3.6-1.2 4.3-1.2 0 0-.5 2.5-7 5z" fill="#fff" stroke="#2c5364" stroke-width="2"/>
         </svg>
       </div>
@@ -215,15 +223,10 @@
       <div class="game-icon-gun">
         <!-- SVG gun (space blaster) icon -->
         <svg width="44" height="44" viewBox="0 0 44 44" fill="none">
-          <!-- Body -->
           <rect x="12" y="20" width="20" height="8" rx="2" fill="#616161" stroke="#263238" stroke-width="2"/>
-          <!-- Barrel -->
           <rect x="30" y="23" width="10" height="2.5" rx="1" fill="#00c6ff" stroke="#263238" stroke-width="1.2"/>
-          <!-- Grip -->
           <rect x="14" y="28" width="5" height="8" rx="2" fill="#bdbdbd" stroke="#757575" stroke-width="1.2"/>
-          <!-- Trigger -->
           <ellipse cx="18" cy="27" rx="1.3" ry="2" fill="#757575"/>
-          <!-- Laser flash (for effect) -->
           <rect x="40" y="22" width="2.5" height="4" rx="1.2" fill="#ffecb3"/>
         </svg>
       </div>
@@ -241,6 +244,23 @@
         </svg>
       </div>
       <div class="game-name">Image Detect</div>
+    </div>
+    <!-- Workout Helper Game -->
+    <div class="game-card" tabindex="0" onclick="window.location.href='workoutHelper.html'" onkeydown="if(event.key==='Enter'){window.location.href='workoutHelper.html'}" title="Workout Helper">
+      <div class="game-icon-workout">
+        <!-- SVG dumbbell icon -->
+        <svg width="44" height="44" viewBox="0 0 44 44" fill="none">
+          <!-- Left weights -->
+          <rect x="5" y="17" width="5" height="10" rx="2.2" fill="#616161" stroke="#263238" stroke-width="1.2"/>
+          <rect x="10.5" y="19" width="2" height="6" rx="1" fill="#bdbdbd" stroke="#757575" stroke-width="1"/>
+          <!-- Bar -->
+          <rect x="12.5" y="21" width="19" height="2" rx="1" fill="#00c6ff" stroke="#1976d2" stroke-width="1"/>
+          <!-- Right weights -->
+          <rect x="34" y="17" width="5" height="10" rx="2.2" fill="#616161" stroke="#263238" stroke-width="1.2"/>
+          <rect x="31.5" y="19" width="2" height="6" rx="1" fill="#bdbdbd" stroke="#757575" stroke-width="1"/>
+        </svg>
+      </div>
+      <div class="game-name">Workout Helper</div>
     </div>
     <!-- Example for future games -->
     <div class="game-card" style="opacity:0.6; pointer-events:none;">
