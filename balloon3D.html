@@ -17,79 +17,17 @@
       background: rgba(0,0,0,0.25); border-radius: 10px; padding: 7px 16px; z-index: 2;
       font-family: Arial, sans-serif; letter-spacing: 0.5px; box-shadow: 0 2px 12px #0001;
     }
-    #mute-btn {
-      position: absolute;
-      top: 16px;
-      right: 20px;
-      z-index: 10;
-      background: rgba(44,83,100,0.6);
-      border-radius: 50%;
-      width: 44px;
-      height: 44px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      cursor: pointer;
-      box-shadow: 0 2px 16px #0003;
-      border: none;
-      outline: none;
-      transition: background 0.2s;
-      padding: 0;
-    }
-    #mute-btn:active { background: rgba(44,83,100,0.9);}
-    #mute-btn svg { width: 28px; height: 28px; }
-    @media (max-width: 700px) {
-      #score { font-size: 1.1rem; padding: 5px 13px;}
-      #info { font-size: 0.8rem; padding: 5px 9px;}
-      #mute-btn { width:34px; height:34px; top: 9px; right: 9px;}
-      #mute-btn svg { width:20px; height:20px; }
-    }
     canvas { display:block; }
   </style>
 </head>
 <body>
   <div id="score">Score: 0</div>
-  <div id="info">Tap or Click Balloons! &nbsp;|&nbsp; Machine gun auto-shoots!</div>
-  <button id="mute-btn" aria-label="Mute/unmute sound">
-    <!-- Speaker icon (default: sound on) -->
-    <svg id="sound-on" viewBox="0 0 24 24" fill="none"><path d="M5 9v6h4l5 5V4l-5 5H5z" fill="#fff"/><path d="M16.5 12c0-1.77-.77-3.29-2-4.29v8.58c1.23-1 2-2.52 2-4.29z" fill="#fff"/></svg>
-    <!-- Mute icon overlay (hidden by default) -->
-    <svg id="sound-off" viewBox="0 0 24 24" fill="none" style="display:none"><path d="M16.5 12c0-1.77-.77-3.29-2-4.29v8.58c1.23-1 2-2.52 2-4.29z" fill="#fff"/><path d="M5 9v6h4l5 5V4l-5 5H5z" fill="#fff"/><line x1="19" y1="5" x2="5" y2="19" stroke="#fff" stroke-width="2"/></svg>
-  </button>
-  <!-- Balloon Pop Sound (replace src with your own if you wish) -->
-  <audio id="pop-sound" src="https://cdn.pixabay.com/audio/2022/03/15/audio_115b9c5b7a.mp3"></audio>
-  <!-- Three.js from CDN -->
+  <div id="info">Tap or Click Balloons! | Machine gun auto-shoots!</div>
   <script src="https://unpkg.com/three@0.155.0/build/three.min.js"></script>
   <script>
-    let scene, camera, renderer, raycaster, mouse, balloons = [], score = 0;
-    // --- MACHINE GUN/BULLETS ---
-    let bullets = [];
-    let gun;
+    let scene, camera, renderer, gun, balloons = [], bullets = [], score = 0;
 
-    // --- Audio Controls ---
-    const popSound = document.getElementById('pop-sound');
-    popSound.volume = 0.18; // Keep it soft
-    let soundMuted = false;
-
-    const muteBtn = document.getElementById('mute-btn');
-    const soundOnIcon = document.getElementById('sound-on');
-    const soundOffIcon = document.getElementById('sound-off');
-
-    function setMuteUI(muted) {
-      if (muted) {
-        soundOnIcon.style.display = "none";
-        soundOffIcon.style.display = "";
-      } else {
-        soundOnIcon.style.display = "";
-        soundOffIcon.style.display = "none";
-      }
-    }
-    muteBtn.addEventListener('click', () => {
-      soundMuted = !soundMuted;
-      setMuteUI(soundMuted);
-    });
-
-    // Setup
+    // Setup Three.js
     scene = new THREE.Scene();
     camera = new THREE.PerspectiveCamera(65, window.innerWidth / window.innerHeight, 0.1, 1000);
     camera.position.set(0, 0, 18);
@@ -98,9 +36,6 @@
     renderer.setSize(window.innerWidth, window.innerHeight);
     document.body.appendChild(renderer.domElement);
 
-    raycaster = new THREE.Raycaster();
-    mouse = new THREE.Vector2();
-
     // Lighting
     const sun = new THREE.DirectionalLight(0xffffff, 0.8);
     sun.position.set(0, 2, 4);
@@ -108,53 +43,40 @@
     const amb = new THREE.AmbientLight(0xffffff, 0.4);
     scene.add(amb);
 
-    // Sky Gradient
-    {
-      const skyGeo = new THREE.SphereGeometry(200,32,32);
-      const skyMat = new THREE.MeshBasicMaterial({color: 0xb3e5fc, side:THREE.BackSide});
-      const sky = new THREE.Mesh(skyGeo, skyMat);
-      scene.add(sky);
-    }
+    // Sky
+    const skyGeo = new THREE.SphereGeometry(200,32,32);
+    const skyMat = new THREE.MeshBasicMaterial({color: 0xb3e5fc, side:THREE.BackSide});
+    const sky = new THREE.Mesh(skyGeo, skyMat);
+    scene.add(sky);
 
-    // --- MACHINE GUN MODEL ---
+    // Gun Model
     function createGun() {
       const gunGroup = new THREE.Group();
-
-      // Body
       const body = new THREE.Mesh(
         new THREE.BoxGeometry(1.8, 0.5, 0.5),
         new THREE.MeshPhongMaterial({color: 0x333333})
       );
-      body.position.set(0, 0, 0);
-
-      // Barrel
       const barrel = new THREE.Mesh(
         new THREE.CylinderGeometry(0.13, 0.13, 1.1, 16),
         new THREE.MeshPhongMaterial({color: 0x607d8b})
       );
-      barrel.rotation.z = Math.PI/2;
+      barrel.rotation.z = Math.PI / 2;
       barrel.position.set(1.1, 0, 0);
-
-      // Muzzle
       const muzzle = new THREE.Mesh(
         new THREE.SphereGeometry(0.17, 12, 12),
         new THREE.MeshPhongMaterial({color: 0xffab00})
       );
       muzzle.position.set(1.65, 0, 0);
-
-      // Add all
       gunGroup.add(body);
       gunGroup.add(barrel);
       gunGroup.add(muzzle);
-
-      // Set at center bottom
       gunGroup.position.set(0, -8.5, 0);
       return gunGroup;
     }
     gun = createGun();
     scene.add(gun);
 
-    // Balloon Geometry/Material
+    // Balloon
     function createBalloon() {
       const colors = [0xff1744, 0xffea00, 0x00e676, 0x2979ff, 0xd500f9, 0xff9100];
       const color = colors[Math.floor(Math.random() * colors.length)];
@@ -166,7 +88,6 @@
       balloon.position.y = -9;
       balloon.position.z = (Math.random() - 0.5) * 3;
       balloon.userData = { speed: 0.018 + Math.random()*0.012, popping: false };
-      // String
       const lineMat = new THREE.LineBasicMaterial({ color: 0x333 });
       const points = [ new THREE.Vector3(0, -1.1, 0), new THREE.Vector3(0, -2.2, 0) ];
       const line = new THREE.Line(new THREE.BufferGeometry().setFromPoints(points), lineMat);
@@ -180,81 +101,42 @@
       balloons.push(balloon);
     }
 
-    // Pop effect: scale up and fade out
-    function popBalloon(balloon) {
-      balloon.userData.popping = true;
-      // --- Play pop sound unless muted ---
-      if (!soundMuted) {
-        try {
-          popSound.currentTime = 0;
-          popSound.play();
-        } catch (e) {}
-      }
-    }
-
-    // Spawn balloons over time
     setInterval(() => {
       if (balloons.length < 12) spawnBalloon();
     }, 600);
 
-    // --- MACHINE GUN: SHOOT BULLETS CONTINUOUSLY ---
+    // Bullets
     function createBullet() {
       const geometry = new THREE.CylinderGeometry(0.09, 0.09, 0.7, 10);
       const material = new THREE.MeshPhongMaterial({color: 0xffff00, shininess: 90});
       const bullet = new THREE.Mesh(geometry, material);
       bullet.rotation.z = Math.PI/2;
       bullet.position.set(gun.position.x + 1.1, gun.position.y + 0.1, 0); // Just ahead of barrel
-      bullet.userData = { speed: 0.36, alive: true };
+      bullet.userData = { speed: 0.57, alive: true };
       return bullet;
     }
 
     setInterval(() => {
-      // Fire a bullet every 90ms (machine gun rate)
       bullets.push(createBullet());
       scene.add(bullets[bullets.length-1]);
     }, 90);
 
-    // Handle resizing
-.aspect = window.innerWidth/window.innerHeight;
-      camera.updateProjectionMatrix();
-      renderer.setSize(window.innerWidth, window.innerHeight);
-    });
-
-    // Handle click/tap for popping (keep this for bonus clicks)
-    renderer.domElement.addEventListener('pointerdown', (event) => {
-      mouse.x = ( event.clientX / window.innerWidth ) * 2 - 1;
-      mouse.y = - ( event.clientY / window.innerHeight ) * 2 + 1;
-      raycaster.setFromCamera(mouse, camera);
-      const intersects = raycaster.intersectObjects(balloons);
-      if (intersects.length > 0) {
-        const balloon = intersects[0].object;
-        if (!balloon.userData.popping) {
-          popBalloon(balloon);
-          score++;
-          document.getElementById('score').textContent = 'Score: ' + score;
-        }
-      }
-    });
-
-    // --- BULLET AND BALLOON COLLISION DETECTION ---
+    // Collision
     function checkBulletBalloonCollisions() {
       for (let i = bullets.length-1; i >= 0; i--) {
         const bullet = bullets[i];
-        // Move bullet
-        bullet.position.x += 0.57; // along barrel x direction
-        // Remove if offscreen
+        bullet.position.x += bullet.userData.speed;
         if (bullet.position.x > 13) {
           scene.remove(bullet);
           bullets.splice(i,1);
           continue;
         }
-        // Check collision with balloons
         for (let j = balloons.length-1; j >= 0; j--) {
           const balloon = balloons[j];
           if (balloon.userData.popping) continue;
           const dist = bullet.position.distanceTo(balloon.position);
           if (dist < 1.2) {
-            popBalloon(balloon);
+            balloon.userData.popping = true;
             score++;
             document.getElementById('score').textContent = 'Score: ' + score;
             scene.remove(bullet);
@@ -265,10 +147,9 @@
       }
     }
 
-    // Animation Loop
+    // Animate
     function animate() {
       requestAnimationFrame(animate);
-      // Animate balloons
       for (let i = balloons.length-1; i >= 0; i--) {
         let b = balloons[i];
         if (b.userData.popping) {
@@ -288,11 +169,17 @@
           }
         }
       }
-      // Animate bullets & check for collisions
       checkBulletBalloonCollisions();
       renderer.render(scene, camera);
     }
     animate();
+
+    // Responsive
+    window.addEventListener('resize', () => {
+      camera.aspect = window.innerWidth/window.innerHeight;
+      camera.updateProjectionMatrix();
+      renderer.setSize(window.innerWidth, window.innerHeight);
+    });
   </script>
 </body>
 </html>
