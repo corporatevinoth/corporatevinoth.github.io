@@ -2,161 +2,106 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>Image Detect</title>
+  <title>Object Detection Demo</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <style>
+    html, body {
+      margin: 0; padding: 0; height: 100%; width: 100%; overflow: hidden; background: #181818;
+    }
     body {
-      margin: 0;
-      background: #222;
-      color: #fff;
-      font-family: Arial, sans-serif;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: flex-start;
-      min-height: 100vh;
+      height: 100vh; width: 100vw; position: relative;
     }
-    .container {
-      margin-top: 30px;
-      width: 100vw;
-      max-width: 430px;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
+    #video, #canvas {
+      position: absolute; left: 0; top: 0; width: 100vw; height: 100vh; object-fit: cover;
     }
-    video {
-      width: 96vw;
-      max-width: 420px;
-      border-radius: 18px;
-      margin-bottom: 18px;
-      background: #000;
+    #status {
+      position: fixed; top: 12px; left: 50%; transform: translateX(-50%);
+      background: rgba(0,0,0,0.7); color: #fff; z-index: 10; padding: 7px 24px; border-radius: 16px;
+      font-size: 1.1rem; font-family: Arial,sans-serif; letter-spacing: 1px;
+      text-align: center; pointer-events: none;
     }
-    .controls {
-      margin-bottom: 12px;
-      display: flex;
-      gap: 20px;
-      align-items: center;
-    }
-    .btn {
-      background: #fff;
-      color: #222;
-      border: none;
-      padding: 10px 22px;
-      border-radius: 8px;
-      font-size: 1.1rem;
-      cursor: pointer;
-      font-weight: bold;
-      transition: background 0.2s, color 0.2s;
-    }
-    .btn:active {
-      background: #1976d2;
-      color: #fff;
-    }
-    .status {
-      margin-top: 10px;
-      font-size: 1.05em;
-      color: #ffe259;
+    @media (max-width: 700px) {
+      #status { font-size: 1em; padding: 5px 12px; }
     }
   </style>
 </head>
 <body>
-  <div class="container">
-    <h2>Image Detect</h2>
-    <div class="controls">
-      <button class="btn" id="toggleFlashBtn">Toggle Flashlight</button>
-      <span id="flashStatus">Flash: Off</span>
-    </div>
-    <video id="video" playsinline autoplay></video>
-    <div class="status" id="status"></div>
-    <!-- Add your detection UI here -->
-  </div>
+  <div id="status">Loading model...</div>
+  <video id="video" autoplay playsinline muted></video>
+  <canvas id="canvas"></canvas>
+  <!-- TensorFlow.js and COCO-SSD -->
+  <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/coco-ssd"></script>
   <script>
-    let stream = null;
-    let track = null;
-    let imageCapture = null;
-    let torchOn = false;
-    const video = document.getElementById('video');
     const statusDiv = document.getElementById('status');
-    const toggleFlashBtn = document.getElementById('toggleFlashBtn');
-    const flashStatus = document.getElementById('flashStatus');
+    const video = document.getElementById('video');
+    const canvas = document.getElementById('canvas');
+    const ctx = canvas.getContext('2d');
+    let model = null;
 
-    // Helper: check if torch is supported
-    async function isTorchSupported(track) {
+    // Set up camera stream
+    async function setupCamera() {
       try {
-        const capabilities = track.getCapabilities();
-        return !!capabilities.torch;
-      } catch (e) {
-        return false;
-      }
-    }
-
-    async function startCamera() {
-      if (stream) {
-        // Stop previous stream
-        stream.getTracks().forEach(t => t.stop());
-      }
-      statusDiv.textContent = "Requesting camera...";
-      try {
-        stream = await navigator.mediaDevices.getUserMedia({
-          video: {
-            facingMode: { exact: "environment" }
-          },
-          audio: false
+        const stream = await navigator.mediaDevices.getUserMedia({
+          video: { facingMode: 'environment' }, audio: false
         });
         video.srcObject = stream;
-        track = stream.getVideoTracks()[0];
-        imageCapture = null;
-        // Try to create ImageCapture for torch
-        if ('ImageCapture' in window) {
-          imageCapture = new ImageCapture(track);
-        }
-        // Check for torch support
-        const torchAvailable = await isTorchSupported(track);
-        toggleFlashBtn.disabled = !torchAvailable;
-        if (torchAvailable) {
-          statusDiv.textContent = "Back camera active. Torch supported.";
-        } else {
-          statusDiv.textContent = "Back camera active. Torch not supported on this device/browser.";
-        }
-      } catch (err) {
-        statusDiv.textContent = "Unable to access back camera: " + err.message;
-        // Try fallback to any camera
-        try {
-          stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
-          video.srcObject = stream;
-          statusDiv.textContent = "Using default camera (back unavailable).";
-        } catch (e2) {
-          statusDiv.textContent = "Camera access denied or unavailable.";
-        }
-        toggleFlashBtn.disabled = true;
-      }
-    }
-
-    async function setTorch(on) {
-      if (!track) return;
-      try {
-        await track.applyConstraints({ advanced: [{ torch: on }] });
-        torchOn = on;
-        flashStatus.textContent = "Flash: " + (torchOn ? "On" : "Off");
+        return new Promise(resolve => {
+          video.onloadedmetadata = () => resolve(video);
+        });
       } catch (e) {
-        statusDiv.textContent = "Torch control not supported: " + e.message;
-        toggleFlashBtn.disabled = true;
+        statusDiv.textContent = "Camera error: " + e.message;
+        throw e;
       }
     }
 
-    toggleFlashBtn.addEventListener('click', async () => {
-      await setTorch(!torchOn);
-    });
-
-    // Auto-disable torch when page is hidden
-    document.addEventListener("visibilitychange", function() {
-      if (document.hidden && torchOn) {
-        setTorch(false);
+    // Run detection loop
+    async function detectFrame() {
+      if (video.readyState === 4) {
+        // Resize canvas if needed
+        if (canvas.width !== video.videoWidth || canvas.height !== video.videoHeight) {
+          canvas.width = video.videoWidth;
+          canvas.height = video.videoHeight;
+        }
+        ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+        // Detect
+        if (model) {
+          const predictions = await model.detect(video);
+          predictions.forEach(pred => {
+            // Draw box
+            ctx.beginPath();
+            ctx.lineWidth = 3;
+            ctx.strokeStyle = "#00ff66";
+            ctx.rect(...pred.bbox);
+            ctx.stroke();
+            // Draw label background
+            ctx.font = "18px Arial";
+            const label = pred.class + " " + Math.round(pred.score * 100) + "%";
+            const textWidth = ctx.measureText(label).width;
+            const x = pred.bbox[0];
+            const y = pred.bbox[1] > 20 ? pred.bbox[1] - 7 : pred.bbox[1] + 20;
+            ctx.fillStyle = "rgba(0,0,0,0.6)";
+            ctx.fillRect(x, y-18, textWidth+12, 22);
+            // Draw label text
+            ctx.fillStyle = "#fff";
+            ctx.fillText(label, x + 6, y);
+          });
+        }
       }
-    });
+      requestAnimationFrame(detectFrame);
+    }
 
-    // Start camera on load
-    startCamera();
+    async function main() {
+      statusDiv.textContent = "Starting camera...";
+      await setupCamera();
+      video.play();
+      statusDiv.textContent = "Loading model...";
+      model = await cocoSsd.load();
+      statusDiv.textContent = "Model loaded! Point your camera at objects.";
+      detectFrame();
+    }
+
+    main();
   </script>
 </body>
 </html>
