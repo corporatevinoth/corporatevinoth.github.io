@@ -1,0 +1,852 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Fitness Coach</title>
+    <style>
+        /* --- General Styles --- */
+        body {
+            font-family: 'Inter', sans-serif; /* Using Inter font */
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+            min-height: 100vh;
+            background-color: #f0f4f8; /* Light blue-gray background */
+            margin: 0;
+            padding: 20px;
+            box-sizing: border-box;
+            color: #334e68; /* Darker text for readability */
+        }
+
+        .container {
+            background-color: #ffffff;
+            padding: 25px;
+            border-radius: 16px; /* More rounded corners */
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1); /* Softer, larger shadow */
+            text-align: center;
+            max-width: 960px;
+            width: 100%;
+            margin-top: 20px;
+            overflow: hidden; /* Ensure content stays within rounded corners */
+        }
+
+        h1 {
+            color: #2c3e50;
+            margin-bottom: 25px;
+            font-size: 2.5em;
+            font-weight: 700;
+        }
+
+        /* --- Controls Section --- */
+        .controls-section {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 15px;
+            margin-bottom: 30px;
+            padding-bottom: 20px;
+            border-bottom: 1px solid #e0e7eb;
+        }
+
+        .control-group {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 8px;
+            padding: 15px;
+            border: 1px solid #cce7ff;
+            border-radius: 12px;
+            background-color: #eaf6ff; /* Lighter blue background */
+            box-shadow: inset 0 2px 5px rgba(0, 0, 0, 0.05);
+        }
+
+        label {
+            font-weight: 600;
+            margin-bottom: 5px;
+            color: #4a658a;
+        }
+
+        select, input[type="file"] {
+            padding: 10px 15px;
+            border: 1px solid #a7d9ed;
+            border-radius: 8px;
+            width: calc(100% - 30px); /* Full width minus padding */
+            max-width: 250px;
+            font-size: 1em;
+            color: #334e68;
+            background-color: #ffffff;
+            appearance: none; /* Remove default select arrow */
+            background-image: url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%232c3e50%22%20d%3D%22M287%2069.4L146.2%20205.9%205.4%2069.4c-1.6-1.6-3.7-2.5-5.9-2.5s-4.3%200.9-5.9%202.5c-3.2%203.2-3.2%208.3%200%2011.5l141.4%20141.4c3.2%203.2%208.3%203.2%2011.5%200l141.4-141.4c3.2-3.2%203.2-8.3%200-11.5c-1.6-1.6-3.7-2.5-5.9-2.5z%22%2F%3E%3C%2Fsvg%3E');
+            background-repeat: no-repeat;
+            background-position: right 15px center;
+            background-size: 12px;
+            cursor: pointer;
+        }
+
+        button {
+            background-color: #3498db; /* Primary blue */
+            color: white;
+            padding: 12px 25px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 1.1em;
+            font-weight: 600;
+            transition: background-color 0.3s ease, transform 0.2s ease, box-shadow 0.3s ease;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            margin: 5px; /* Spacing between buttons */
+        }
+
+        button:hover:not(:disabled) {
+            background-color: #2980b9; /* Darker blue on hover */
+            transform: translateY(-2px);
+            box-shadow: 0 6px 15px rgba(0, 0, 0, 0.15);
+        }
+
+        button:disabled {
+            background-color: #cccccc;
+            cursor: not-allowed;
+            box-shadow: none;
+            transform: none;
+        }
+
+        .flash-button {
+            background-color: #f39c12; /* Orange for flash */
+        }
+        .flash-button:hover:not(:disabled) {
+            background-color: #e67e22;
+        }
+        .flash-button.active {
+            background-color: #2ecc71; /* Green when active */
+        }
+        .flash-button.active:hover:not(:disabled) {
+            background-color: #27ae60;
+        }
+
+        /* --- Display Area --- */
+        .display-area {
+            position: relative;
+            margin: 25px auto;
+            border: 2px solid #bdc3c7;
+            border-radius: 12px;
+            max-width: 100%;
+            overflow: hidden;
+            min-height: 300px; /* Increased placeholder height */
+            background-color: #ecf0f1;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            box-shadow: inset 0 2px 8px rgba(0, 0, 0, 0.05);
+        }
+
+        #webcamVideo, #uploadedImageDisplay {
+            display: none;
+            max-width: 100%;
+            height: auto;
+            border-radius: 10px; /* Slightly rounded corners for media */
+        }
+
+        #canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            background-color: transparent;
+        }
+
+        /* --- Results Section --- */
+        .results-section {
+            margin-top: 30px;
+            text-align: left;
+            border-top: 1px solid #e0e7eb;
+            padding-top: 20px;
+        }
+
+        .results-section h2 {
+            color: #334e68;
+            margin-bottom: 15px;
+            font-size: 1.8em;
+            font-weight: 600;
+        }
+
+        #counterDisplay, #timerDisplay {
+            font-size: 3em;
+            font-weight: 700;
+            color: #27ae60; /* Emerald green for counter */
+            margin-bottom: 10px;
+            text-align: center;
+        }
+
+        #formFeedback {
+            font-size: 1.2em;
+            color: #e74c3c; /* Red for feedback */
+            min-height: 1.5em; /* Reserve space */
+            text-align: center;
+            font-weight: 500;
+        }
+
+        .loading {
+            margin-top: 25px;
+            font-style: italic;
+            color: #7f8c8d;
+            font-size: 1.2em;
+            animation: pulse 1.5s infinite alternate;
+        }
+
+        @keyframes pulse {
+            from { opacity: 1; }
+            to { opacity: 0.7; }
+        }
+
+        /* --- Mobile Responsiveness --- */
+        @media (max-width: 768px) {
+            body {
+                padding: 10px;
+            }
+            .container {
+                padding: 15px;
+                margin-top: 10px;
+                border-radius: 12px;
+            }
+            h1 {
+                font-size: 2em;
+                margin-bottom: 20px;
+            }
+            .controls-section {
+                flex-direction: column;
+                gap: 10px;
+                margin-bottom: 20px;
+            }
+            .control-group {
+                width: 100%;
+                padding: 10px;
+                border-radius: 10px;
+            }
+            select, input[type="file"] {
+                width: calc(100% - 20px); /* Adjust padding for smaller screens */
+                padding: 8px 10px;
+                font-size: 0.95em;
+            }
+            button {
+                width: 100%;
+                margin: 5px 0;
+                font-size: 1em;
+                padding: 10px 20px;
+                border-radius: 8px;
+            }
+            .display-area {
+                min-height: 250px;
+                margin: 20px auto;
+                border-radius: 10px;
+            }
+            #counterDisplay, #timerDisplay {
+                font-size: 2.5em;
+            }
+            #formFeedback {
+                font-size: 1em;
+            }
+            .loading {
+                font-size: 1em;
+            }
+        }
+
+        @media (max-width: 480px) {
+            h1 {
+                font-size: 1.6em;
+            }
+            .container {
+                padding: 10px;
+            }
+            .display-area {
+                min-height: 200px;
+            }
+            #counterDisplay, #timerDisplay {
+                font-size: 2em;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>AI Fitness Coach</h1>
+
+        <div class="controls-section">
+            <div class="control-group">
+                <label for="cameraSelect">Select Camera:</label>
+                <select id="cameraSelect" disabled>
+                    <option value="">-- No cameras found --</option>
+                </select>
+                <button id="toggleFlashButton" class="flash-button" disabled>Toggle Flash</button>
+            </div>
+
+            <div class="control-group">
+                <label for="exerciseSelect">Select Exercise:</label>
+                <select id="exerciseSelect">
+                    <option value="pushups">Push-ups</option>
+                    <option value="situps">Sit-ups</option>
+                    <option value="plank">Plank</option>
+                </select>
+                <button id="startWorkoutButton">Start Workout</button>
+                <button id="stopWorkoutButton" disabled>Stop Workout</button>
+            </div>
+        </div>
+
+        <div class="display-area">
+            <video id="webcamVideo" autoplay muted playsinline></video>
+            <canvas id="canvas"></canvas>
+        </div>
+
+        <div class="results-section">
+            <h2>Current Workout:</h2>
+            <div id="counterDisplay" style="display: none;">Reps: 0</div>
+            <div id="timerDisplay" style="display: none;">Time: 0s</div>
+            <div id="formFeedback"></div>
+        </div>
+
+        <div class="loading" id="loading">Loading AI model...</div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/pose-detection"></script>
+
+    <script>
+        const startWorkoutButton = document.getElementById('startWorkoutButton');
+        const stopWorkoutButton = document.getElementById('stopWorkoutButton');
+        const cameraSelect = document.getElementById('cameraSelect');
+        const exerciseSelect = document.getElementById('exerciseSelect');
+        const toggleFlashButton = document.getElementById('toggleFlashButton');
+        const webcamVideo = document.getElementById('webcamVideo');
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+        const counterDisplay = document.getElementById('counterDisplay');
+        const timerDisplay = document.getElementById('timerDisplay');
+        const formFeedback = document.getElementById('formFeedback');
+        const loadingElement = document.getElementById('loading');
+
+        let detector; // TensorFlow.js pose detector
+        let currentStream; // MediaStream from webcam
+        let animationFrameId; // For requestAnimationFrame loop
+
+        let currentExercise = 'pushups'; // Default exercise
+        let repCount = 0;
+        let exerciseState = 'initial'; // For push-ups/sit-ups: 'up', 'down', 'initial'
+        let plankStartTime = 0;
+        let plankIntervalId; // For plank timer
+        let isFlashOn = false;
+
+        // --- Constants for Pose Detection and Exercise Logic ---
+        const CONFIDENCE_THRESHOLD = 0.6; // Minimum confidence for a keypoint to be considered
+        const KEYPOINT_DRAW_RADIUS = 5;
+        const LINE_WIDTH = 2;
+        const POSE_COLOR = '#2ecc71'; // Green for pose lines/points
+
+        // Exercise-specific angle thresholds (tuned by experimentation)
+        // Angles are in degrees
+        const EXERCISE_THRESHOLDS = {
+            pushups: {
+                down_angle: 90,  // Elbow angle when down (shoulder-elbow-wrist)
+                up_angle: 160,   // Elbow angle when up
+                feedback_down: 'Go lower!',
+                feedback_up: 'Extend fully!',
+                keypoints: ['left_shoulder', 'left_elbow', 'left_wrist', 'right_shoulder', 'right_elbow', 'right_wrist', 'nose', 'left_hip', 'right_hip']
+            },
+            situps: {
+                down_angle: 160, // Hip angle when lying down (shoulder-hip-knee)
+                up_angle: 90,    // Hip angle when sitting up
+                feedback_down: 'Lie back fully!',
+                feedback_up: 'Sit up higher!',
+                keypoints: ['left_shoulder', 'left_hip', 'left_knee', 'right_shoulder', 'right_hip', 'right_knee', 'nose']
+            },
+            plank: {
+                // Heuristic for plank: relatively straight body, and nose/shoulders lower than hips
+                straight_angle_min: 160, // Shoulder-hip-knee angle (straight body)
+                straight_angle_max: 185,
+                vertical_diff_threshold: 0.1, // Nose Y - Hip Y (normalized)
+                feedback_form: 'Keep your body straight!',
+                keypoints: ['left_shoulder', 'left_hip', 'left_knee', 'right_shoulder', 'right_hip', 'right_knee', 'nose', 'left_ankle', 'right_ankle']
+            }
+        };
+
+        // --- Model Loading ---
+        async function loadPoseDetector() {
+            loadingElement.innerText = 'Loading AI model... This might take a moment.';
+            try {
+                const model = poseDetection.SupportedModels.MoveNet;
+                const detectorConfig = {
+                    modelType: poseDetection.movenet.modelType.SINGLEPOSE_LIGHTNING // Faster for real-time
+                };
+                detector = await poseDetection.createDetector(model, detectorConfig);
+                loadingElement.style.display = 'none';
+                startWorkoutButton.disabled = false;
+                console.log('AI model loaded successfully!');
+                await enumerateCameras(); // Populate camera dropdown
+            } catch (error) {
+                console.error('Failed to load AI model:', error);
+                loadingElement.innerText = 'Error loading AI model. Please refresh.';
+                startWorkoutButton.disabled = true;
+                cameraSelect.disabled = true;
+                exerciseSelect.disabled = true;
+                toggleFlashButton.disabled = true;
+            }
+        }
+
+        // --- Camera Management ---
+        async function enumerateCameras() {
+            try {
+                // Request temporary access to get device labels (crucial for accurate labels)
+                let tempStream = null;
+                try {
+                    tempStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
+                } catch (e) {
+                    console.warn('Could not get temporary camera access for device enumeration. Labels might be generic.', e);
+                }
+
+                const devices = await navigator.mediaDevices.enumerateDevices();
+                const videoDevices = devices.filter(device => device.kind === 'videoinput');
+
+                cameraSelect.innerHTML = ''; // Clear existing options
+                if (videoDevices.length === 0) {
+                    cameraSelect.innerHTML = '<option value="">-- No cameras found --</option>';
+                    cameraSelect.disabled = true;
+                    startWorkoutButton.disabled = true;
+                    toggleFlashButton.disabled = true;
+                    console.warn('No video input devices found.');
+                    return;
+                }
+
+                videoDevices.forEach(device => {
+                    const option = document.createElement('option');
+                    option.value = device.deviceId;
+                    let label = device.label || `Camera ${cameraSelect.options.length + 1}`;
+                    if (label.toLowerCase().includes('front') || label.toLowerCase().includes('user')) {
+                         label += ' (Front)';
+                    } else if (label.toLowerCase().includes('back') || label.toLowerCase().includes('environment')) {
+                         label += ' (Back)';
+                    }
+                    option.innerText = label;
+                    cameraSelect.appendChild(option);
+                });
+                cameraSelect.disabled = false;
+                startWorkoutButton.disabled = false;
+                toggleFlashButton.disabled = false; // Enable flash button if cameras found
+
+                // Stop the temporary stream immediately if it was created
+                if (tempStream) {
+                    tempStream.getTracks().forEach(track => track.stop());
+                }
+
+            } catch (err) {
+                console.error('Error enumerating cameras:', err);
+                cameraSelect.innerHTML = '<option value="">-- Error enumerating cameras --</option>';
+                cameraSelect.disabled = true;
+                startWorkoutButton.disabled = true;
+                toggleFlashButton.disabled = true;
+            }
+        }
+
+        async function startWebcam() {
+            if (!detector) {
+                formFeedback.innerText = 'AI model not loaded yet. Please wait.';
+                return;
+            }
+            if (loadingElement.style.display !== 'none') {
+                formFeedback.innerText = 'AI model is still loading. Please wait.';
+                return;
+            }
+
+            startWorkoutButton.disabled = true;
+            stopWorkoutButton.disabled = false;
+            cameraSelect.disabled = true;
+            exerciseSelect.disabled = true;
+            toggleFlashButton.disabled = false; // Flash can be controlled while webcam is active
+
+            formFeedback.innerText = 'Starting webcam...';
+            resetWorkoutState(); // Reset counts/timers
+
+            const selectedDeviceId = cameraSelect.value;
+            const constraints = {
+                video: {
+                    deviceId: selectedDeviceId ? { exact: selectedDeviceId } : undefined,
+                    facingMode: selectedDeviceId ? undefined : 'user', // Default to front if no specific device
+                    width: { ideal: 640 }, // Request ideal resolution
+                    height: { ideal: 480 }
+                },
+                audio: false
+            };
+
+            try {
+                currentStream = await navigator.mediaDevices.getUserMedia(constraints);
+                webcamVideo.srcObject = currentStream;
+                webcamVideo.style.display = 'block';
+
+                webcamVideo.onloadedmetadata = () => {
+                    canvas.width = webcamVideo.videoWidth;
+                    canvas.height = webcamVideo.videoHeight;
+                    console.log('Webcam started:', webcamVideo.videoWidth, webcamVideo.videoHeight);
+                    formFeedback.innerText = 'Webcam ready. Start exercising!';
+                    detectPoseFrame(); // Start the detection loop
+                };
+
+                // Apply initial flash state if needed
+                if (isFlashOn) {
+                    toggleFlash(true);
+                }
+
+                // Set video mirroring based on camera type
+                const selectedOption = cameraSelect.options[cameraSelect.selectedIndex];
+                if (selectedOption && selectedOption.innerText.toLowerCase().includes('front')) {
+                    webcamVideo.style.transform = 'scaleX(-1)'; // Mirror for front camera
+                } else {
+                    webcamVideo.style.transform = 'none'; // No mirroring for back/external camera
+                }
+
+            } catch (err) {
+                console.error('Error accessing webcam:', err);
+                formFeedback.innerText = 'Error: Could not access webcam. Please allow camera access and try again.';
+                stopWebcam(); // Clean up on error
+            }
+        }
+
+        function stopWebcam() {
+            if (currentStream) {
+                currentStream.getTracks().forEach(track => track.stop());
+                webcamVideo.srcObject = null;
+                webcamVideo.style.display = 'none';
+                cancelAnimationFrame(animationFrameId); // Stop pose detection loop
+                clearInterval(plankIntervalId); // Stop plank timer
+                ctx.clearRect(0, 0, canvas.width, canvas.height); // Clear canvas
+            }
+            startWorkoutButton.disabled = false;
+            stopWorkoutButton.disabled = true;
+            cameraSelect.disabled = false;
+            exerciseSelect.disabled = false;
+            toggleFlashButton.disabled = false; // Flash button remains enabled if cameras are present
+            formFeedback.innerText = '';
+            resetWorkoutState(); // Reset counts/timers
+            toggleFlash(false); // Ensure flash is off
+        }
+
+        async function toggleFlash(forceState = null) {
+            if (!currentStream) {
+                formFeedback.innerText = 'Start webcam first to control flash.';
+                return;
+            }
+
+            const videoTrack = currentStream.getVideoTracks()[0];
+            if (!videoTrack) {
+                formFeedback.innerText = 'No video track found for flash control.';
+                return;
+            }
+
+            const capabilities = videoTrack.getCapabilities();
+            if (!capabilities.torch) {
+                formFeedback.innerText = 'Flash (torch mode) not supported by this camera/browser.';
+                toggleFlashButton.disabled = true;
+                return;
+            }
+
+            try {
+                const newState = forceState !== null ? forceState : !isFlashOn;
+                await videoTrack.applyConstraints({
+                    advanced: [{ torch: newState }]
+                });
+                isFlashOn = newState;
+                toggleFlashButton.classList.toggle('active', isFlashOn);
+                formFeedback.innerText = `Flash is ${isFlashOn ? 'ON' : 'OFF'}.`;
+            } catch (err) {
+                console.error('Error toggling flash:', err);
+                formFeedback.innerText = 'Failed to toggle flash. Browser/device might not support it.';
+                toggleFlashButton.disabled = true; // Disable if it fails
+            }
+        }
+
+
+        // --- Pose Detection Loop ---
+        async function detectPoseFrame() {
+            if (webcamVideo.readyState === 4 && detector) {
+                const poses = await detector.estimatePoses(webcamVideo);
+                ctx.clearRect(0, 0, canvas.width, canvas.height); // Clear canvas for new drawing
+
+                if (poses.length > 0) {
+                    const mainPose = poses[0]; // Assuming single person for simplicity
+                    drawPose(mainPose);
+                    processExercise(mainPose.keypoints);
+                } else {
+                    formFeedback.innerText = 'No person detected. Stand fully in frame.';
+                }
+            }
+            animationFrameId = requestAnimationFrame(detectPoseFrame);
+        }
+
+        // --- Drawing Utilities ---
+        const connectedKeypoints = [
+            // Face
+            [0, 1], [0, 2], [1, 3], [2, 4], // Nose to eyes, eyes to ears
+            // Body
+            [5, 6], // Shoulders
+            [5, 7], [7, 9], // Left arm
+            [6, 8], [8, 10], // Right arm
+            [5, 11], [6, 12], // Shoulders to hips
+            [11, 13], [13, 15], // Left leg
+            [12, 14], [14, 16] // Right leg
+        ];
+
+        function drawPose(pose) {
+            // Draw keypoints
+            pose.keypoints.forEach(keypoint => {
+                if (keypoint.score > CONFIDENCE_THRESHOLD) {
+                    ctx.beginPath();
+                    ctx.arc(keypoint.x, keypoint.y, KEYPOINT_DRAW_RADIUS, 0, 2 * Math.PI);
+                    ctx.fillStyle = POSE_COLOR;
+                    ctx.fill();
+                }
+            });
+
+            // Draw skeleton lines
+            connectedKeypoints.forEach(([p1Index, p2Index]) => {
+                const p1 = pose.keypoints[p1Index];
+                const p2 = pose.keypoints[p2Index];
+
+                if (p1.score > CONFIDENCE_THRESHOLD && p2.score > CONFIDENCE_THRESHOLD) {
+                    ctx.beginPath();
+                    ctx.moveTo(p1.x, p1.y);
+                    ctx.lineTo(p2.x, p2.y);
+                    ctx.strokeStyle = POSE_COLOR;
+                    ctx.lineWidth = LINE_WIDTH;
+                    ctx.stroke();
+                }
+            });
+        }
+
+        // --- Angle Calculation Utility ---
+        function calculateAngle(kp1, kp2, kp3) {
+            // kp1, kp2, kp3 are keypoint objects with x, y properties
+            if (!kp1 || !kp2 || !kp3) return null; // Handle missing keypoints
+
+            const radians = Math.atan2(kp3.y - kp2.y, kp3.x - kp2.x) -
+                            Math.atan2(kp1.y - kp2.y, kp1.x - kp2.x);
+            let angle = Math.abs(radians * 180.0 / Math.PI);
+
+            if (angle > 180.0) {
+                angle = 360 - angle;
+            }
+            return angle;
+        }
+
+        // --- Exercise Logic ---
+        function processExercise(keypoints) {
+            switch (currentExercise) {
+                case 'pushups':
+                    processPushups(keypoints);
+                    break;
+                case 'situps':
+                    processSitups(keypoints);
+                    break;
+                case 'plank':
+                    processPlank(keypoints);
+                    break;
+            }
+        }
+
+        function processPushups(keypoints) {
+            // Keypoints for Push-ups: shoulder, elbow, wrist
+            const leftShoulder = keypoints.find(kp => kp.name === 'left_shoulder');
+            const leftElbow = keypoints.find(kp => kp.name === 'left_elbow');
+            const leftWrist = keypoints.find(kp => kp.name === 'left_wrist');
+            const rightShoulder = keypoints.find(kp => kp.name === 'right_shoulder');
+            const rightElbow = keypoints.find(kp => kp.name === 'right_elbow');
+            const rightWrist = keypoints.find(kp => kp.name === 'right_wrist');
+
+            // Ensure confident detection for key points
+            if (!leftElbow || !leftShoulder || !leftWrist || !rightElbow || !rightShoulder || !rightWrist ||
+                leftElbow.score < CONFIDENCE_THRESHOLD || leftShoulder.score < CONFIDENCE_THRESHOLD || leftWrist.score < CONFIDENCE_THRESHOLD ||
+                rightElbow.score < CONFIDENCE_THRESHOLD || rightShoulder.score < CONFIDENCE_THRESHOLD || rightWrist.score < CONFIDENCE_THRESHOLD) {
+                formFeedback.innerText = 'Adjust position for push-ups. Ensure arms are visible.';
+                return;
+            }
+
+            const leftElbowAngle = calculateAngle(leftShoulder.position, leftElbow.position, leftWrist.position);
+            const rightElbowAngle = calculateAngle(rightShoulder.position, rightElbow.position, rightWrist.position);
+
+            // Use the average or minimum angle for robustness
+            const currentElbowAngle = (leftElbowAngle + rightElbowAngle) / 2;
+
+            const { down_angle, up_angle, feedback_down, feedback_up } = EXERCISE_THRESHOLDS.pushups;
+
+            if (exerciseState === 'up' && currentElbowAngle < down_angle) {
+                exerciseState = 'down';
+                formFeedback.innerText = ''; // Clear feedback when going down
+            } else if (exerciseState === 'down' && currentElbowAngle > up_angle) {
+                repCount++;
+                exerciseState = 'up';
+                counterDisplay.innerText = `Reps: ${repCount}`;
+                formFeedback.innerText = ''; // Clear feedback when rep completed
+            }
+
+            // Provide form feedback
+            if (exerciseState === 'up' && currentElbowAngle < up_angle - 10) { // Not fully extended
+                formFeedback.innerText = feedback_up;
+            } else if (exerciseState === 'down' && currentElbowAngle > down_angle + 10) { // Not low enough
+                formFeedback.innerText = feedback_down;
+            }
+        }
+
+        function processSitups(keypoints) {
+            // Keypoints for Sit-ups: shoulder, hip, knee
+            const leftShoulder = keypoints.find(kp => kp.name === 'left_shoulder');
+            const leftHip = keypoints.find(kp => kp.name === 'left_hip');
+            const leftKnee = keypoints.find(kp => kp.name === 'left_knee');
+            const rightShoulder = keypoints.find(kp => kp.name === 'right_shoulder');
+            const rightHip = keypoints.find(kp => kp.name === 'right_hip');
+            const rightKnee = keypoints.find(kp => kp.name === 'right_knee');
+
+            if (!leftHip || !leftShoulder || !leftKnee || !rightHip || !rightShoulder || !rightKnee ||
+                leftHip.score < CONFIDENCE_THRESHOLD || leftShoulder.score < CONFIDENCE_THRESHOLD || leftKnee.score < CONFIDENCE_THRESHOLD ||
+                rightHip.score < CONFIDENCE_THRESHOLD || rightShoulder.score < CONFIDENCE_THRESHOLD || rightKnee.score < CONFIDENCE_THRESHOLD) {
+                formFeedback.innerText = 'Adjust position for sit-ups. Ensure torso and legs are visible.';
+                return;
+            }
+
+            const leftHipAngle = calculateAngle(leftShoulder.position, leftHip.position, leftKnee.position);
+            const rightHipAngle = calculateAngle(rightShoulder.position, rightHip.position, rightKnee.position);
+
+            const currentHipAngle = (leftHipAngle + rightHipAngle) / 2; // Average angle
+
+            const { down_angle, up_angle, feedback_down, feedback_up } = EXERCISE_THRESHOLDS.situps;
+
+            if (exerciseState === 'down' && currentHipAngle < up_angle) { // Sitting up
+                exerciseState = 'up';
+                formFeedback.innerText = '';
+            } else if (exerciseState === 'up' && currentHipAngle > down_angle) { // Lying down
+                repCount++;
+                exerciseState = 'down';
+                counterDisplay.innerText = `Reps: ${repCount}`;
+                formFeedback.innerText = '';
+            }
+
+            // Provide form feedback
+            if (exerciseState === 'down' && currentHipAngle < up_angle + 10) { // Not sitting up enough
+                formFeedback.innerText = feedback_up;
+            } else if (exerciseState === 'up' && currentHipAngle > down_angle - 10) { // Not lying back enough
+                formFeedback.innerText = feedback_down;
+            }
+        }
+
+        function processPlank(keypoints) {
+            // Keypoints for Plank: shoulder, hip, knee, ankle, nose
+            const leftShoulder = keypoints.find(kp => kp.name === 'left_shoulder');
+            const leftHip = keypoints.find(kp => kp.name === 'left_hip');
+            const leftKnee = keypoints.find(kp => kp.name === 'left_knee');
+            const leftAnkle = keypoints.find(kp => kp.name === 'left_ankle');
+            const rightShoulder = keypoints.find(kp => kp.name === 'right_shoulder');
+            const rightHip = keypoints.find(kp => kp.name === 'right_hip');
+            const rightKnee = keypoints.find(kp => kp.name === 'right_knee');
+            const rightAnkle = keypoints.find(kp => kp.name === 'right_ankle');
+            const nose = keypoints.find(kp => kp.name === 'nose');
+
+            if (!leftShoulder || !leftHip || !leftKnee || !leftAnkle || !nose ||
+                leftShoulder.score < CONFIDENCE_THRESHOLD || leftHip.score < CONFIDENCE_THRESHOLD || leftKnee.score < CONFIDENCE_THRESHOLD || leftAnkle.score < CONFIDENCE_THRESHOLD || nose.score < CONFIDENCE_THRESHOLD) {
+                formFeedback.innerText = 'Adjust position for plank. Ensure full body is visible.';
+                stopPlankTimer(); // Stop timer if pose is lost
+                return;
+            }
+
+            // Check for relative straightness of body (shoulder-hip-knee-ankle alignment)
+            const leftBodyAngle = calculateAngle(leftShoulder.position, leftHip.position, leftKnee.position);
+            const rightBodyAngle = calculateAngle(rightShoulder.position, rightHip.position, rightKnee.position);
+
+            const avgBodyAngle = (leftBodyAngle + rightBodyAngle) / 2;
+
+            const { straight_angle_min, straight_angle_max, feedback_form } = EXERCISE_THRESHOLDS.plank;
+
+            // Check if body is relatively straight
+            const isBodyStraight = avgBodyAngle > straight_angle_min && avgBodyAngle < straight_angle_max;
+
+            // Check if nose/shoulders are generally below hips (indicating horizontal position)
+            // This is a heuristic and might need tuning
+            const noseBelowHip = nose.position.y > leftHip.position.y && nose.position.y > rightHip.position.y;
+            const shouldersBelowHip = leftShoulder.position.y > leftHip.position.y && rightShoulder.position.y > rightHip.position.y;
+
+            const inPlankPose = isBodyStraight && noseBelowHip && shouldersBelowHip;
+
+            if (inPlankPose && exerciseState !== 'planking') {
+                exerciseState = 'planking';
+                plankStartTime = Date.now();
+                startPlankTimer();
+                formFeedback.innerText = 'Plank detected! Hold it!';
+            } else if (!inPlankPose && exerciseState === 'planking') {
+                exerciseState = 'initial'; // Or 'broken'
+                stopPlankTimer();
+                formFeedback.innerText = 'Plank broken. Try again!';
+            } else if (inPlankPose && exerciseState === 'planking') {
+                formFeedback.innerText = feedback_form; // Continue showing feedback if form is slightly off
+            } else if (!inPlankPose && exerciseState !== 'planking') {
+                formFeedback.innerText = 'Get into plank position.';
+            }
+        }
+
+        function startPlankTimer() {
+            if (plankIntervalId) clearInterval(plankIntervalId); // Clear any existing timer
+            plankIntervalId = setInterval(() => {
+                const elapsedSeconds = Math.floor((Date.now() - plankStartTime) / 1000);
+                timerDisplay.innerText = `Time: ${elapsedSeconds}s`;
+            }, 1000);
+        }
+
+        function stopPlankTimer() {
+            clearInterval(plankIntervalId);
+            plankIntervalId = null;
+        }
+
+        // --- UI State Management ---
+        function resetWorkoutState() {
+            repCount = 0;
+            exerciseState = 'initial';
+            plankStartTime = 0;
+            clearInterval(plankIntervalId); // Ensure timer stops
+            plankIntervalId = null;
+
+            counterDisplay.innerText = 'Reps: 0';
+            timerDisplay.innerText = 'Time: 0s';
+            formFeedback.innerText = '';
+
+            // Show/hide displays based on selected exercise
+            if (currentExercise === 'plank') {
+                counterDisplay.style.display = 'none';
+                timerDisplay.style.display = 'block';
+            } else {
+                counterDisplay.style.display = 'block';
+                timerDisplay.style.display = 'none';
+            }
+        }
+
+        // --- Event Listeners ---
+        startWorkoutButton.addEventListener('click', startWebcam);
+        stopWorkoutButton.addEventListener('click', stopWebcam);
+        toggleFlashButton.addEventListener('click', () => toggleFlash());
+
+        exerciseSelect.addEventListener('change', (event) => {
+            currentExercise = event.target.value;
+            if (stopWorkoutButton.disabled === false) { // If workout is active, restart with new exercise
+                stopWebcam(); // This will also call resetWorkoutState
+                startWebcam();
+            } else {
+                resetWorkoutState(); // Just update display if not active
+            }
+        });
+
+        cameraSelect.addEventListener('change', () => {
+            if (stopWorkoutButton.disabled === false) { // If webcam is active, restart with new camera
+                stopWebcam();
+                startWebcam();
+            }
+        });
+
+        // Initial load
+        loadPoseDetector();
+    </script>
+</body>
+</html>
