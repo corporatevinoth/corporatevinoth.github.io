@@ -59,17 +59,34 @@
   <script>
     let scene, camera, renderer, gun, zombies = [], bullets = [], score = 0;
     let GUN_Y = -8.5, GUN_X_LIMIT = 9.5, gunMoving = false, soundMuted = false;
+    let targetGunX = 0; // New: Target X position for smoother gun movement
+    const dragSensitivity = 0.05; // New: Adjust this value for desired responsiveness
+
     // Sound
     const zombieHitSound = document.getElementById('zombie-hit-sound');
     zombieHitSound.volume = 0.2;
     const muteBtn = document.getElementById('mute-btn');
     const soundOnIcon = document.getElementById('sound-on');
     const soundOffIcon = document.getElementById('sound-off');
+
+    let audioContext; // Will be initialized on first user interaction
+
     function setMuteUI(muted) {
       soundOnIcon.style.display = muted ? "none" : "";
       soundOffIcon.style.display = muted ? "" : "none";
     }
+
     muteBtn.addEventListener('click', () => {
+      // Initialize and resume AudioContext on first user interaction
+      if (!audioContext) {
+        audioContext = new (window.AudioContext || window.webkitAudioContext)();
+        if (audioContext.state === 'suspended') {
+          audioContext.resume().then(() => {
+            console.log('AudioContext resumed!');
+          });
+        }
+      }
+
       soundMuted = !soundMuted;
       setMuteUI(soundMuted);
     });
@@ -120,19 +137,20 @@
       if (event.touches) return event.touches[0].clientX;
       else return event.clientX;
     }
-    function moveGunToPointer(event) {
+
+    function calculateTargetX(event) {
       const rect = renderer.domElement.getBoundingClientRect();
       let x = ((pointerX(event) - rect.left) / rect.width) * 2 - 1;
       x *= camera.aspect * camera.position.z * Math.tan(camera.fov/2*Math.PI/180);
-      x = Math.max(-GUN_X_LIMIT, Math.min(GUN_X_LIMIT, x));
-      gun.position.x = x;
+      return Math.max(-GUN_X_LIMIT, Math.min(GUN_X_LIMIT, x));
     }
+
     renderer.domElement.addEventListener("pointerdown", e => {
       gunMoving = true;
-      moveGunToPointer(e);
+      targetGunX = calculateTargetX(e); // Set initial target
     });
     renderer.domElement.addEventListener("pointermove", e => {
-      if (gunMoving) moveGunToPointer(e);
+      if (gunMoving) targetGunX = calculateTargetX(e);
     });
     window.addEventListener("pointerup", e => { gunMoving = false; });
 
@@ -179,7 +197,6 @@
       const bullet = new THREE.Mesh(geometry, material);
       bullet.rotation.z = Math.PI/2;
       // FIX: Set bullet's x position to the gun's x position.
-      // The gun's internal components are already positioned relative to its origin.
       bullet.position.set(gun.position.x, GUN_Y + 0.08, 0); 
       bullet.userData = { speed: 0.55, alive: true };
       return bullet;
@@ -206,7 +223,7 @@
           if (dist < 1.05) { // Adjusted for the combined size of bullet and zombie
             zombie.userData.dead = true;
             if (!soundMuted) {
-              try { zombieHitSound.currentTime = 0; zombieHitSound.play(); } catch(e){}
+              try { zombieHitSound.currentTime = 0; zombieHitSound.play(); } catch(e){ console.error("Sound play error:", e); }
             }
             score++;
             document.getElementById('score').textContent = 'Score: ' + score;
@@ -221,6 +238,12 @@
     // Animate
     function animate() {
       requestAnimationFrame(animate);
+
+      // Smoothly move the gun towards the targetX
+      if (gunMoving) {
+        gun.position.x += (targetGunX - gun.position.x) * dragSensitivity;
+      }
+
       // Animate zombies
       for (let i = zombies.length-1; i >= 0; i--) {
         let z = zombies[i];
@@ -245,7 +268,7 @@
           z.rotation.y += 0.004;
           if (z.position.y < GUN_Y - 0.7) {
             if (!soundMuted) {
-              try { zombieHitSound.currentTime = 0.18; zombieHitSound.play(); } catch(e){}
+              try { zombieHitSound.currentTime = 0.18; zombieHitSound.play(); } catch(e){ console.error("Sound play error:", e); }
             }
             scene.remove(z);
             zombies.splice(i,1);
