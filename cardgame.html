@@ -115,6 +115,10 @@
             color: red;
         }
 
+        .hint {
+            color: orange;
+        }
+
         #next-card-btn {
             padding: 12px 25px;
             font-size: 1em; /* Adjusted font size */
@@ -131,9 +135,10 @@
             background-color: #218838; /* Darker green on hover */
         }
 
-        .hidden {
+        /* The 'hidden' class is no longer used for the next card button */
+        /* .hidden {
             display: none;
-        }
+        } */
 
         /* --- Snow Falling Effect --- */
         .snow-container {
@@ -218,7 +223,7 @@
             <p id="feedback"></p>
         </div>
 
-        <button id="next-card-btn" class="hidden">Next Card</button>
+        <button id="next-card-btn">Next Card</button>
     </div>
 
     <script>
@@ -234,6 +239,8 @@
 
             let score = 0;
             let currentCard = {};
+            let incorrectAttempts = 0; // New: Track incorrect attempts
+            const maxIncorrectAttempts = 3; // New: Limit for incorrect attempts
             let speechRecognition;
             const numberOfSnowflakes = 50; // Adjust for more/fewer snowflakes
 
@@ -281,26 +288,36 @@
 
             function displayNewCard() {
                 currentCard = getRandomCard();
+                incorrectAttempts = 0; // Reset attempts for new card
                 cardImage.src = currentCard.image;
                 questionElement.textContent = 'What is this?';
                 feedbackElement.textContent = ''; // Clear previous feedback
+                feedbackElement.className = ''; // Clear previous feedback class
                 userInput.value = ''; // Clear input field
                 userInput.focus(); // Focus on input for easy typing
-                nextCardBtn.classList.add('hidden'); // Hide next card button
-                userInput.disabled = false; // Enable input
-                voiceInputBtn.disabled = false; // Enable voice button
+
+                // Always enable input and voice button when a new card is displayed
+                userInput.disabled = false;
+                voiceInputBtn.disabled = false;
 
                 // Optional: Add an error handler for images just in case
                 cardImage.onerror = () => {
                     console.error("Failed to load image:", currentCard.image);
                     cardImage.src = 'https://via.placeholder.com/200x200/CCCCCC/000000?text=Image+Error'; // Fallback
-                    feedbackElement.textContent = "Image failed to load. Moving to next card in 2s.";
+                    feedbackElement.textContent = "Image failed to load. Skipping to next card in 2s.";
                     feedbackElement.className = 'incorrect';
+                    userInput.disabled = true; // Disable input if image errors
+                    voiceInputBtn.disabled = true;
                     setTimeout(displayNewCard, 2000); // Auto-advance on image error
                 };
             }
 
             function checkAnswer(answer) {
+                // If input is already disabled (e.g., after a correct answer or automatic skip), do nothing
+                if (userInput.disabled) {
+                    return;
+                }
+
                 const normalizedAnswer = answer.toLowerCase().trim();
                 const correctAnswer = currentCard.name.toLowerCase();
 
@@ -311,11 +328,23 @@
                     feedbackElement.className = 'correct';
                     userInput.disabled = true; // Disable input after correct answer
                     voiceInputBtn.disabled = true;
-                    nextCardBtn.classList.remove('hidden'); // Show next card button
+                    // No need to show/hide nextCardBtn, it's always visible now
                 } else {
-                    feedbackElement.textContent = `Incorrect. Try again!`;
-                    feedbackElement.className = 'incorrect';
-                    // Optionally, you could provide a hint here.
+                    incorrectAttempts++;
+                    if (incorrectAttempts >= maxIncorrectAttempts) {
+                        feedbackElement.textContent = `Too many tries! It was a ${currentCard.name.toUpperCase()}.`;
+                        feedbackElement.className = 'hint'; // Use 'hint' class for this message
+                        userInput.disabled = true; // Disable input
+                        voiceInputBtn.disabled = true;
+                        setTimeout(() => {
+                            displayNewCard(); // Move to next card after 1 second
+                        }, 1000);
+                    } else {
+                        feedbackElement.textContent = `Incorrect. Try again! (${maxIncorrectAttempts - incorrectAttempts} tries left)`;
+                        feedbackElement.className = 'incorrect';
+                        userInput.value = ''; // Clear input for another try
+                        userInput.focus();
+                    }
                 }
             }
 
@@ -323,14 +352,17 @@
 
             // Keyboard input
             userInput.addEventListener('keydown', (event) => {
-                if (event.key === 'Enter' && userInput.value.trim() !== '') {
+                if (event.key === 'Enter' && userInput.value.trim() !== '' && !userInput.disabled) {
                     checkAnswer(userInput.value);
                 }
             });
 
             // Voice input
             voiceInputBtn.addEventListener('click', () => {
-                // Check if Web Speech API is supported
+                if (userInput.disabled) { // Prevent voice input if game is in a disabled state
+                    return;
+                }
+
                 if ('SpeechRecognition' in window || 'webkitSpeechRecognition' in window) {
                     speechRecognition = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
                     speechRecognition.continuous = false; // Stop after a single utterance
@@ -340,15 +372,16 @@
                         feedbackElement.textContent = 'Listening... Speak now.';
                         feedbackElement.className = '';
                         voiceInputBtn.textContent = '🎤 Listening...';
-                        voiceInputBtn.disabled = true;
+                        voiceInputBtn.disabled = true; // Disable during listening
+                        userInput.disabled = true; // Also disable text input during listening
                     };
 
                     speechRecognition.onresult = (event) => {
                         const speechResult = event.results[0][0].transcript;
-                        userInput.value = speechResult;
+                        userInput.value = speechResult; // Populate input with speech result
                         checkAnswer(speechResult);
                         voiceInputBtn.textContent = '🎤 Speak Answer';
-                        voiceInputBtn.disabled = false;
+                        // Re-enable handled within checkAnswer or onend
                     };
 
                     speechRecognition.onerror = (event) => {
@@ -356,14 +389,18 @@
                         feedbackElement.textContent = 'Speech recognition failed. Please try typing.';
                         feedbackElement.className = 'incorrect';
                         voiceInputBtn.textContent = '🎤 Speak Answer';
-                        voiceInputBtn.disabled = false;
+                        voiceInputBtn.disabled = false; // Re-enable on error
+                        if (!userInput.disabled) { // Only re-enable text input if not already disabled by game logic
+                            userInput.disabled = false;
+                        }
                     };
 
                     speechRecognition.onend = () => {
                         voiceInputBtn.textContent = '🎤 Speak Answer';
-                        // If not already disabled by correct answer, re-enable
+                        // Only re-enable if input wasn't disabled by a correct answer or automatic skip
                         if (!userInput.disabled) {
                             voiceInputBtn.disabled = false;
+                            userInput.disabled = false; // Ensure text input is re-enabled too
                         }
                     };
 
@@ -375,6 +412,7 @@
                 }
             });
 
+            // The 'Next Card' button now directly calls displayNewCard
             nextCardBtn.addEventListener('click', displayNewCard);
 
             // --- Snow Effect Initialization ---
