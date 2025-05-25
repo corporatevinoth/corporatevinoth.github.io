@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Fruit Ninja - Canvas Physics</title>
+    <style>
+        body {
+            margin: 0;
+            overflow: hidden;
+            background-color: #222;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+        }
+        canvas {
+            background-color: #111; /* Dark background for game area */
+            border-radius: 15px;
+            box-shadow: 0 0 20px rgba(0, 0, 0, 0.7);
+        }
+    </style>
+</head>
+<body>
+    <canvas id="gameCanvas"></canvas>
+
+    <script>
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+
+        canvas.width = 375;
+        canvas.height = 667;
+
+        const GRAVITY = 0.3; // Pixels per frame squared (adjust for feel)
+
+        class Fruit {
+            constructor(x, y, radius, color, velocityX, velocityY, imageSrc) {
+                this.x = x;
+                this.y = y;
+                this.radius = radius;
+                this.color = color; // Will be replaced by image
+                this.vx = velocityX;
+                this.vy = velocityY;
+                this.image = new Image();
+                this.image.src = imageSrc;
+                this.isSliced = false;
+                this.slicedParts = []; // For sliced fruit rendering
+            }
+
+            draw() {
+                if (!this.isSliced) {
+                    // Draw the whole fruit image
+                    ctx.drawImage(this.image, this.x - this.radius, this.y - this.radius, this.radius * 2, this.radius * 2);
+                } else {
+                    // Draw sliced parts (will implement later)
+                    this.slicedParts.forEach(part => {
+                        ctx.drawImage(part.image, part.x - part.radius, part.y - part.radius, part.radius * 2, part.radius * 2);
+                    });
+                }
+            }
+
+            update() {
+                // Apply gravity
+                this.vy += GRAVITY;
+
+                // Update position
+                this.x += this.vx;
+                this.y += this.vy;
+
+                // Simple boundary check (for now, just remove if off-screen)
+                if (this.y > canvas.height + this.radius * 2 || this.x < -this.radius * 2 || this.x > canvas.width + this.radius * 2) {
+                    return true; // Indicate that fruit is off-screen and should be removed
+                }
+                return false; // Fruit is still on screen
+            }
+        }
+
+        const fruits = [];
+        const fruitImages = {
+            apple: 'https://cdn-icons-png.flaticon.com/512/10046/10046271.png',
+            banana: 'https://cdn-icons-png.flaticon.com/512/10046/10046282.png',
+            orange: 'https://cdn-icons-png.flaticon.com/512/10046/10046294.png',
+            watermelon: 'https://cdn-icons-png.flaticon.com/512/10046/10046305.png',
+            strawberry: 'https://cdn-icons-png.flaticon.com/512/10046/10046316.png'
+        };
+        const fruitTypes = Object.keys(fruitImages);
+
+        // Function to spawn fruits
+        function spawnFruit() {
+            const radius = 40;
+            const startX = Math.random() * (canvas.width - radius * 2) + radius;
+            const startY = canvas.height + radius; // Start below the canvas
+
+            // Initial velocity for upward arc
+            const initialVelocityX = (Math.random() - 0.5) * 8; // Random horizontal movement
+            const initialVelocityY = -(Math.random() * 15 + 15); // Strong upward initial velocity
+
+            const randomFruitType = fruitTypes[Math.floor(Math.random() * fruitTypes.length)];
+            fruits.push(new Fruit(startX, startY, radius, 'red', initialVelocityX, initialVelocityY, fruitImages[randomFruitType]));
+        }
+
+        // Game loop
+        function gameLoop() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height); // Clear canvas
+
+            for (let i = fruits.length - 1; i >= 0; i--) {
+                const fruit = fruits[i];
+                if (fruit.update()) {
+                    fruits.splice(i, 1); // Remove off-screen fruit
+                } else {
+                    fruit.draw();
+                }
+            }
+
+            requestAnimationFrame(gameLoop);
+        }
+
+        // Spawn fruits initially and then at intervals
+        setInterval(spawnFruit, 1000); // Spawn every 1 second
+        gameLoop(); // Start the game loop
+    </script>
+</body>
+</html>
