@@ -8,6 +8,12 @@
     canvas { background: #222; display: block; margin: 0 auto; }
     #controls { display: none; position: fixed; bottom: 40px; left: 0; width: 100%; text-align: center; }
     #controls button { font-size: 2em; margin: 0 20px; }
+    #game-over-modal {
+      display: none; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
+      background: #fff; padding: 30px 40px; border-radius: 20px; box-shadow: 0 6px 40px #0009; text-align: center; z-index: 1000;
+    }
+    #game-over-modal button { font-size: 1.5em; margin: 10px 20px; }
+    #score-label { font-size: 2em; margin-bottom: 20px; color: #222; font-weight: bold; }
     @media (pointer: coarse) {
       #controls { display: block; }
     }
@@ -19,6 +25,11 @@
   <button id="leftBtn">⬅️</button>
   <button id="rightBtn">➡️</button>
 </div>
+<div id="game-over-modal">
+  <div id="score-label"></div>
+  <button onclick="replayGame()">Replay</button>
+  <button onclick="exitGame()">Exit</button>
+</div>
 <script>
 const carImages = [
   'bluecar.jpg', 'greencar.png', 'jeep.png', 'purplecar.png', 'truck.png'
@@ -29,8 +40,11 @@ let cars = [];
 let player = { x: 0, y: 0, img: null };
 let canvas = document.getElementById('gameCanvas');
 let ctx = canvas.getContext('2d');
+let gameRunning = false;
+let score = 0;
+let scoreInterval = null;
 
-// Added for road animation
+// For road animation
 let roadLineOffset = 0;
 const roadLineSpeed = 10;
 
@@ -54,11 +68,8 @@ carImages.forEach((src, i) => loadedImages[i] = loadImage(src));
 
 // Draw road with animated dotted center line
 function drawRoad() {
-  // Black road
   ctx.fillStyle = 'black';
   ctx.fillRect(canvas.width/4, 0, canvas.width/2, canvas.height);
-
-  // Dotted white center line (animated)
   ctx.strokeStyle = 'white';
   ctx.lineWidth = 6;
   ctx.setLineDash([30, 30]);
@@ -79,24 +90,54 @@ function drawPlayer() {
   ctx.drawImage(loadedImages.player, player.x, player.y, carWidth, carHeight);
 }
 
+// Collision detection
+function isColliding(a, b) {
+  return !(
+    a.x + carWidth < b.x ||
+    a.x > b.x + carWidth ||
+    a.y + carHeight < b.y ||
+    a.y > b.y + carHeight
+  );
+}
+
+// Prevent cars from spawning/colliding in the same lane/row
+function isCarOverlap(newCar, allCars) {
+  return allCars.some(car =>
+    Math.abs(car.x - newCar.x) < carWidth && Math.abs(car.y - newCar.y) < carHeight
+  );
+}
+
 // Game loop
 function gameLoop() {
+  if (!gameRunning) return;
   ctx.clearRect(0, 0, canvas.width, canvas.height);
   roadLineOffset += roadLineSpeed;
   drawRoad();
-
   // Move cars
   cars.forEach(car => {
     car.y += car.speed;
-    // If car goes off screen, reset to top in random lane
     if (car.y > canvas.height) {
-      car.y = -carHeight;
-      car.x = canvas.width/4 + Math.floor(Math.random() * 3)*(canvas.width/2- carWidth)/2;
+      // Reposition car at top, random lane, ensure no overlap with other cars
+      let tries = 0;
+      do {
+        car.x = canvas.width/4 + Math.floor(Math.random() * 3)*(canvas.width/2- carWidth)/2;
+        car.y = -carHeight - Math.random()*150;
+        tries++;
+      } while (isCarOverlap(car, cars.filter(c => c !== car)) && tries < 10);
     }
   });
 
   drawCars();
   drawPlayer();
+
+  // Check collision (only player with other cars)
+  for (let i = 0; i < cars.length; ++i) {
+    if (isColliding(player, cars[i])) {
+      endGame();
+      return;
+    }
+  }
+
   requestAnimationFrame(gameLoop);
 }
 
@@ -108,30 +149,68 @@ function movePlayer(dir) {
   if (dir === 'right') player.x = Math.min(roadRight, player.x + 30);
 }
 window.addEventListener('keydown', e => {
+  if (!gameRunning) return;
   if (e.key === 'ArrowLeft') movePlayer('left');
   if (e.key === 'ArrowRight') movePlayer('right');
 });
-// Mobile controls
-document.getElementById('leftBtn').addEventListener('click', () => movePlayer('left'));
-document.getElementById('rightBtn').addEventListener('click', () => movePlayer('right'));
+document.getElementById('leftBtn').addEventListener('click', () => { if(gameRunning) movePlayer('left'); });
+document.getElementById('rightBtn').addEventListener('click', () => { if(gameRunning) movePlayer('right'); });
+
+// Handle score
+function startScore() {
+  score = 0;
+  document.getElementById('score-label').innerText = '';
+  if (scoreInterval) clearInterval(scoreInterval);
+  scoreInterval = setInterval(() => {
+    if (gameRunning) score++;
+  }, 100);
+}
+function stopScore() {
+  if (scoreInterval) clearInterval(scoreInterval);
+  document.getElementById('score-label').innerText = "Your Score: " + score;
+}
+
+// Game over UI
+function endGame() {
+  gameRunning = false;
+  stopScore();
+  document.getElementById('game-over-modal').style.display = 'block';
+}
+function replayGame() {
+  document.getElementById('game-over-modal').style.display = 'none';
+  init();
+}
+function exitGame() {
+  window.location.href = 'https://corporatevinoth.github.io/';
+}
 
 // Initialize
 function init() {
   resize();
-  // Place cars randomly, each with speed
   cars = [];
+  let lanes = [0, 1, 2];
   for (let i = 0; i < 5; ++i) {
-    const lane = Math.floor(Math.random() * 3);
-    const x = canvas.width/4 + lane*(canvas.width/2- carWidth)/2;
-    cars.push({
-      x: x,
-      y: 100 + i*150,
-      imgIdx: i,
-      speed: 5 + Math.random()*3 // random speed for each car
-    });
+    // Assign random lane and y position, ensure no overlap at spawn
+    let car, tries = 0;
+    do {
+      const lane = Math.floor(Math.random() * 3);
+      const x = canvas.width/4 + lane*(canvas.width/2- carWidth)/2;
+      const y = 100 + i*150 + Math.random()*80;
+      car = {
+        x: x,
+        y: y,
+        imgIdx: i,
+        speed: 5 + Math.random()*3
+      };
+      tries++;
+    } while (isCarOverlap(car, cars) && tries < 10);
+    cars.push(car);
   }
   player.x = canvas.width/2 - carWidth/2;
+  player.y = canvas.height - carHeight - 30;
   player.img = loadedImages.player;
+  gameRunning = true;
+  startScore();
   gameLoop();
 }
 window.onload = init;
