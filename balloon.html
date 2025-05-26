@@ -221,9 +221,6 @@
 
     // Game state
     let isGameOver = false;
-    let isCongratsShown = false;
-    let congratsStages = [10, 25, 50, 100];
-    let congratsStageIdx = -1;
     let congratsAnimationActive = false;
     let congratsTimeoutId = null;
 
@@ -235,6 +232,28 @@
     const playAgainBtn = document.getElementById('playAgainBtn');
     const exitBtn = document.getElementById('exitBtn');
     const congratsBg = document.getElementById('congrats-bg');
+
+    // --- Milestone logic ---
+    let nextCongrats = 10;
+    function getCongratsStage(milestone) {
+      if (milestone === 10) return 0;
+      if (milestone === 25) return 1;
+      if (milestone === 50) return 2;
+      if (milestone === 100) return 3;
+      return 4;
+    }
+    function getNextCongratsMilestone(current) {
+      if (current < 10) return 10;
+      if (current < 25) return 25;
+      if (current < 50) return 50;
+      if (current < 100) return 100;
+      // After 100: 200, 400, 800, 1600, ...
+      if (current < 200) return 200;
+      // find next power of 2 * 100 >= current
+      let val = 200;
+      while (current >= val) val *= 2;
+      return val;
+    }
 
     function spawnBalloon() {
       const r = Math.random();
@@ -560,11 +579,10 @@
       explosions.length = 0;
       isGameOver = false;
       moveToX = null;
-      isCongratsShown = false;
-      congratsStageIdx = -1;
       congratsBg.style.display = "none";
       if (congratsTimeoutId) clearTimeout(congratsTimeoutId);
       doubleGun = false;
+      nextCongrats = 10;
       resizeCanvas();
       helicopter.x = canvas.width / 2;
       helicopter.y = canvas.height * 0.8;
@@ -590,14 +608,12 @@
       }
     }
 
-    function triggerCongratsAnimation(stage) {
+    function triggerCongratsAnimation(stage, milestone) {
       if (congratsAnimationActive) return;
       congratsAnimationActive = true;
-      isCongratsShown = true;
-
       congratsBg.style.display = "block";
       playCongratsSound();
-      startConfetti(stage);
+      startConfetti(stage, milestone);
 
       congratsTimeoutId = setTimeout(() => {
         congratsBg.style.transition = "opacity 0.7s";
@@ -611,7 +627,7 @@
       }, 2300);
     }
 
-    function startConfetti(stage) {
+    function startConfetti(stage, milestone) {
       congratsBg.innerHTML = "";
       const confettiCanvas = document.createElement('canvas');
       confettiCanvas.width = window.innerWidth;
@@ -627,14 +643,11 @@
         ["#7aef7c", "#0fd6e7", "#b0a8f7"],
         ["#f96b6b", "#ffe066", "#f6a9f7"],
         ["#fff", "#e0c3fc", "#8ec5fc"],
+        ["#ff8c00", "#876fff", "#ff6fd8"]
       ];
       const colors = colorSets[stage % colorSets.length];
-      const texts = [
-        "Congrats! 10 points!",
-        "Awesome! 25 points!",
-        "DOUBLE GUN! 50+ pts!",
-        "Incredible! 100 points!",
-      ];
+      let text = "Congrats!";
+      if (milestone) text = `Congrats! ${milestone} points!`;
 
       const confetti = [];
       for (let i = 0; i < 80 + 30 * stage; ++i) {
@@ -659,7 +672,7 @@
           cctx.fillStyle = colors[0];
           cctx.shadowColor = "#111";
           cctx.shadowBlur = 10;
-          cctx.fillText(texts[stage] || "Congrats!", confettiCanvas.width/2, confettiCanvas.height/3);
+          cctx.fillText(text, confettiCanvas.width/2, confettiCanvas.height/3);
           cctx.restore();
         }
         for (let i = 0; i < confetti.length; ++i) {
@@ -710,17 +723,17 @@
         drawBullets();
         drawHelicopter();
 
+        // Double gun at 50
         if (!doubleGun && score >= 50) {
           doubleGun = true;
-          triggerCongratsAnimation(2);
+          triggerCongratsAnimation(2, 50);
         }
-        for (let idx = 0; idx < congratsStages.length; ++idx) {
-          if (score >= congratsStages[idx] && congratsStageIdx < idx) {
-            congratsStageIdx = idx;
-            if (congratsStages[idx] !== 50)
-              triggerCongratsAnimation(idx);
-            break;
-          }
+
+        // Milestones: 10, 25, 50, 100, 200, 400, 800, ...
+        if (score >= nextCongrats) {
+          let stage = getCongratsStage(nextCongrats);
+          triggerCongratsAnimation(stage, nextCongrats);
+          nextCongrats = getNextCongratsMilestone(nextCongrats);
         }
       }
 
