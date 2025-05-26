@@ -1,0 +1,424 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Simple Car Racing</title>
+    <style>
+        body {
+            margin: 0;
+            overflow: hidden;
+            background-color: #333; /* Fallback background color */
+            font-family: sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            color: white;
+        }
+
+        /* Optional background video for more immersion */
+        #videoBackground {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            z-index: -2; /* Ensure it's behind everything else */
+            filter: brightness(0.7); /* Slightly dim the video */
+        }
+
+        #gameContainer {
+            position: relative;
+            width: 80%;
+            max-width: 400px; /* Adjusted for a better mobile experience */
+            height: 600px; /* Set a fixed height for the game area */
+            margin: auto;
+            overflow: hidden;
+            border: 5px solid #555;
+            box-shadow: 0 0 20px rgba(0, 0, 0, 0.5);
+            background-color: #444; /* Background for when video isn't present */
+            border-radius: 10px;
+        }
+
+        #road {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: repeating-linear-gradient(
+                to bottom,
+                #555,
+                #555 90px,
+                #666 90px,
+                #666 100px /* Road texture */
+            );
+            border-left: 5px dashed #eee;
+            border-right: 5px dashed #eee;
+            box-sizing: border-box; /* Include padding/border in width/height */
+        }
+
+        #playerCar {
+            position: absolute;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 40px;
+            height: 60px;
+            background-color: #4CAF50; /* Green */
+            border-radius: 8px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+            transition: left 0.1s linear; /* Smooth movement */
+            z-index: 10;
+        }
+
+        .opponentCar {
+            position: absolute;
+            width: 40px;
+            height: 60px;
+            background-color: #F44336; /* Red */
+            border-radius: 8px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+            z-index: 5;
+        }
+
+        #score {
+            position: absolute;
+            top: 15px;
+            left: 15px;
+            color: #FFEB3B; /* Yellow */
+            font-size: 1.5em;
+            font-weight: bold;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+            z-index: 20;
+        }
+
+        #congrats {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            color: #8BC34A; /* Light Green */
+            font-size: 1.8em;
+            font-weight: bold;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+            opacity: 0;
+            pointer-events: none; /* Allows clicks to pass through */
+            z-index: 20;
+        }
+
+        .congrats-animation {
+            animation: congratsFade 2s ease-out forwards;
+        }
+
+        @keyframes congratsFade {
+            0% { opacity: 0; transform: translateY(-20px); }
+            20% { opacity: 1; transform: translateY(0); }
+            80% { opacity: 1; transform: translateY(0); }
+            100% { opacity: 0; transform: translateY(-20px); }
+        }
+
+        #gameOverScreen {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.7);
+            color: white;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            font-size: 2em;
+            text-align: center;
+            display: none; /* Hidden by default */
+            z-index: 30;
+        }
+
+        #gameOverScreen button {
+            background-color: #2196F3; /* Blue */
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            font-size: 0.7em;
+            cursor: pointer;
+            border-radius: 5px;
+            margin-top: 20px;
+            transition: background-color 0.3s ease;
+        }
+
+        #gameOverScreen button:hover {
+            background-color: #1976D2;
+        }
+
+        /* Responsive adjustments for smaller screens (mobile) */
+        @media (max-width: 600px) {
+            #gameContainer {
+                width: 95%;
+                height: 80vh; /* Use viewport height for better fit */
+                margin: 20px auto;
+            }
+            #playerCar, .opponentCar {
+                width: 35px;
+                height: 55px;
+            }
+            #score {
+                font-size: 1.3em;
+            }
+            #congrats {
+                font-size: 1.5em;
+            }
+            #gameOverScreen {
+                font-size: 1.8em;
+            }
+        }
+    </style>
+</head>
+<body>
+    <video id="videoBackground" autoplay loop muted>
+        <source src="https://assets.mixkit.co/videos/preview/mixkit-car-driving-on-the-highway-5254-large.mp4" type="video/mp4">
+        Your browser does not support HTML5 video.
+    </video>
+
+    <div id="gameContainer">
+        <div id="road">
+            <div id="playerCar"></div>
+        </div>
+        <div id="score">Score: 0</div>
+        <div id="congrats"></div>
+        <div id="gameOverScreen">
+            <p>GAME OVER!</p>
+            <p>Your Score: <span id="finalScore">0</span></p>
+            <button onclick="startGame()">Play Again</button>
+        </div>
+    </div>
+
+    <audio id="carSound" loop>
+        <source src="https://s3-us-west-2.amazonaws.com/s.cdpn.io/332156/engine_loop.mp3" type="audio/mpeg">
+    </audio>
+    <audio id="collisionSound">
+        <source src="https://s3-us-west-2.amazonaws.com/s.cdpn.io/332156/collision.mp3" type="audio/mpeg">
+    </audio>
+
+    <script>
+        const road = document.getElementById('road');
+        const playerCar = document.getElementById('playerCar');
+        const scoreDisplay = document.getElementById('score');
+        const congratsDisplay = document.getElementById('congrats');
+        const gameOverScreen = document.getElementById('gameOverScreen');
+        const finalScoreDisplay = document.getElementById('finalScore');
+        const carSound = document.getElementById('carSound');
+        const collisionSound = document.getElementById('collisionSound');
+
+        let score = 0;
+        let playerXOffset = 0; // Relative offset from center
+        let gameInterval;
+        let opponentSpawnInterval;
+        let opponentCars = [];
+        let carSpeed = 5; // Initial speed
+        const initialOpponentSpawnRate = 1500; // milliseconds
+        const playerMoveDistance = 30; // How far player moves left/right per input
+        let isGameOver = false;
+
+        // Function to generate a random number within a range
+        function getRandom(min, max) {
+            return Math.random() * (max - min) + min;
+        }
+
+        // Function to create an opponent car
+        function createOpponentCar() {
+            if (isGameOver) return;
+
+            const opponentCar = document.createElement('div');
+            opponentCar.classList.add('opponentCar');
+
+            // Ensure cars spawn within the road and don't overlap too much initially
+            const roadWidth = road.offsetWidth;
+            const carWidth = opponentCar.offsetWidth; // Will be 40px from CSS
+
+            // Spawn point: Randomly choose left, center-left, center-right, right lanes
+            const laneWidth = roadWidth / 3; // Divide road into conceptual lanes
+            const randomLane = Math.floor(Math.random() * 3); // 0, 1, 2
+            let spawnLeft;
+
+            if (randomLane === 0) { // Left lane
+                spawnLeft = getRandom(5, laneWidth - carWidth - 5);
+            } else if (randomLane === 1) { // Middle lane
+                spawnLeft = getRandom(laneWidth + 5, (roadWidth - laneWidth) - carWidth - 5);
+            } else { // Right lane
+                spawnLeft = getRandom((roadWidth - laneWidth) + 5, roadWidth - carWidth - 5);
+            }
+
+
+            opponentCar.style.left = spawnLeft + 'px';
+            opponentCar.style.top = -70 + 'px'; // Start above the road
+            road.appendChild(opponentCar);
+            opponentCars.push(opponentCar);
+        }
+
+        // Function to move the opponent cars
+        function moveOpponentCars() {
+            if (isGameOver) return;
+
+            // Animate road lines to simulate movement
+            road.style.backgroundPositionY = (road.style.backgroundPositionY ? parseFloat(road.style.backgroundPositionY) : 0) + carSpeed + 'px';
+
+            opponentCars.forEach(car => {
+                car.style.top = car.offsetTop + carSpeed + 'px';
+
+                // Check for collision
+                if (
+                    car.offsetTop + car.offsetHeight > playerCar.offsetTop &&
+                    car.offsetTop < playerCar.offsetTop + playerCar.offsetHeight &&
+                    car.offsetLeft + car.offsetWidth > playerCar.offsetLeft &&
+                    car.offsetLeft < playerCar.offsetLeft + playerCar.offsetWidth
+                ) {
+                    gameOver();
+                }
+
+                // Remove car if it goes off-screen
+                if (car.offsetTop > road.offsetHeight) {
+                    car.remove();
+                    opponentCars = opponentCars.filter(oc => oc !== car); // Remove this specific car
+                    if (!isGameOver) {
+                        score++;
+                        scoreDisplay.textContent = `Score: ${score}`;
+                        checkCongrats();
+                    }
+                }
+            });
+        }
+
+        // Function to handle player movement
+        function movePlayer(direction) {
+            if (isGameOver) return;
+
+            const currentCarLeft = playerCar.offsetLeft;
+            const roadWidth = road.offsetWidth;
+            const carWidth = playerCar.offsetWidth;
+
+            if (direction === 'left') {
+                playerXOffset -= playerMoveDistance;
+            } else if (direction === 'right') {
+                playerXOffset += playerMoveDistance;
+            }
+
+            // Calculate new absolute left position based on offset from center
+            let newLeft = (roadWidth / 2) - (carWidth / 2) + playerXOffset;
+
+            // Clamp player within the road boundaries
+            newLeft = Math.max(0, Math.min(newLeft, roadWidth - carWidth));
+            playerCar.style.left = newLeft + 'px';
+        }
+
+        // Event listeners for keyboard input
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'ArrowLeft' || e.key.toLowerCase() === 'a') {
+                movePlayer('left');
+            } else if (e.key === 'ArrowRight' || e.key.toLowerCase() === 'd') {
+                movePlayer('right');
+            }
+        });
+
+        // Event listeners for touch input (for mobile/tablet)
+        let touchStartX = null;
+        road.addEventListener('touchstart', (e) => {
+            touchStartX = e.touches?.[0]?.clientX;
+            // Prevent scrolling on touch for better game experience
+            e.preventDefault();
+        }, { passive: false });
+
+        road.addEventListener('touchmove', (e) => {
+            if (touchStartX === null || isGameOver) {
+                return;
+            }
+
+            const touchMoveX = e.touches?.[0]?.clientX;
+            const deltaX = touchMoveX - touchStartX;
+
+            if (deltaX > playerMoveDistance / 2) { // Sensitivity threshold
+                movePlayer('right');
+                touchStartX = touchMoveX; // Reset for continuous swipes
+            } else if (deltaX < -playerMoveDistance / 2) { // Sensitivity threshold
+                movePlayer('left');
+                touchStartX = touchMoveX;
+            }
+            e.preventDefault();
+        }, { passive: false });
+
+        road.addEventListener('touchend', () => {
+            touchStartX = null;
+        });
+
+
+        // Game over function
+        function gameOver() {
+            isGameOver = true;
+            clearInterval(gameInterval);
+            clearInterval(opponentSpawnInterval);
+            carSound.pause();
+            collisionSound.play();
+            finalScoreDisplay.textContent = score;
+            gameOverScreen.style.display = 'flex'; // Show game over screen
+            // Clear all opponent cars from the DOM
+            opponentCars.forEach(car => car.remove());
+            opponentCars = []; // Clear the array
+        }
+
+        // Function to check for congrats milestones
+        let lastCongratsScore = 0; // To track the last score a congrats was shown for
+        function checkCongrats() {
+            const milestones = [50, 100, 200, 400, 800, 1600]; // Define your milestones
+            
+            for (const milestone of milestones) {
+                if (score === milestone) {
+                    // Check if congrats already shown for this milestone (important for "and so on")
+                    if (score > lastCongratsScore) {
+                        congratsDisplay.textContent = `Congratulations! You reached ${milestone} points!`;
+                        congratsDisplay.classList.remove('congrats-animation'); // Reset animation
+                        void congratsDisplay.offsetWidth; // Trigger reflow for re-animation
+                        congratsDisplay.classList.add('congrats-animation');
+
+                        // Optionally increase game difficulty
+                        carSpeed += 0.5; // Slightly increase speed
+                        if (opponentSpawnInterval) clearInterval(opponentSpawnInterval);
+                        opponentSpawnInterval = setInterval(createOpponentCar, Math.max(500, initialOpponentSpawnRate - (score / 10))); // Faster spawn, but not too fast
+
+                        lastCongratsScore = score; // Update last shown milestone
+                        break; // Only show one congrats message per score increment
+                    }
+                }
+            }
+        }
+
+        // Start the game
+        function startGame() {
+            score = 0;
+            playerXOffset = 0;
+            isGameOver = false;
+            carSpeed = 5; // Reset speed
+            lastCongratsScore = 0; // Reset congrats tracking
+
+            scoreDisplay.textContent = `Score: ${score}`;
+            playerCar.style.left = `calc(50% - ${playerCar.offsetWidth / 2}px)`; // Center player car
+
+            gameOverScreen.style.display = 'none'; // Hide game over screen
+
+            // Play car sound (and restart if it was paused)
+            carSound.currentTime = 0;
+            carSound.play().catch(e => console.log("Car sound playback prevented:", e)); // Handle potential Autoplay Policy issues
+
+            // Clear existing intervals to prevent duplicates on restart
+            if (gameInterval) clearInterval(gameInterval);
+            if (opponentSpawnInterval) clearInterval(opponentSpawnInterval);
+
+            // Start game loops
+            gameInterval = setInterval(moveOpponentCars, 20); // Faster interval for smoother animation
+            opponentSpawnInterval = setInterval(createOpponentCar, initialOpponentSpawnRate);
+        }
+
+        // Initialize the game when the page loads
+        document.addEventListener('DOMContentLoaded', startGame);
+    </script>
+</body>
+</html>
