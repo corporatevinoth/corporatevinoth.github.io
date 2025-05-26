@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Helicopter Shooter (Mobile)</title>
+  <title>Helicopter Shooter (Multi-Device)</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
   <style>
     html, body { height: 100%; margin: 0; padding: 0; background: #222; overflow: hidden; }
@@ -72,6 +72,11 @@
     let isTouchingLeft = false;
     let isTouchingRight = false;
     const bullets = [];
+
+    // For keyboard/gamepad/TV control
+    let isLeftArrowPressed = false;
+    let isRightArrowPressed = false;
+    let moveToX = null; // For pointer/touch movement
 
     // Spawn either regular or bonus balloon
     function spawnBalloon() {
@@ -230,48 +235,77 @@
     }
 
     function updateHelicopterMovement() {
-      if (isTouchingLeft) {
+      // Desktop/TV: Arrow key movement
+      if (isLeftArrowPressed) {
         helicopter.x -= helicopter.speed;
         if (helicopter.x < helicopter.width / 2) helicopter.x = helicopter.width / 2;
       }
-      if (isTouchingRight) {
+      if (isRightArrowPressed) {
         helicopter.x += helicopter.speed;
+        if (helicopter.x > canvas.width - helicopter.width / 2) helicopter.x = canvas.width - helicopter.width / 2;
+      }
+      // Pointer/tap movement (desktop/tv/mobile)
+      if (moveToX !== null) {
+        // Move smoothly towards target X
+        const dx = moveToX - helicopter.x;
+        const absdx = Math.abs(dx);
+        if (absdx < helicopter.speed) {
+          helicopter.x = moveToX;
+          moveToX = null;
+        } else {
+          helicopter.x += helicopter.speed * Math.sign(dx);
+        }
+        // Clamp
+        if (helicopter.x < helicopter.width / 2) helicopter.x = helicopter.width / 2;
         if (helicopter.x > canvas.width - helicopter.width / 2) helicopter.x = canvas.width - helicopter.width / 2;
       }
     }
 
-    // Touch controls
+    // --- Input Handlers ---
+
+    // MOBILE: Touch to move helicopter to tap location
     canvas.addEventListener('touchstart', (e) => {
       e.preventDefault();
-      for (let i = 0; i < e.touches.length; i++) {
-        const touch = e.touches[i];
-        if (touch.clientX < canvas.width / 2) {
-          isTouchingLeft = true;
-        } else {
-          isTouchingRight = true;
-        }
+      if (e.touches.length > 0) {
+        const touch = e.touches[0];
+        moveToX = touch.clientX;
       }
-    }, false);
-
-    canvas.addEventListener('touchend', (e) => {
-      e.preventDefault();
-      isTouchingLeft = false;
-      isTouchingRight = false;
     }, false);
 
     canvas.addEventListener('touchmove', (e) => {
       e.preventDefault();
-      isTouchingLeft = false;
-      isTouchingRight = false;
-      for (let i = 0; i < e.touches.length; i++) {
-        const touch = e.touches[i];
-        if (touch.clientX < canvas.width / 2) {
-          isTouchingLeft = true;
-        } else {
-          isTouchingRight = true;
-        }
+      if (e.touches.length > 0) {
+        const touch = e.touches[0];
+        moveToX = touch.clientX;
       }
     }, false);
+
+    // DESKTOP/TV: Mouse click to move helicopter to click location
+    canvas.addEventListener('mousedown', (e) => {
+      e.preventDefault();
+      moveToX = e.clientX;
+    }, false);
+
+    // DESKTOP/TV: Left/Right arrow keys to move helicopter
+    window.addEventListener('keydown', (e) => {
+      if (e.key === "ArrowLeft") {
+        isLeftArrowPressed = true;
+      }
+      if (e.key === "ArrowRight") {
+        isRightArrowPressed = true;
+      }
+    });
+    window.addEventListener('keyup', (e) => {
+      if (e.key === "ArrowLeft") {
+        isLeftArrowPressed = false;
+      }
+      if (e.key === "ArrowRight") {
+        isRightArrowPressed = false;
+      }
+    });
+
+    // TV: Basic remote support (left/right arrow, mouse events handled above)
+    // Some TV remotes fire key events; retained above.
 
     // Initial setup
     resizeCanvas();
