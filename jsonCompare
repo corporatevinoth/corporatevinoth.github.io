@@ -1,0 +1,508 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>JSON Comparer & Formatter</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+            min-height: 100vh;
+            background-color: #eef2f5;
+            padding: 20px;
+            box-sizing: border-box;
+            color: #333;
+        }
+
+        .container {
+            background-color: #fff;
+            border-radius: 12px;
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.15);
+            padding: 35px;
+            width: 100%;
+            max-width: 1200px;
+            display: flex;
+            flex-direction: column;
+            gap: 25px;
+            margin-top: 20px;
+        }
+
+        h1 {
+            text-align: center;
+            color: #0056b3;
+            margin-bottom: 25px;
+            font-size: 2.5em;
+            font-weight: 700;
+        }
+
+        .json-panels {
+            display: flex;
+            gap: 20px;
+            flex-wrap: wrap; /* Allow wrapping on small screens */
+            justify-content: center;
+        }
+
+        .json-panel {
+            flex: 1;
+            min-width: 380px; /* Minimum width for each panel */
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            background-color: #f9fbfd;
+            border-radius: 8px;
+            padding: 20px;
+            box-shadow: inset 0 0 8px rgba(0, 0, 0, 0.05);
+        }
+
+        .json-panel label {
+            font-weight: 600;
+            color: #555;
+            font-size: 1.1em;
+        }
+
+        textarea {
+            width: 100%;
+            min-height: 350px;
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            font-family: 'Roboto Mono', monospace;
+            font-size: 0.9em;
+            resize: vertical;
+            box-sizing: border-box;
+            outline: none;
+            transition: border-color 0.3s ease;
+            white-space: pre;
+            word-wrap: normal;
+            overflow-x: auto;
+            background-color: #ffffff;
+        }
+
+        textarea:focus {
+            border-color: #007bff;
+            box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.25);
+        }
+
+        .buttons-group {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            margin-top: 5px;
+            flex-wrap: wrap;
+        }
+
+        button, .file-input-wrapper {
+            background-color: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 0.95em;
+            font-weight: 500;
+            transition: background-color 0.3s ease, transform 0.1s ease;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+            display: inline-flex; /* For file input wrapper */
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            overflow: hidden;
+        }
+
+        button:hover, .file-input-wrapper:hover {
+            background-color: #0056b3;
+            transform: translateY(-1px);
+        }
+
+        button:active, .file-input-wrapper:active {
+            transform: translateY(1px);
+        }
+
+        button:disabled {
+            background-color: #cccccc;
+            cursor: not-allowed;
+            box-shadow: none;
+        }
+
+        .file-input-wrapper input[type="file"] {
+            position: absolute;
+            left: 0;
+            top: 0;
+            opacity: 0;
+            cursor: pointer;
+            width: 100%;
+            height: 100%;
+        }
+
+        #compareButton {
+            background-color: #28a745;
+            margin-top: 20px;
+            width: 80%; /* Make it wider */
+            padding: 15px 25px;
+            font-size: 1.1em;
+        }
+
+        #compareButton:hover {
+            background-color: #218838;
+        }
+
+        .error-message {
+            color: #dc3545;
+            font-weight: 600;
+            margin-top: 10px;
+            text-align: center;
+            font-size: 0.9em;
+        }
+
+        #comparisonOutput {
+            min-height: 250px; /* Make it visible even if empty */
+            background-color: #f0f8ff; /* Light blue background */
+            border: 1px dashed #a0d9ff;
+            border-radius: 8px;
+            padding: 15px;
+            overflow: auto;
+            line-height: 1.6;
+            font-family: 'Roboto Mono', monospace;
+            font-size: 0.9em;
+            color: #444;
+            white-space: pre-wrap; /* Preserve whitespace and wrap long lines */
+        }
+
+        .highlight-added {
+            background-color: #d4edda; /* Light green */
+            color: #155724;
+            font-weight: bold;
+            padding: 2px 4px;
+            border-radius: 3px;
+        }
+        .highlight-removed {
+            background-color: #f8d7da; /* Light red */
+            color: #721c24;
+            font-weight: bold;
+            padding: 2px 4px;
+            border-radius: 3px;
+        }
+        .highlight-changed {
+            background-color: #ffeeba; /* Light yellow */
+            color: #856404;
+            font-weight: bold;
+            padding: 2px 4px;
+            border-radius: 3px;
+        }
+
+        .footer {
+            text-align: center;
+            margin-top: 30px;
+            font-size: 0.85em;
+            color: #777;
+        }
+
+        @media (max-width: 800px) {
+            .json-panels {
+                flex-direction: column;
+                align-items: center;
+            }
+            .json-panel {
+                min-width: unset;
+                width: 100%;
+            }
+            #compareButton {
+                width: 100%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>JSON Comparer & Formatter</h1>
+
+        <div class="json-panels">
+            <div class="json-panel">
+                <label for="jsonInputA">JSON A:</label>
+                <textarea id="jsonInputA" placeholder='Paste JSON or load file for A'></textarea>
+                <div class="buttons-group">
+                    <button id="formatButtonA">Format A</button>
+                    <button id="sortButtonA">Sort A</button>
+                    <div class="file-input-wrapper">
+                        Load File A
+                        <input type="file" id="fileInputA" accept=".json">
+                    </div>
+                </div>
+                <p id="errorMessageA" class="error-message"></p>
+            </div>
+
+            <div class="json-panel">
+                <label for="jsonInputB">JSON B:</label>
+                <textarea id="jsonInputB" placeholder='Paste JSON or load file for B'></textarea>
+                <div class="buttons-group">
+                    <button id="formatButtonB">Format B</button>
+                    <button id="sortButtonB">Sort B</button>
+                    <div class="file-input-wrapper">
+                        Load File B
+                        <input type="file" id="fileInputB" accept=".json">
+                    </div>
+                </div>
+                <p id="errorMessageB" class="error-message"></p>
+            </div>
+        </div>
+
+        <button id="compareButton">Compare JSONs</button>
+        <button id="clearAllButton" style="background-color: #6c757d;">Clear All</button>
+
+        <h2>Comparison Result:</h2>
+        <div id="comparisonOutput">
+            <p>Click "Compare JSONs" to see differences highlighted here.</p>
+            <p>Added keys/values: <span class="highlight-added">Green</span></p>
+            <p>Removed keys/values: <span class="highlight-removed">Red</span></p>
+            <p>Changed values: <span class="highlight-changed">Yellow</span></p>
+        </div>
+
+        <div class="footer">
+            Built with HTML, CSS, and JavaScript.
+        </div>
+    </div>
+
+    <script>
+        const jsonInputA = document.getElementById('jsonInputA');
+        const jsonInputB = document.getElementById('jsonInputB');
+        const fileInputA = document.getElementById('fileInputA');
+        const fileInputB = document.getElementById('fileInputB');
+        const formatButtonA = document.getElementById('formatButtonA');
+        const sortButtonA = document.getElementById('sortButtonA');
+        const formatButtonB = document.getElementById('formatButtonB');
+        const sortButtonB = document.getElementById('sortButtonB');
+        const compareButton = document.getElementById('compareButton');
+        const clearAllButton = document.getElementById('clearAllButton');
+        const comparisonOutput = document.getElementById('comparisonOutput');
+        const errorMessageA = document.getElementById('errorMessageA');
+        const errorMessageB = document.getElementById('errorMessageB');
+
+        // Helper function to safely parse JSON
+        function parseJson(text, errorElement) {
+            try {
+                errorElement.textContent = '';
+                return JSON.parse(text);
+            } catch (e) {
+                errorElement.textContent = 'Invalid JSON: ' + e.message;
+                return null;
+            }
+        }
+
+        // Helper function to format JSON (pretty print)
+        function formatJson(textareaId, errorElement) {
+            const textarea = document.getElementById(textareaId);
+            const text = textarea.value.trim();
+            if (!text) {
+                textarea.value = '';
+                errorElement.textContent = '';
+                return;
+            }
+            const obj = parseJson(text, errorElement);
+            if (obj) {
+                textarea.value = JSON.stringify(obj, null, 4);
+            }
+        }
+
+        // Helper recursive function to sort keys of an object/array of objects
+        function sortObjectKeys(obj) {
+            if (typeof obj !== 'object' || obj === null) {
+                return obj;
+            }
+            if (Array.isArray(obj)) {
+                return obj.map(item => sortObjectKeys(item));
+            }
+            const sortedKeys = Object.keys(obj).sort();
+            const sortedObj = {};
+            for (const key of sortedKeys) {
+                sortedObj[key] = sortObjectKeys(obj[key]);
+            }
+            return sortedObj;
+        }
+
+        // Helper function to sort and format JSON
+        function sortAndFormatJson(textareaId, errorElement) {
+            const textarea = document.getElementById(textareaId);
+            const text = textarea.value.trim();
+            if (!text) {
+                textarea.value = '';
+                errorElement.textContent = '';
+                return;
+            }
+            const obj = parseJson(text, errorElement);
+            if (obj) {
+                const sortedObj = sortObjectKeys(obj);
+                textarea.value = JSON.stringify(sortedObj, null, 4);
+            }
+        }
+
+        // Function to read JSON from a file
+        function loadJsonFromFile(fileInputId, textareaId, errorElement) {
+            const fileInput = document.getElementById(fileInputId);
+            const textarea = document.getElementById(textareaId);
+
+            fileInput.addEventListener('change', (event) => {
+                const file = event.target.files[0];
+                if (file) {
+                    const reader = new FileReader();
+                    reader.onload = (e) => {
+                        const fileContent = e.target.result;
+                        textarea.value = fileContent;
+                        // Optionally format/sort after loading
+                        formatJson(textareaId, errorElement);
+                    };
+                    reader.onerror = (e) => {
+                        errorElement.textContent = 'Error reading file: ' + reader.error;
+                    };
+                    reader.readAsText(file);
+                }
+            });
+        }
+
+        // --- JSON Comparison Logic ---
+        function compareJsons() {
+            const jsonAText = jsonInputA.value.trim();
+            const jsonBText = jsonInputB.value.trim();
+
+            const objA = parseJson(jsonAText, errorMessageA);
+            const objB = parseJson(jsonBText, errorMessageB);
+
+            if (!objA || !objB) {
+                comparisonOutput.innerHTML = '<p style="color: #dc3545;">Please ensure both JSON inputs are valid.</p>';
+                return;
+            }
+
+            // For comparison, we will use a simplified object comparison.
+            // For deeply nested, line-by-line diff, a specialized library is needed.
+            // We'll stringify and re-parse to ensure consistency before comparison
+            // and to represent changes within the stringified output.
+            const formattedA = JSON.stringify(sortObjectKeys(objA), null, 2);
+            const formattedB = JSON.stringify(sortObjectKeys(objB), null, 2);
+
+            if (formattedA === formattedB) {
+                comparisonOutput.innerHTML = '<p style="color: #28a745; font-weight: bold;">The JSONs are identical.</p>';
+                return;
+            }
+
+            // Basic line-by-line comparison for visual diff
+            const linesA = formattedA.split('\n');
+            const linesB = formattedB.split('\n');
+
+            let outputHtml = '';
+
+            // This basic diff will show removed/added lines.
+            // For 'changed' lines, it just indicates a line difference.
+            // A true diff library would compare word-by-word.
+            let i = 0, j = 0;
+            while (i < linesA.length || j < linesB.length) {
+                if (i < linesA.length && j < linesB.length && linesA[i] === linesB[j]) {
+                    outputHtml += `<span>${escapeHtml(linesA[i])}</span><br>`;
+                    i++;
+                    j++;
+                } else {
+                    if (i < linesA.length && (j === linesB.length || linesA[i] !== linesB[j])) {
+                        // Check if line A is removed or changed
+                        let foundMatch = false;
+                        for(let k=j; k<linesB.length; k++){
+                            if(linesA[i] === linesB[k]){ // Found a match later, so it's a removed line from A
+                                foundMatch = true;
+                                break;
+                            }
+                        }
+                        if(foundMatch) { // It's removed from B
+                            outputHtml += `<span class="highlight-removed">-${escapeHtml(linesA[i])}</span><br>`;
+                        } else { // It's changed or unique to A
+                            outputHtml += `<span class="highlight-changed">~${escapeHtml(linesA[i])}</span><br>`;
+                        }
+                        i++;
+                    }
+                    if (j < linesB.length && (i === linesA.length || linesA[i] !== linesB[j])) {
+                        // Check if line B is added or changed
+                        let foundMatch = false;
+                        for(let k=i; k<linesA.length; k++){
+                            if(linesB[j] === linesA[k]){ // Found a match later, so it's an added line to B
+                                foundMatch = true;
+                                break;
+                            }
+                        }
+                        if(foundMatch) { // It's added to B
+                            outputHtml += `<span class="highlight-added">+${escapeHtml(linesB[j])}</span><br>`;
+                        } else { // It's changed or unique to B
+                            outputHtml += `<span class="highlight-changed">~${escapeHtml(linesB[j])}</span><br>`;
+                        }
+                        j++;
+                    }
+                }
+            }
+            comparisonOutput.innerHTML = outputHtml;
+        }
+
+        // Basic HTML escaping for display
+        function escapeHtml(text) {
+            var map = {
+                '&': '&amp;',
+                '<': '&lt;',
+                '>': '&gt;',
+                '"': '&quot;',
+                "'": '&#039;'
+            };
+            return text.replace(/[&<>"']/g, function(m) { return map[m]; });
+        }
+
+
+        // Function to clear all inputs and output
+        function clearAll() {
+            jsonInputA.value = '';
+            jsonInputB.value = '';
+            comparisonOutput.innerHTML = '<p>Click "Compare JSONs" to see differences highlighted here.</p>';
+            errorMessageA.textContent = '';
+            errorMessageB.textContent = '';
+            // Reset file input values
+            fileInputA.value = '';
+            fileInputB.value = '';
+        }
+
+        // Event Listeners
+        formatButtonA.addEventListener('click', () => formatJson('jsonInputA', errorMessageA));
+        sortButtonA.addEventListener('click', () => sortAndFormatJson('jsonInputA', errorMessageA));
+        formatButtonB.addEventListener('click', () => formatJson('jsonInputB', errorMessageB));
+        sortButtonB.addEventListener('click', () => sortAndFormatJson('jsonInputB', errorMessageB));
+        compareButton.addEventListener('click', compareJsons);
+        clearAllButton.addEventListener('click', clearAll);
+
+        // Load JSON from file listeners
+        loadJsonFromFile('fileInputA', 'jsonInputA', errorMessageA);
+        loadJsonFromFile('fileInputB', 'jsonInputB', errorMessageB);
+
+        // Example JSON for quick testing
+        jsonInputA.value = `{
+    "name": "Product A",
+    "id": "P001",
+    "details": {
+        "color": "red",
+        "size": "M",
+        "weight": 1.5
+    },
+    "tags": ["electronic", "gadget"],
+    "price": 100.00,
+    "available": true
+}`;
+
+        jsonInputB.value = `{
+    "id": "P001",
+    "name": "Product Alpha",
+    "details": {
+        "size": "M",
+        "color": "blue",
+        "material": "plastic"
+    },
+    "tags": ["electronic"],
+    "price": 100.00,
+    "stock": 50,
+    "available": true
+}`;
+    </script>
+</body>
+</html>
