@@ -38,19 +38,27 @@
     #gameOverBanner button:hover {
       background: #0075cc;
     }
-    /* Congrats animation style */
     #congrats-bg {
       pointer-events: none;
       position: fixed;
       top: 0; left: 0;
       width: 100vw; height: 100vh;
-      z-index: 5;
+      z-index: 7;
       display: none;
+    }
+    #snow-canvas {
+      pointer-events: none;
+      position: fixed;
+      top: 0; left: 0;
+      width: 100vw; height: 100vh;
+      z-index: 1;
+      display: block;
     }
   </style>
 </head>
 <body>
   <canvas id="gameCanvas"></canvas>
+  <canvas id="snow-canvas"></canvas>
   <div id="congrats-bg"></div>
   <div id="gameOverBanner">
     <div class="score"></div>
@@ -64,6 +72,60 @@
   <audio id="explosionSound" src="https://github.com/corporatevinoth/corporatevinoth.github.io/raw/main/explosion.wav" preload="auto"></audio>
   <audio id="congratsSound" src="https://github.com/corporatevinoth/corporatevinoth.github.io/raw/main/congrats.mp3" preload="auto"></audio>
   <script>
+    // Snowfall effect
+    const snowCanvas = document.getElementById('snow-canvas');
+    const snowCtx = snowCanvas.getContext('2d');
+    let snowflakes = [];
+
+    function resizeSnowCanvas() {
+      snowCanvas.width = window.innerWidth;
+      snowCanvas.height = window.innerHeight;
+    }
+    window.addEventListener('resize', resizeSnowCanvas);
+    resizeSnowCanvas();
+
+    function createSnowflakes() {
+      snowflakes = [];
+      for (let i = 0; i < 120; i++) {
+        snowflakes.push({
+          x: Math.random() * snowCanvas.width,
+          y: Math.random() * snowCanvas.height,
+          r: 1.5 + Math.random() * 3.5,
+          speed: 0.7 + Math.random() * 1.8,
+          drift: 0.2 + Math.random() * 1,
+          phase: Math.random() * Math.PI * 2
+        });
+      }
+    }
+    createSnowflakes();
+
+    function drawSnowflakes() {
+      snowCtx.clearRect(0, 0, snowCanvas.width, snowCanvas.height);
+      for (let s of snowflakes) {
+        snowCtx.save();
+        snowCtx.beginPath();
+        snowCtx.arc(s.x, s.y, s.r, 0, Math.PI * 2);
+        snowCtx.fillStyle = "rgba(255,255,255,0.9)";
+        snowCtx.shadowColor = "#fff";
+        snowCtx.shadowBlur = 10;
+        snowCtx.fill();
+        snowCtx.restore();
+
+        s.x += Math.sin(s.phase) * s.drift;
+        s.y += s.speed;
+        s.phase += 0.01;
+        if (s.y > snowCanvas.height) {
+          s.y = -5;
+          s.x = Math.random() * snowCanvas.width;
+        }
+        if (s.x > snowCanvas.width) s.x = 0;
+        if (s.x < 0) s.x = snowCanvas.width;
+      }
+      requestAnimationFrame(drawSnowflakes);
+    }
+    drawSnowflakes();
+
+    // Game Canvas
     const canvas = document.getElementById('gameCanvas');
     const ctx = canvas.getContext('2d');
 
@@ -71,13 +133,13 @@
     const shootSound = document.getElementById('shootSound');
     const explosionSound = document.getElementById('explosionSound');
     const congratsSound = document.getElementById('congratsSound');
-
     let soundEnabled = false;
+
     // Enable sound on first user interaction (mobile browsers block audio until interaction)
     function enableSoundOnce() {
       if (!soundEnabled) {
-        shootSound.volume = 0.35;
-        explosionSound.volume = 0.6;
+        shootSound.volume = 0.6;
+        explosionSound.volume = 0.7;
         congratsSound.volume = 0.8;
         shootSound.play().catch(()=>{});
         shootSound.pause();
@@ -109,7 +171,7 @@
 
     // Game variables
     let unit;
-    let bulletSpeed, bulletSize, regularBalloonSize, bonusBalloonSize, balloonSpeed;
+    let bulletSpeed, bulletSize, regularBalloonSize, maxBigBalloonSize, minBigBalloonSize, balloonSpeed;
     function updateUnits() {
       unit = getUnit();
       helicopter.speed = unit * 0.5;
@@ -118,11 +180,12 @@
       bulletSize = unit * 0.2;
       bulletSpeed = unit * 1;
       regularBalloonSize = unit * 1.5;
-      bonusBalloonSize = unit * 2.4;
+      minBigBalloonSize = unit * 2.0;
+      maxBigBalloonSize = unit * 4.0;
       balloonSpeed = unit * 0.1;
     }
 
-    // Helicopter properties
+    // Helicopter/gun properties
     const helicopter = { x: 0, y: 0, speed: 0, width: 0, height: 0 };
 
     // Shooting properties
@@ -163,6 +226,9 @@
     let congratsAnimationActive = false;
     let congratsTimeoutId = null;
 
+    // Double gun
+    let doubleGun = false;
+
     // DOM elements for banner and congrats
     const banner = document.getElementById('gameOverBanner');
     const bannerScore = banner.querySelector('.score');
@@ -170,15 +236,38 @@
     const exitBtn = document.getElementById('exitBtn');
     const congratsBg = document.getElementById('congrats-bg');
 
-    // Spawn either regular or bonus balloon
+    // Balloon types: regular, big (sizes 1..10), bonus
     function spawnBalloon() {
-      const isBonus = Math.random() < 0.15; // 15% chance for bonus
-      const size = isBonus ? bonusBalloonSize : regularBalloonSize;
-      const balloonType = isBonus ? 'bonus' : 'regular';
-      const balloonScore = isBonus ? 4 : 1;
-      const x = Math.random() * (canvas.width - size) + size / 2;
-      const y = -size;
-      balloons.push({ x, y, size, type: balloonType, score: balloonScore });
+      // 20% chance for big balloon, 15% for bonus, 65% for regular
+      const r = Math.random();
+      if (r < 0.15) { // bonus
+        const size = unit * 2.4;
+        const x = Math.random() * (canvas.width - size) + size / 2;
+        const y = -size;
+        balloons.push({ x, y, size, type: 'bonus', score: 4 });
+      } else if (r < 0.35) { // big balloon
+        // Pick a random big size 1..10
+        const which = 1 + Math.floor(Math.random() * 10);
+        const size = minBigBalloonSize + (maxBigBalloonSize - minBigBalloonSize) * ((which-1)/9);
+        // Score is 2*which (2..20)
+        const x = Math.random() * (canvas.width - size) + size / 2;
+        const y = -size;
+        balloons.push({ x, y, size, type: 'big', bigIndex: which, score: which*2, color: getBigBalloonColor(which) });
+      } else { // regular
+        const size = regularBalloonSize;
+        const x = Math.random() * (canvas.width - size) + size / 2;
+        const y = -size;
+        balloons.push({ x, y, size, type: 'regular', score: 1 });
+      }
+    }
+
+    function getBigBalloonColor(idx) {
+      // 10 different pastel colors
+      const palette = [
+        "#e57373", "#f06292", "#ba68c8", "#7986cb", "#4fc3f7",
+        "#81c784", "#ffd54f", "#ffb74d", "#a1887f", "#90a4ae"
+      ];
+      return palette[(idx-1)%palette.length];
     }
 
     function updateBalloons() {
@@ -188,7 +277,8 @@
         const dx = helicopter.x - balloon.x;
         const dy = helicopter.y - balloon.y;
         const distance = Math.sqrt(dx * dx + dy * dy);
-        if (distance < balloon.size / 2) {
+        // Collision with gun: check with gun shape
+        if (checkGunCollisionWithBalloon(balloon)) {
           finishGame();
           return;
         }
@@ -201,17 +291,30 @@
 
     function drawBalloons() {
       balloons.forEach(balloon => {
-        if (balloonImg.complete && balloonImg.naturalWidth !== 0) {
-          ctx.save();
-          if (balloon.type === 'bonus') {
-            ctx.globalAlpha = 0.8;
-            ctx.beginPath();
-            ctx.arc(balloon.x, balloon.y, balloon.size / 2 + 4, 0, Math.PI * 2);
-            ctx.strokeStyle = "gold";
-            ctx.lineWidth = 6;
-            ctx.stroke();
-            ctx.globalAlpha = 1.0;
-          }
+        ctx.save();
+        if (balloon.type === 'bonus') {
+          ctx.globalAlpha = 0.8;
+          ctx.beginPath();
+          ctx.arc(balloon.x, balloon.y, balloon.size / 2 + 4, 0, Math.PI * 2);
+          ctx.strokeStyle = "gold";
+          ctx.lineWidth = 6;
+          ctx.stroke();
+          ctx.globalAlpha = 1.0;
+        }
+        if (balloon.type === 'big') {
+          ctx.beginPath();
+          ctx.arc(balloon.x, balloon.y, balloon.size / 2, 0, Math.PI * 2);
+          ctx.fillStyle = balloon.color;
+          ctx.shadowColor = "#000";
+          ctx.shadowBlur = 10;
+          ctx.fill();
+          ctx.shadowBlur = 0;
+          // Score/number label
+          ctx.font = `${balloon.size/2.8}px Arial Black, Arial, sans-serif`;
+          ctx.textAlign = "center";
+          ctx.fillStyle = "#fff";
+          ctx.fillText(balloon.bigIndex, balloon.x, balloon.y + balloon.size*0.12);
+        } else if (balloonImg.complete && balloonImg.naturalWidth !== 0 && balloon.type !== 'bonus') {
           ctx.drawImage(
             balloonImg,
             balloon.x - balloon.size / 2,
@@ -219,13 +322,13 @@
             balloon.size,
             balloon.size
           );
-          ctx.restore();
         } else {
           ctx.beginPath();
           ctx.arc(balloon.x, balloon.y, balloon.size / 2, 0, Math.PI * 2);
           ctx.fillStyle = balloon.type === 'bonus' ? "gold" : "red";
           ctx.fill();
         }
+        ctx.restore();
       });
     }
 
@@ -299,9 +402,46 @@
       });
     }
 
+    function drawGunShape(x, y, width, height, color, isLeft) {
+      // Draw a stylized gun (body + barrel + handle)
+      ctx.save();
+      ctx.translate(x, y);
+      if (isLeft) ctx.scale(-1, 1);
+      // body
+      ctx.fillStyle = color;
+      ctx.strokeStyle = "#222";
+      ctx.lineWidth = 2.2;
+      ctx.beginPath();
+      ctx.ellipse(0, 0, width/2, height/2, 0, 0, Math.PI*2);
+      ctx.fill();
+      ctx.stroke();
+      // barrel
+      ctx.beginPath();
+      ctx.rect(-width*0.13, -height*0.8, width*0.26, height*0.8);
+      ctx.fillStyle = "#bbb";
+      ctx.fill();
+      ctx.stroke();
+      // handle
+      ctx.beginPath();
+      ctx.moveTo(width*0.2, height*0.15);
+      ctx.lineTo(width*0.37, height*0.5);
+      ctx.lineTo(width*0.1, height*0.35);
+      ctx.closePath();
+      ctx.fillStyle = "#444";
+      ctx.fill();
+      ctx.stroke();
+      ctx.restore();
+    }
+
     function drawHelicopter() {
-      ctx.fillStyle = 'blue';
-      ctx.fillRect(helicopter.x - helicopter.width / 2, helicopter.y - helicopter.height / 2, helicopter.width, helicopter.height);
+      // Draw modern gun shape instead of blue rectangle
+      drawGunShape(helicopter.x, helicopter.y, helicopter.width, helicopter.height, "#2e8cff", false);
+      // If double gun, draw a "twin" on the left
+      if (doubleGun) {
+        let gap = helicopter.width*0.7;
+        drawGunShape(helicopter.x-gap, helicopter.y, helicopter.width, helicopter.height, "#2e8cff", false);
+        drawGunShape(helicopter.x+gap, helicopter.y, helicopter.width, helicopter.height, "#2e8cff", true);
+      }
     }
 
     function drawScore() {
@@ -309,11 +449,31 @@
       ctx.fillStyle = "white";
       ctx.textAlign = "center";
       ctx.fillText("Score: " + score, canvas.width / 2, unit * 1.5);
+      if (doubleGun) {
+        ctx.font = `${unit * 0.8}px Arial`;
+        ctx.fillStyle = "#0fd6e7";
+        ctx.fillText("DOUBLE GUN!", canvas.width / 2, unit * 2.7);
+      }
     }
 
     function continuousFire() {
       const currentTime = Date.now();
       if (currentTime - lastFireTime > fireRate) {
+        if (doubleGun) {
+          // Two bullets, left/right of each gun
+          let gap = helicopter.width*0.7;
+          bullets.push({
+            x: helicopter.x-gap,
+            y: helicopter.y - helicopter.height / 2,
+            vx: 0, vy: -bulletSpeed
+          });
+          bullets.push({
+            x: helicopter.x+gap,
+            y: helicopter.y - helicopter.height / 2,
+            vx: 0, vy: -bulletSpeed
+          });
+        }
+        // Main/center gun always shoots
         bullets.push({
           x: helicopter.x,
           y: helicopter.y - helicopter.height / 2,
@@ -326,7 +486,6 @@
     }
 
     function updateHelicopterMovement() {
-      // Desktop/TV: Arrow key movement
       if (isLeftArrowPressed) {
         helicopter.x -= helicopter.speed;
         if (helicopter.x < helicopter.width / 2) helicopter.x = helicopter.width / 2;
@@ -335,9 +494,7 @@
         helicopter.x += helicopter.speed;
         if (helicopter.x > canvas.width - helicopter.width / 2) helicopter.x = canvas.width - helicopter.width / 2;
       }
-      // Pointer/tap movement (desktop/tv/mobile)
       if (moveToX !== null) {
-        // Move smoothly towards target X
         const dx = moveToX - helicopter.x;
         const absdx = Math.abs(dx);
         if (absdx < helicopter.speed) {
@@ -346,15 +503,28 @@
         } else {
           helicopter.x += helicopter.speed * Math.sign(dx);
         }
-        // Clamp
         if (helicopter.x < helicopter.width / 2) helicopter.x = helicopter.width / 2;
         if (helicopter.x > canvas.width - helicopter.width / 2) helicopter.x = canvas.width - helicopter.width / 2;
       }
     }
 
-    // --- Input Handlers ---
+    // Gun collision: check oval for main, or up to 3 if double gun
+    function checkGunCollisionWithBalloon(balloon) {
+      // Helper: check ellipse collision
+      function ellipseCollision(cx, cy, rx, ry, px, py, r) {
+        // Approximate: point is inside ellipse expanded by r
+        return Math.pow((px-cx)/(rx+r),2) + Math.pow((py-cy)/(ry+r),2) < 1;
+      }
+      if (ellipseCollision(helicopter.x, helicopter.y, helicopter.width/2, helicopter.height/2, balloon.x, balloon.y, balloon.size/2)) return true;
+      if (doubleGun) {
+        let gap = helicopter.width*0.7;
+        if (ellipseCollision(helicopter.x-gap, helicopter.y, helicopter.width/2, helicopter.height/2, balloon.x, balloon.y, balloon.size/2)) return true;
+        if (ellipseCollision(helicopter.x+gap, helicopter.y, helicopter.width/2, helicopter.height/2, balloon.x, balloon.y, balloon.size/2)) return true;
+      }
+      return false;
+    }
 
-    // MOBILE: Touch to move helicopter to tap location
+    // --- Input Handlers ---
     canvas.addEventListener('touchstart', (e) => {
       e.preventDefault();
       if (e.touches.length > 0) {
@@ -371,13 +541,11 @@
       }
     }, false);
 
-    // DESKTOP/TV: Mouse click to move helicopter to click location
     canvas.addEventListener('mousedown', (e) => {
       e.preventDefault();
       moveToX = e.clientX;
     }, false);
 
-    // DESKTOP/TV: Left/Right arrow keys to move helicopter
     window.addEventListener('keydown', (e) => {
       if (e.key === "ArrowLeft") {
         isLeftArrowPressed = true;
@@ -395,10 +563,6 @@
       }
     });
 
-    // TV: Basic remote support (left/right arrow, mouse events handled above)
-    // Some TV remotes fire key events; retained above.
-
-    // Banner buttons
     playAgainBtn.onclick = () => {
       banner.style.display = "none";
       resetGame();
@@ -408,7 +572,6 @@
     };
 
     // --- Game Over, Reset, Congrats ---
-
     function finishGame() {
       isGameOver = true;
       bannerScore.textContent = 'Score: ' + score;
@@ -426,6 +589,7 @@
       congratsStageIdx = -1;
       congratsBg.style.display = "none";
       if (congratsTimeoutId) clearTimeout(congratsTimeoutId);
+      doubleGun = false;
       resizeCanvas();
       helicopter.x = canvas.width / 2;
       helicopter.y = canvas.height * 0.8;
@@ -458,37 +622,42 @@
       congratsAnimationActive = true;
       isCongratsShown = true;
 
-      // Show animated confetti background (simple canvas-based)
       congratsBg.style.display = "block";
       playCongratsSound();
 
-      // Animate for 2.5s, then hide
-      startConfetti(stage);
+      startConfetti(stage); // runs in background
 
+      // Fade out after 2.5s
       congratsTimeoutId = setTimeout(() => {
-        congratsBg.style.display = "none";
-        congratsAnimationActive = false;
-      }, 2500);
+        congratsBg.style.transition = "opacity 0.7s";
+        congratsBg.style.opacity = "0";
+        setTimeout(() => {
+          congratsBg.style.display = "none";
+          congratsBg.style.opacity = "1";
+          congratsBg.style.transition = "";
+          congratsAnimationActive = false;
+        }, 700);
+      }, 2300);
     }
 
     // --- Basic Confetti Animation ---
     function startConfetti(stage) {
+      congratsBg.innerHTML = "";
       const confettiCanvas = document.createElement('canvas');
       confettiCanvas.width = window.innerWidth;
       confettiCanvas.height = window.innerHeight;
       confettiCanvas.style.width = "100vw";
       confettiCanvas.style.height = "100vh";
       confettiCanvas.style.pointerEvents = "none";
-      congratsBg.innerHTML = "";
       congratsBg.appendChild(confettiCanvas);
       const cctx = confettiCanvas.getContext('2d');
 
       // Stage color
       const colorSets = [
-        ["#FFD700", "#FFF700", "#FFD200"], // gold
-        ["#7aef7c", "#0fd6e7", "#b0a8f7"], // blue/green
-        ["#f96b6b", "#ffe066", "#f6a9f7"], // pink/yellow
-        ["#fff", "#e0c3fc", "#8ec5fc"], // white/blue
+        ["#FFD700", "#FFF700", "#FFD200"],
+        ["#7aef7c", "#0fd6e7", "#b0a8f7"],
+        ["#f96b6b", "#ffe066", "#f6a9f7"],
+        ["#fff", "#e0c3fc", "#8ec5fc"],
       ];
       const colors = colorSets[stage % colorSets.length];
 
@@ -496,7 +665,7 @@
       const texts = [
         "Congrats! 10 points!",
         "Awesome! 25 points!",
-        "Great! 50 points!",
+        "DOUBLE GUN! 50+ pts!",
         "Incredible! 100 points!",
       ];
 
@@ -517,16 +686,17 @@
       let frame = 0;
       function animateConfetti() {
         cctx.clearRect(0, 0, confettiCanvas.width, confettiCanvas.height);
-        // Draw text
-        cctx.save();
-        cctx.font = `${50 + 20*stage}px Arial Black, Arial, sans-serif`;
-        cctx.textAlign = "center";
-        cctx.fillStyle = colors[0];
-        cctx.shadowColor = "#111";
-        cctx.shadowBlur = 10;
-        cctx.fillText(texts[stage] || "Congrats!", confettiCanvas.width/2, confettiCanvas.height/3);
-        cctx.restore();
-
+        // Draw text only at top level for short time
+        if (frame < 50) {
+          cctx.save();
+          cctx.font = `${50 + 20*stage}px Arial Black, Arial, sans-serif`;
+          cctx.textAlign = "center";
+          cctx.fillStyle = colors[0];
+          cctx.shadowColor = "#111";
+          cctx.shadowBlur = 10;
+          cctx.fillText(texts[stage] || "Congrats!", confettiCanvas.width/2, confettiCanvas.height/3);
+          cctx.restore();
+        }
         // Draw confetti
         for (let i = 0; i < confetti.length; ++i) {
           let p = confetti[i];
@@ -578,11 +748,18 @@
         drawBullets();
         drawHelicopter();
 
-        // Check for congrats animation
+        // Double gun enable at 50+
+        if (!doubleGun && score >= 50) {
+          doubleGun = true;
+          triggerCongratsAnimation(2);
+        }
+
+        // Congrats animation for other stages
         for (let idx = 0; idx < congratsStages.length; ++idx) {
           if (score >= congratsStages[idx] && congratsStageIdx < idx) {
             congratsStageIdx = idx;
-            triggerCongratsAnimation(idx);
+            if (congratsStages[idx] !== 50) // 50 is handled by double gun
+              triggerCongratsAnimation(idx);
             break;
           }
         }
