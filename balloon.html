@@ -1,3 +1,12 @@
+Here’s your updated HTML page with the requested fixes:
+
+- **Snowfall:** The number of snowflakes is halved (from 120 to 60).
+- **TV/Arrow key mode:**  
+  - The mouse cursor is hidden over the game canvas.
+  - When left/right arrow keys are used, `tvMode` is set, and mouse/touch movement is ignored in this mode.
+  - Gun movement responds only to arrow keys if TV mode is active.
+
+```html
 <!DOCTYPE html>
 <html>
 <head>
@@ -21,6 +30,7 @@
       width: 100vw; height: 100vh;
       z-index: 2;
       background: transparent;
+      cursor: none; /* Hide mouse cursor on game canvas */
     }
     #gameOverBanner {
       display: none;
@@ -91,7 +101,7 @@
     resizeSnowCanvas();
     function createSnowflakes() {
       snowflakes = [];
-      for (let i = 0; i < 120; i++) {
+      for (let i = 0; i < 60; i++) { // HALVED from 120 to 60
         snowflakes.push({
           x: Math.random() * snowCanvas.width,
           y: Math.random() * snowCanvas.height,
@@ -218,6 +228,7 @@
     let isLeftArrowPressed = false;
     let isRightArrowPressed = false;
     let moveToX = null;
+    let tvMode = false; // TV mode flag
 
     // Game state
     let isGameOver = false;
@@ -493,7 +504,7 @@
         helicopter.x += helicopter.speed;
         if (helicopter.x > canvas.width - helicopter.width / 2) helicopter.x = canvas.width - helicopter.width / 2;
       }
-      if (moveToX !== null) {
+      if (moveToX !== null && !tvMode) { // ignore moveToX if in TV mode
         const dx = moveToX - helicopter.x;
         const absdx = Math.abs(dx);
         if (absdx < helicopter.speed) {
@@ -520,7 +531,9 @@
       return false;
     }
 
+    // Touch and mouse input: IGNORE if TV mode is active!
     canvas.addEventListener('touchstart', (e) => {
+      if (tvMode) return;
       e.preventDefault();
       if (e.touches.length > 0) {
         const touch = e.touches[0];
@@ -529,6 +542,7 @@
     }, false);
 
     canvas.addEventListener('touchmove', (e) => {
+      if (tvMode) return;
       e.preventDefault();
       if (e.touches.length > 0) {
         const touch = e.touches[0];
@@ -537,17 +551,20 @@
     }, false);
 
     canvas.addEventListener('mousedown', (e) => {
+      if (tvMode) return;
       e.preventDefault();
       moveToX = e.clientX;
     }, false);
 
-    // --- MODIFIED KEY HANDLING FOR TV REMOTES ---
+    // KEY HANDLING FOR TV REMOTES & KEYBOARDS
     window.addEventListener('keydown', (e) => {
       if (e.key === "ArrowLeft" || e.key === "Left" || e.keyCode === 37) {
         isLeftArrowPressed = true;
+        tvMode = true; // Enable TV mode on arrow key usage
       }
       if (e.key === "ArrowRight" || e.key === "Right" || e.keyCode === 39) {
         isRightArrowPressed = true;
+        tvMode = true;
       }
     });
     window.addEventListener('keyup', (e) => {
@@ -588,6 +605,7 @@
       helicopter.x = canvas.width / 2;
       helicopter.y = canvas.height * 0.8;
       lastBalloonSpawnTime = Date.now();
+      tvMode = false; // Reset TV mode so touch/mouse works again
     }
 
     function playShootSound() {
@@ -745,3 +763,6 @@
   </script>
 </body>
 </html>
+```
+
+**You can copy and use this code to replace your existing `balloon.html` for the requested behavior.**
