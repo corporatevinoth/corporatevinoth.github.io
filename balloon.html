@@ -7,13 +7,90 @@
     html, body { height: 100%; margin: 0; padding: 0; background: #222; overflow: hidden; }
     body { width: 100vw; height: 100vh; }
     canvas { display: block; position: absolute; top: 0; left: 0; width: 100vw; height: 100vh; touch-action: none; background: #222; }
+    #gameOverBanner {
+      display: none;
+      position: fixed;
+      top: 0; left: 0;
+      width: 100vw; height: 100vh;
+      background: rgba(0,0,0,0.85);
+      color: #fff;
+      z-index: 10;
+      align-items: center;
+      justify-content: center;
+      flex-direction: column;
+      font-family: Arial, sans-serif;
+    }
+    #gameOverBanner .score {
+      font-size: 2.5em;
+      margin-bottom: 20px;
+    }
+    #gameOverBanner button {
+      font-size: 1.3em;
+      margin: 10px 20px;
+      padding: 12px 32px;
+      border-radius: 8px;
+      border: none;
+      background: #0095ff;
+      color: #fff;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+    #gameOverBanner button:hover {
+      background: #0075cc;
+    }
+    /* Congrats animation style */
+    #congrats-bg {
+      pointer-events: none;
+      position: fixed;
+      top: 0; left: 0;
+      width: 100vw; height: 100vh;
+      z-index: 5;
+      display: none;
+    }
   </style>
 </head>
 <body>
   <canvas id="gameCanvas"></canvas>
+  <div id="congrats-bg"></div>
+  <div id="gameOverBanner">
+    <div class="score"></div>
+    <div>
+      <button id="playAgainBtn">Replay</button>
+      <button id="exitBtn">Exit</button>
+    </div>
+  </div>
+  <!-- Sounds -->
+  <audio id="shootSound" src="https://github.com/corporatevinoth/corporatevinoth.github.io/raw/main/shoot.wav" preload="auto"></audio>
+  <audio id="explosionSound" src="https://github.com/corporatevinoth/corporatevinoth.github.io/raw/main/explosion.wav" preload="auto"></audio>
+  <audio id="congratsSound" src="https://github.com/corporatevinoth/corporatevinoth.github.io/raw/main/congrats.mp3" preload="auto"></audio>
   <script>
     const canvas = document.getElementById('gameCanvas');
     const ctx = canvas.getContext('2d');
+
+    // Sounds
+    const shootSound = document.getElementById('shootSound');
+    const explosionSound = document.getElementById('explosionSound');
+    const congratsSound = document.getElementById('congratsSound');
+
+    let soundEnabled = false;
+    // Enable sound on first user interaction (mobile browsers block audio until interaction)
+    function enableSoundOnce() {
+      if (!soundEnabled) {
+        shootSound.volume = 0.35;
+        explosionSound.volume = 0.6;
+        congratsSound.volume = 0.8;
+        shootSound.play().catch(()=>{});
+        shootSound.pause();
+        explosionSound.play().catch(()=>{});
+        explosionSound.pause();
+        congratsSound.play().catch(()=>{});
+        congratsSound.pause();
+        soundEnabled = true;
+      }
+    }
+    window.addEventListener('touchstart', enableSoundOnce, { once: true });
+    window.addEventListener('mousedown', enableSoundOnce, { once: true });
+    window.addEventListener('keydown', enableSoundOnce, { once: true });
 
     // Responsive canvas setup
     function resizeCanvas() {
@@ -78,6 +155,21 @@
     let isRightArrowPressed = false;
     let moveToX = null; // For pointer/touch movement
 
+    // Game state
+    let isGameOver = false;
+    let isCongratsShown = false;
+    let congratsStages = [10, 25, 50, 100];
+    let congratsStageIdx = -1;
+    let congratsAnimationActive = false;
+    let congratsTimeoutId = null;
+
+    // DOM elements for banner and congrats
+    const banner = document.getElementById('gameOverBanner');
+    const bannerScore = banner.querySelector('.score');
+    const playAgainBtn = document.getElementById('playAgainBtn');
+    const exitBtn = document.getElementById('exitBtn');
+    const congratsBg = document.getElementById('congrats-bg');
+
     // Spawn either regular or bonus balloon
     function spawnBalloon() {
       const isBonus = Math.random() < 0.15; // 15% chance for bonus
@@ -97,10 +189,7 @@
         const dy = helicopter.y - balloon.y;
         const distance = Math.sqrt(dx * dx + dy * dy);
         if (distance < balloon.size / 2) {
-          alert("Game Over! Balloons reached the helicopter.");
-          balloons.length = 0;
-          bullets.length = 0;
-          score = 0;
+          finishGame();
           return;
         }
         if (balloon.y > canvas.height + balloon.size) {
@@ -157,6 +246,7 @@
               startTime: Date.now(),
               size: balloon.size * 1.2 // explosion size proportional
             });
+            playExplosionSound();
             bullets.splice(i, 1);
             balloons.splice(j, 1);
             score += balloon.score;
@@ -230,6 +320,7 @@
           vx: 0,
           vy: -bulletSpeed
         });
+        playShootSound();
         lastFireTime = currentTime;
       }
     }
@@ -307,6 +398,162 @@
     // TV: Basic remote support (left/right arrow, mouse events handled above)
     // Some TV remotes fire key events; retained above.
 
+    // Banner buttons
+    playAgainBtn.onclick = () => {
+      banner.style.display = "none";
+      resetGame();
+    };
+    exitBtn.onclick = () => {
+      window.location.href = "https://corporatevinoth.github.io/";
+    };
+
+    // --- Game Over, Reset, Congrats ---
+
+    function finishGame() {
+      isGameOver = true;
+      bannerScore.textContent = 'Score: ' + score;
+      banner.style.display = "flex";
+    }
+
+    function resetGame() {
+      score = 0;
+      balloons.length = 0;
+      bullets.length = 0;
+      explosions.length = 0;
+      isGameOver = false;
+      moveToX = null;
+      isCongratsShown = false;
+      congratsStageIdx = -1;
+      congratsBg.style.display = "none";
+      if (congratsTimeoutId) clearTimeout(congratsTimeoutId);
+      resizeCanvas();
+      helicopter.x = canvas.width / 2;
+      helicopter.y = canvas.height * 0.8;
+      lastBalloonSpawnTime = Date.now();
+    }
+
+    // --- Sound helpers ---
+    function playShootSound() {
+      if (soundEnabled) {
+        shootSound.currentTime = 0;
+        shootSound.play().catch(()=>{});
+      }
+    }
+    function playExplosionSound() {
+      if (soundEnabled) {
+        explosionSound.currentTime = 0;
+        explosionSound.play().catch(()=>{});
+      }
+    }
+    function playCongratsSound() {
+      if (soundEnabled) {
+        congratsSound.currentTime = 0;
+        congratsSound.play().catch(()=>{});
+      }
+    }
+
+    // --- Congrats Animation ---
+    function triggerCongratsAnimation(stage) {
+      if (congratsAnimationActive) return;
+      congratsAnimationActive = true;
+      isCongratsShown = true;
+
+      // Show animated confetti background (simple canvas-based)
+      congratsBg.style.display = "block";
+      playCongratsSound();
+
+      // Animate for 2.5s, then hide
+      startConfetti(stage);
+
+      congratsTimeoutId = setTimeout(() => {
+        congratsBg.style.display = "none";
+        congratsAnimationActive = false;
+      }, 2500);
+    }
+
+    // --- Basic Confetti Animation ---
+    function startConfetti(stage) {
+      const confettiCanvas = document.createElement('canvas');
+      confettiCanvas.width = window.innerWidth;
+      confettiCanvas.height = window.innerHeight;
+      confettiCanvas.style.width = "100vw";
+      confettiCanvas.style.height = "100vh";
+      confettiCanvas.style.pointerEvents = "none";
+      congratsBg.innerHTML = "";
+      congratsBg.appendChild(confettiCanvas);
+      const cctx = confettiCanvas.getContext('2d');
+
+      // Stage color
+      const colorSets = [
+        ["#FFD700", "#FFF700", "#FFD200"], // gold
+        ["#7aef7c", "#0fd6e7", "#b0a8f7"], // blue/green
+        ["#f96b6b", "#ffe066", "#f6a9f7"], // pink/yellow
+        ["#fff", "#e0c3fc", "#8ec5fc"], // white/blue
+      ];
+      const colors = colorSets[stage % colorSets.length];
+
+      // Text
+      const texts = [
+        "Congrats! 10 points!",
+        "Awesome! 25 points!",
+        "Great! 50 points!",
+        "Incredible! 100 points!",
+      ];
+
+      // Confetti particles
+      const confetti = [];
+      for (let i = 0; i < 80 + 30 * stage; ++i) {
+        confetti.push({
+          x: Math.random() * confettiCanvas.width,
+          y: Math.random() * -confettiCanvas.height,
+          r: 6 + Math.random() * 8,
+          color: colors[Math.floor(Math.random() * colors.length)],
+          speed: 2 + Math.random() * (2 + stage),
+          tilt: Math.random() * 10,
+          tiltAngle: Math.random() * Math.PI
+        });
+      }
+
+      let frame = 0;
+      function animateConfetti() {
+        cctx.clearRect(0, 0, confettiCanvas.width, confettiCanvas.height);
+        // Draw text
+        cctx.save();
+        cctx.font = `${50 + 20*stage}px Arial Black, Arial, sans-serif`;
+        cctx.textAlign = "center";
+        cctx.fillStyle = colors[0];
+        cctx.shadowColor = "#111";
+        cctx.shadowBlur = 10;
+        cctx.fillText(texts[stage] || "Congrats!", confettiCanvas.width/2, confettiCanvas.height/3);
+        cctx.restore();
+
+        // Draw confetti
+        for (let i = 0; i < confetti.length; ++i) {
+          let p = confetti[i];
+          cctx.save();
+          cctx.beginPath();
+          cctx.ellipse(p.x, p.y, p.r, p.r * 0.6, p.tiltAngle, 0, Math.PI * 2);
+          cctx.fillStyle = p.color;
+          cctx.fill();
+          cctx.restore();
+
+          // Move
+          p.y += p.speed;
+          p.x += Math.sin(frame/10 + i) * 1.2;
+          p.tiltAngle += 0.1 * Math.sin(i + frame/15);
+          if (p.y > confettiCanvas.height + 20) {
+            p.y = Math.random() * -40;
+            p.x = Math.random() * confettiCanvas.width;
+          }
+        }
+        frame++;
+        if (congratsAnimationActive) {
+          requestAnimationFrame(animateConfetti);
+        }
+      }
+      animateConfetti();
+    }
+
     // Initial setup
     resizeCanvas();
 
@@ -315,20 +562,31 @@
       drawScore();
       updateUnits();
 
-      const currentTime = Date.now();
-      if (currentTime - lastBalloonSpawnTime > balloonSpawnInterval) {
-        spawnBalloon();
-        lastBalloonSpawnTime = currentTime;
-      }
+      if (!isGameOver) {
+        const currentTime = Date.now();
+        if (currentTime - lastBalloonSpawnTime > balloonSpawnInterval) {
+          spawnBalloon();
+          lastBalloonSpawnTime = currentTime;
+        }
 
-      updateHelicopterMovement();
-      continuousFire();
-      updateBalloons();
-      drawBalloons();
-      updateBullets();
-      drawExplosions();
-      drawBullets();
-      drawHelicopter();
+        updateHelicopterMovement();
+        continuousFire();
+        updateBalloons();
+        drawBalloons();
+        updateBullets();
+        drawExplosions();
+        drawBullets();
+        drawHelicopter();
+
+        // Check for congrats animation
+        for (let idx = 0; idx < congratsStages.length; ++idx) {
+          if (score >= congratsStages[idx] && congratsStageIdx < idx) {
+            congratsStageIdx = idx;
+            triggerCongratsAnimation(idx);
+            break;
+          }
+        }
+      }
 
       requestAnimationFrame(gameLoop);
     }
