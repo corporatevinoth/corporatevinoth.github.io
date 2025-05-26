@@ -30,6 +30,10 @@ let player = { x: 0, y: 0, img: null };
 let canvas = document.getElementById('gameCanvas');
 let ctx = canvas.getContext('2d');
 
+// Added for road animation
+let roadLineOffset = 0;
+const roadLineSpeed = 10;
+
 // Responsive sizing
 function resize() {
   canvas.width = window.innerWidth;
@@ -48,17 +52,18 @@ function loadImage(src) {
 let loadedImages = { player: loadImage(playerCarImage) };
 carImages.forEach((src, i) => loadedImages[i] = loadImage(src));
 
-// Draw road with dotted center line
+// Draw road with animated dotted center line
 function drawRoad() {
   // Black road
   ctx.fillStyle = 'black';
   ctx.fillRect(canvas.width/4, 0, canvas.width/2, canvas.height);
-  // Dotted white center line
+
+  // Dotted white center line (animated)
   ctx.strokeStyle = 'white';
   ctx.lineWidth = 6;
   ctx.setLineDash([30, 30]);
   ctx.beginPath();
-  ctx.moveTo(canvas.width/2, 0);
+  ctx.moveTo(canvas.width/2, -roadLineOffset % 60);
   ctx.lineTo(canvas.width/2, canvas.height);
   ctx.stroke();
   ctx.setLineDash([]);
@@ -77,7 +82,19 @@ function drawPlayer() {
 // Game loop
 function gameLoop() {
   ctx.clearRect(0, 0, canvas.width, canvas.height);
+  roadLineOffset += roadLineSpeed;
   drawRoad();
+
+  // Move cars
+  cars.forEach(car => {
+    car.y += car.speed;
+    // If car goes off screen, reset to top in random lane
+    if (car.y > canvas.height) {
+      car.y = -carHeight;
+      car.x = canvas.width/4 + Math.floor(Math.random() * 3)*(canvas.width/2- carWidth)/2;
+    }
+  });
+
   drawCars();
   drawPlayer();
   requestAnimationFrame(gameLoop);
@@ -101,7 +118,7 @@ document.getElementById('rightBtn').addEventListener('click', () => movePlayer('
 // Initialize
 function init() {
   resize();
-  // Example: Place cars randomly for demo
+  // Place cars randomly, each with speed
   cars = [];
   for (let i = 0; i < 5; ++i) {
     const lane = Math.floor(Math.random() * 3);
@@ -109,7 +126,8 @@ function init() {
     cars.push({
       x: x,
       y: 100 + i*150,
-      imgIdx: i
+      imgIdx: i,
+      speed: 5 + Math.random()*3 // random speed for each car
     });
   }
   player.x = canvas.width/2 - carWidth/2;
