@@ -6,7 +6,22 @@
   <style>
     html, body { height: 100%; margin: 0; padding: 0; background: #222; overflow: hidden; }
     body { width: 100vw; height: 100vh; }
-    canvas { display: block; position: absolute; top: 0; left: 0; width: 100vw; height: 100vh; touch-action: none; background: #222; }
+    #snow-canvas {
+      pointer-events: none;
+      position: fixed;
+      top: 0; left: 0;
+      width: 100vw; height: 100vh;
+      z-index: 1;
+      display: block;
+    }
+    #gameCanvas {
+      display: block;
+      position: fixed;
+      top: 0; left: 0;
+      width: 100vw; height: 100vh;
+      z-index: 2;
+      background: transparent;
+    }
     #gameOverBanner {
       display: none;
       position: fixed;
@@ -46,19 +61,11 @@
       z-index: 7;
       display: none;
     }
-    #snow-canvas {
-      pointer-events: none;
-      position: fixed;
-      top: 0; left: 0;
-      width: 100vw; height: 100vh;
-      z-index: 1;
-      display: block;
-    }
   </style>
 </head>
 <body>
-  <canvas id="gameCanvas"></canvas>
   <canvas id="snow-canvas"></canvas>
+  <canvas id="gameCanvas"></canvas>
   <div id="congrats-bg"></div>
   <div id="gameOverBanner">
     <div class="score"></div>
@@ -72,18 +79,16 @@
   <audio id="explosionSound" src="https://github.com/corporatevinoth/corporatevinoth.github.io/raw/main/explosion.wav" preload="auto"></audio>
   <audio id="congratsSound" src="https://github.com/corporatevinoth/corporatevinoth.github.io/raw/main/congrats.mp3" preload="auto"></audio>
   <script>
-    // Snowfall effect
+    // --- SNOW EFFECT ---
     const snowCanvas = document.getElementById('snow-canvas');
     const snowCtx = snowCanvas.getContext('2d');
     let snowflakes = [];
-
     function resizeSnowCanvas() {
       snowCanvas.width = window.innerWidth;
       snowCanvas.height = window.innerHeight;
     }
     window.addEventListener('resize', resizeSnowCanvas);
     resizeSnowCanvas();
-
     function createSnowflakes() {
       snowflakes = [];
       for (let i = 0; i < 120; i++) {
@@ -98,7 +103,6 @@
       }
     }
     createSnowflakes();
-
     function drawSnowflakes() {
       snowCtx.clearRect(0, 0, snowCanvas.width, snowCanvas.height);
       for (let s of snowflakes) {
@@ -110,7 +114,6 @@
         snowCtx.shadowBlur = 10;
         snowCtx.fill();
         snowCtx.restore();
-
         s.x += Math.sin(s.phase) * s.drift;
         s.y += s.speed;
         s.phase += 0.01;
@@ -125,7 +128,7 @@
     }
     drawSnowflakes();
 
-    // Game Canvas
+    // --- GAME LOGIC ---
     const canvas = document.getElementById('gameCanvas');
     const ctx = canvas.getContext('2d');
 
@@ -134,8 +137,6 @@
     const explosionSound = document.getElementById('explosionSound');
     const congratsSound = document.getElementById('congratsSound');
     let soundEnabled = false;
-
-    // Enable sound on first user interaction (mobile browsers block audio until interaction)
     function enableSoundOnce() {
       if (!soundEnabled) {
         shootSound.volume = 0.6;
@@ -216,7 +217,7 @@
     // For keyboard/gamepad/TV control
     let isLeftArrowPressed = false;
     let isRightArrowPressed = false;
-    let moveToX = null; // For pointer/touch movement
+    let moveToX = null;
 
     // Game state
     let isGameOver = false;
@@ -229,16 +230,13 @@
     // Double gun
     let doubleGun = false;
 
-    // DOM elements for banner and congrats
     const banner = document.getElementById('gameOverBanner');
     const bannerScore = banner.querySelector('.score');
     const playAgainBtn = document.getElementById('playAgainBtn');
     const exitBtn = document.getElementById('exitBtn');
     const congratsBg = document.getElementById('congrats-bg');
 
-    // Balloon types: regular, big (sizes 1..10), bonus
     function spawnBalloon() {
-      // 20% chance for big balloon, 15% for bonus, 65% for regular
       const r = Math.random();
       if (r < 0.15) { // bonus
         const size = unit * 2.4;
@@ -246,10 +244,8 @@
         const y = -size;
         balloons.push({ x, y, size, type: 'bonus', score: 4 });
       } else if (r < 0.35) { // big balloon
-        // Pick a random big size 1..10
         const which = 1 + Math.floor(Math.random() * 10);
         const size = minBigBalloonSize + (maxBigBalloonSize - minBigBalloonSize) * ((which-1)/9);
-        // Score is 2*which (2..20)
         const x = Math.random() * (canvas.width - size) + size / 2;
         const y = -size;
         balloons.push({ x, y, size, type: 'big', bigIndex: which, score: which*2, color: getBigBalloonColor(which) });
@@ -262,7 +258,6 @@
     }
 
     function getBigBalloonColor(idx) {
-      // 10 different pastel colors
       const palette = [
         "#e57373", "#f06292", "#ba68c8", "#7986cb", "#4fc3f7",
         "#81c784", "#ffd54f", "#ffb74d", "#a1887f", "#90a4ae"
@@ -274,10 +269,6 @@
       for (let i = 0; i < balloons.length; i++) {
         const balloon = balloons[i];
         balloon.y += balloonSpeed;
-        const dx = helicopter.x - balloon.x;
-        const dy = helicopter.y - balloon.y;
-        const distance = Math.sqrt(dx * dx + dy * dy);
-        // Collision with gun: check with gun shape
         if (checkGunCollisionWithBalloon(balloon)) {
           finishGame();
           return;
@@ -309,7 +300,6 @@
           ctx.shadowBlur = 10;
           ctx.fill();
           ctx.shadowBlur = 0;
-          // Score/number label
           ctx.font = `${balloon.size/2.8}px Arial Black, Arial, sans-serif`;
           ctx.textAlign = "center";
           ctx.fillStyle = "#fff";
@@ -342,12 +332,11 @@
           const dy = bullet.y - balloon.y;
           const distance = Math.sqrt(dx * dx + dy * dy);
           if (distance < balloon.size / 2) {
-            // Add explosion at balloon hit
             explosions.push({
               x: balloon.x,
               y: balloon.y,
               startTime: Date.now(),
-              size: balloon.size * 1.2 // explosion size proportional
+              size: balloon.size * 1.2
             });
             playExplosionSound();
             bullets.splice(i, 1);
@@ -383,7 +372,6 @@
             explosion.size
           );
         } else {
-          // Fallback: draw a white expanding circle
           ctx.beginPath();
           ctx.arc(explosion.x, explosion.y, explosion.size / 2, 0, Math.PI * 2);
           ctx.fillStyle = "white";
@@ -403,11 +391,9 @@
     }
 
     function drawGunShape(x, y, width, height, color, isLeft) {
-      // Draw a stylized gun (body + barrel + handle)
       ctx.save();
       ctx.translate(x, y);
       if (isLeft) ctx.scale(-1, 1);
-      // body
       ctx.fillStyle = color;
       ctx.strokeStyle = "#222";
       ctx.lineWidth = 2.2;
@@ -415,13 +401,11 @@
       ctx.ellipse(0, 0, width/2, height/2, 0, 0, Math.PI*2);
       ctx.fill();
       ctx.stroke();
-      // barrel
       ctx.beginPath();
       ctx.rect(-width*0.13, -height*0.8, width*0.26, height*0.8);
       ctx.fillStyle = "#bbb";
       ctx.fill();
       ctx.stroke();
-      // handle
       ctx.beginPath();
       ctx.moveTo(width*0.2, height*0.15);
       ctx.lineTo(width*0.37, height*0.5);
@@ -434,9 +418,7 @@
     }
 
     function drawHelicopter() {
-      // Draw modern gun shape instead of blue rectangle
       drawGunShape(helicopter.x, helicopter.y, helicopter.width, helicopter.height, "#2e8cff", false);
-      // If double gun, draw a "twin" on the left
       if (doubleGun) {
         let gap = helicopter.width*0.7;
         drawGunShape(helicopter.x-gap, helicopter.y, helicopter.width, helicopter.height, "#2e8cff", false);
@@ -460,7 +442,6 @@
       const currentTime = Date.now();
       if (currentTime - lastFireTime > fireRate) {
         if (doubleGun) {
-          // Two bullets, left/right of each gun
           let gap = helicopter.width*0.7;
           bullets.push({
             x: helicopter.x-gap,
@@ -473,7 +454,6 @@
             vx: 0, vy: -bulletSpeed
           });
         }
-        // Main/center gun always shoots
         bullets.push({
           x: helicopter.x,
           y: helicopter.y - helicopter.height / 2,
@@ -508,11 +488,8 @@
       }
     }
 
-    // Gun collision: check oval for main, or up to 3 if double gun
     function checkGunCollisionWithBalloon(balloon) {
-      // Helper: check ellipse collision
       function ellipseCollision(cx, cy, rx, ry, px, py, r) {
-        // Approximate: point is inside ellipse expanded by r
         return Math.pow((px-cx)/(rx+r),2) + Math.pow((py-cy)/(ry+r),2) < 1;
       }
       if (ellipseCollision(helicopter.x, helicopter.y, helicopter.width/2, helicopter.height/2, balloon.x, balloon.y, balloon.size/2)) return true;
@@ -524,7 +501,6 @@
       return false;
     }
 
-    // --- Input Handlers ---
     canvas.addEventListener('touchstart', (e) => {
       e.preventDefault();
       if (e.touches.length > 0) {
@@ -571,7 +547,6 @@
       window.location.href = "https://corporatevinoth.github.io/";
     };
 
-    // --- Game Over, Reset, Congrats ---
     function finishGame() {
       isGameOver = true;
       bannerScore.textContent = 'Score: ' + score;
@@ -596,7 +571,6 @@
       lastBalloonSpawnTime = Date.now();
     }
 
-    // --- Sound helpers ---
     function playShootSound() {
       if (soundEnabled) {
         shootSound.currentTime = 0;
@@ -616,7 +590,6 @@
       }
     }
 
-    // --- Congrats Animation ---
     function triggerCongratsAnimation(stage) {
       if (congratsAnimationActive) return;
       congratsAnimationActive = true;
@@ -624,10 +597,8 @@
 
       congratsBg.style.display = "block";
       playCongratsSound();
+      startConfetti(stage);
 
-      startConfetti(stage); // runs in background
-
-      // Fade out after 2.5s
       congratsTimeoutId = setTimeout(() => {
         congratsBg.style.transition = "opacity 0.7s";
         congratsBg.style.opacity = "0";
@@ -640,7 +611,6 @@
       }, 2300);
     }
 
-    // --- Basic Confetti Animation ---
     function startConfetti(stage) {
       congratsBg.innerHTML = "";
       const confettiCanvas = document.createElement('canvas');
@@ -652,7 +622,6 @@
       congratsBg.appendChild(confettiCanvas);
       const cctx = confettiCanvas.getContext('2d');
 
-      // Stage color
       const colorSets = [
         ["#FFD700", "#FFF700", "#FFD200"],
         ["#7aef7c", "#0fd6e7", "#b0a8f7"],
@@ -660,8 +629,6 @@
         ["#fff", "#e0c3fc", "#8ec5fc"],
       ];
       const colors = colorSets[stage % colorSets.length];
-
-      // Text
       const texts = [
         "Congrats! 10 points!",
         "Awesome! 25 points!",
@@ -669,7 +636,6 @@
         "Incredible! 100 points!",
       ];
 
-      // Confetti particles
       const confetti = [];
       for (let i = 0; i < 80 + 30 * stage; ++i) {
         confetti.push({
@@ -686,7 +652,6 @@
       let frame = 0;
       function animateConfetti() {
         cctx.clearRect(0, 0, confettiCanvas.width, confettiCanvas.height);
-        // Draw text only at top level for short time
         if (frame < 50) {
           cctx.save();
           cctx.font = `${50 + 20*stage}px Arial Black, Arial, sans-serif`;
@@ -697,7 +662,6 @@
           cctx.fillText(texts[stage] || "Congrats!", confettiCanvas.width/2, confettiCanvas.height/3);
           cctx.restore();
         }
-        // Draw confetti
         for (let i = 0; i < confetti.length; ++i) {
           let p = confetti[i];
           cctx.save();
@@ -707,7 +671,6 @@
           cctx.fill();
           cctx.restore();
 
-          // Move
           p.y += p.speed;
           p.x += Math.sin(frame/10 + i) * 1.2;
           p.tiltAngle += 0.1 * Math.sin(i + frame/15);
@@ -724,7 +687,6 @@
       animateConfetti();
     }
 
-    // Initial setup
     resizeCanvas();
 
     function gameLoop() {
@@ -748,17 +710,14 @@
         drawBullets();
         drawHelicopter();
 
-        // Double gun enable at 50+
         if (!doubleGun && score >= 50) {
           doubleGun = true;
           triggerCongratsAnimation(2);
         }
-
-        // Congrats animation for other stages
         for (let idx = 0; idx < congratsStages.length; ++idx) {
           if (score >= congratsStages[idx] && congratsStageIdx < idx) {
             congratsStageIdx = idx;
-            if (congratsStages[idx] !== 50) // 50 is handled by double gun
+            if (congratsStages[idx] !== 50)
               triggerCongratsAnimation(idx);
             break;
           }
