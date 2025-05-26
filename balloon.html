@@ -541,19 +541,20 @@
       moveToX = e.clientX;
     }, false);
 
+    // --- MODIFIED KEY HANDLING FOR TV REMOTES ---
     window.addEventListener('keydown', (e) => {
-      if (e.key === "ArrowLeft") {
+      if (e.key === "ArrowLeft" || e.key === "Left" || e.keyCode === 37) {
         isLeftArrowPressed = true;
       }
-      if (e.key === "ArrowRight") {
+      if (e.key === "ArrowRight" || e.key === "Right" || e.keyCode === 39) {
         isRightArrowPressed = true;
       }
     });
     window.addEventListener('keyup', (e) => {
-      if (e.key === "ArrowLeft") {
+      if (e.key === "ArrowLeft" || e.key === "Left" || e.keyCode === 37) {
         isLeftArrowPressed = false;
       }
-      if (e.key === "ArrowRight") {
+      if (e.key === "ArrowRight" || e.key === "Right" || e.keyCode === 39) {
         isRightArrowPressed = false;
       }
     });
