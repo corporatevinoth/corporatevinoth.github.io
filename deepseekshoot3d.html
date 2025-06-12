@@ -1,363 +1,39 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <title>3D Runner - Gold Coin Collector</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
-  <style>
-    html, body { margin: 0; padding: 0; height: 100%; }
-    body { background: linear-gradient(135deg,#7ec9ff 0%,#ffe0d2 100%); overflow: hidden; }
-    #score {
-      position: absolute;
-      top: 24px; left: 0; right: 0;
-      color: #fff700;
-      font-family: 'Arial Black', Arial, sans-serif;
-      font-size: 2em;
-      text-align: center;
-      text-shadow: 2px 2px 8px #333;
-      z-index: 10;
-      letter-spacing: 2px;
-      pointer-events: none;
-    }
-    #snow-canvas {
-      pointer-events: none;
-      position: fixed;
-      top: 0; left: 0;
-      width: 100vw; height: 100vh;
-      z-index: 2;
-      display: block;
-    }
-    .ctrl-btn {
-      width: 18vw; max-width: 100px; min-width: 60px;
-      aspect-ratio: 1/1;
-      border-radius: 50%;
-      background: #2C387E;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      box-shadow: 0 4px 18px #0006;
-      font-size: 3em;
-      color: #fff;
-      border: 3px solid #fff;
-      pointer-events: auto;
-      touch-action: manipulation;
-      user-select: none;
-      transition: background 0.18s, color 0.18s;
-      opacity: 0.96;
-      position: fixed;
-      bottom: 4vh;
-      z-index: 100;
-    }
-    #leftBtn {
-      left: 4vw;
-    }
-    #rightBtn {
-      right: 4vw;
-    }
-    .ctrl-btn:active {
-      background: #FFD600;
-      color: #1a237e;
-    }
-    /* Make sure renderer is always behind UI */
-    #threejs-canvas {
-      position: absolute;
-      top: 0; left: 0; width: 100vw; height: 100vh;
-      z-index: 1;
-      display: block;
-    }
-  </style>
-</head>
-<body>
-  <div id="score">Score: 0</div>
-  <canvas id="snow-canvas"></canvas>
-  <div class="ctrl-btn" id="leftBtn">&#8592;</div>
-  <div class="ctrl-btn" id="rightBtn">&#8594;</div>
-  <!-- Three.js script -->
-  <script src="https://cdn.jsdelivr.net/npm/three@0.152.2/build/three.min.js"></script>
-  <script>
-    // --- SNOW EFFECT ---
-    const snowCanvas = document.getElementById('snow-canvas');
-    const snowCtx = snowCanvas.getContext('2d');
-    let snowflakes = [];
-    function resizeSnowCanvas() {
-      snowCanvas.width = window.innerWidth;
-      snowCanvas.height = window.innerHeight;
-    }
-    window.addEventListener('resize', resizeSnowCanvas);
-    window.addEventListener('orientationchange', resizeSnowCanvas);
-    resizeSnowCanvas();
-    function createSnowflakes() {
-      snowflakes = [];
-      for (let i = 0; i < 60; i++) {
-        snowflakes.push({
-          x: Math.random() * snowCanvas.width,
-          y: Math.random() * snowCanvas.height,
-          r: 1 + Math.random() * 2,
-          speed: 0.5 + Math.random() * 2,
-          drift: 0.3 + Math.random() * 1,
-          phase: Math.random() * Math.PI * 2
-        });
-      }
-    }
-    createSnowflakes();
+function createBuilding(x, z) {
+  // Building base
+  let c = [0xb0bec5, 0xffb300, 0x90caf9, 0x8d6e63, 0xff7043][Math.floor(Math.random()*5)];
+  let mat = new THREE.MeshPhongMaterial({color: c});
+  let w = (3.4 + Math.random()*2.2)*1.5, h = (7 + Math.random()*7)*1.5, d = (4.2 + Math.random()*2)*1.5;
+  let geo = new THREE.BoxGeometry(w, h, d);
+  let mesh = new THREE.Mesh(geo, mat);
+  mesh.position.set(x, h/2-0.1, z);
+  scene.add(mesh);
+  decorations.push({mesh, type:'building'});
 
-    // SNOWFALL "TOWARD THE USER"
-    function drawSnowflakes() {
-      snowCtx.clearRect(0, 0, snowCanvas.width, snowCanvas.height);
-      // Angle: more toward the viewer (bottom-center), not straight down
-      const fallAngle = Math.PI / 2.7; // tweak for more/less "toward" effect
-      const vx = Math.sin(fallAngle);  // X drift
-      const vy = Math.cos(fallAngle);  // Y drift (mostly vertical)
-      for (let s of snowflakes) {
-        snowCtx.save();
-        snowCtx.beginPath();
-        snowCtx.arc(s.x, s.y, s.r, 0, Math.PI * 2);
-        snowCtx.fillStyle = "rgba(255,255,255,0.82)";
-        snowCtx.shadowColor = "#fff";
-        snowCtx.shadowBlur = 8;
-        snowCtx.fill();
-        snowCtx.restore();
-        // Drift toward the center horizontally for a "3D" feel
-        let centerDrift = (snowCanvas.width/2 - s.x) * 0.004; // snow falls slightly toward screen center
-        s.x += vx * s.drift + Math.sin(s.phase) * 0.5 + centerDrift;
-        s.y += vy * s.speed;
-        s.phase += 0.01;
-        if (s.y > snowCanvas.height) {
-          s.y = -5;
-          s.x = Math.random() * snowCanvas.width;
-        }
-        if (s.x > snowCanvas.width) s.x = 0;
-        if (s.x < 0) s.x = snowCanvas.width;
-      }
-      requestAnimationFrame(drawSnowflakes);
-    }
-    drawSnowflakes();
+  // Add windows
+  let numRows = Math.floor(h/2);
+  let numCols = Math.floor(w/1.1);
+  for(let row=0; row<numRows; row++) {
+    for(let col=0; col<numCols; col++) {
+      // Randomly skip some windows for variety
+      if(Math.random()>0.75) continue;
 
-    // --- THREE.JS GAME ---
-    let scene = new THREE.Scene();
-    let camera = new THREE.PerspectiveCamera(75, window.innerWidth/window.innerHeight, 0.1, 500);
-    let renderer = new THREE.WebGLRenderer({antialias:true, alpha:true});
-    renderer.setSize(window.innerWidth, window.innerHeight);
-    renderer.domElement.id = "threejs-canvas";
-    document.body.appendChild(renderer.domElement);
+      // Glass or normal window
+      let isGlass = Math.random()>0.7;
+      let winMat = isGlass
+        ? new THREE.MeshPhongMaterial({color:0x6ec6ff, transparent:true, opacity:0.45, shininess:60, emissive:0x9ecfff})
+        : new THREE.MeshPhongMaterial({color:0xe0e0e0, shininess:10});
 
-    // Lighting
-    let light = new THREE.DirectionalLight(0xffffff, 1.1);
-    light.position.set(0, 20, 15);
-    scene.add(light);
-    let ambLight = new THREE.AmbientLight(0xf3e5ab, 0.7);
-    scene.add(ambLight);
+      let winGeo = new THREE.BoxGeometry(w/numCols*0.65, h/numRows*0.25, 0.15);
+      let winMesh = new THREE.Mesh(winGeo, winMat);
 
-    // --- ROAD ---
-    let roads = [];
-    function createRoad(z) {
-      let color = new THREE.Color(0x8dc3e9);
-      let mat = new THREE.MeshPhongMaterial({color, shininess:18});
-      let geo = new THREE.BoxGeometry(14, 0.7, 70);
-      let mesh = new THREE.Mesh(geo, mat);
-      mesh.position.set(0, -0.5, z);
-      scene.add(mesh);
-      roads.push(mesh);
-    }
-    for(let i=0;i<3;i++) createRoad(i*70);
-
-    // --- PLAYER: Human Model with Cap ---
-    function createPlayerModel() {
-      let group = new THREE.Group();
-      // Torso
-      let torsoMat = new THREE.MeshPhongMaterial({color:0x1976d2});
-      let torso = new THREE.Mesh(new THREE.BoxGeometry(1.3,2.2,0.7), torsoMat);
-      torso.position.set(0,2,0);
-      group.add(torso);
-      // Head
-      let headMat = new THREE.MeshPhongMaterial({color:0xffe0b2});
-      let head = new THREE.Mesh(new THREE.SphereGeometry(0.7,18,16), headMat);
-      head.position.set(0,3.5,0);
-      group.add(head);
-      // Cap (red, with a brim)
-      let capMat = new THREE.MeshPhongMaterial({color:0xee2222});
-      let capTop = new THREE.Mesh(new THREE.SphereGeometry(0.72,16,12,0,Math.PI*2,0,Math.PI/1.9), capMat);
-      capTop.position.set(0,4.05,0);
-      group.add(capTop);
-      let capBrim = new THREE.Mesh(new THREE.CylinderGeometry(0.42, 0.51, 0.18, 24, 1, false, Math.PI*0.8, Math.PI*1.4), capMat);
-      capBrim.position.set(0,3.84,0.56);
-      capBrim.rotation.x = Math.PI/2.08;
-      group.add(capBrim);
-      // Left arm
-      let armMat = new THREE.MeshPhongMaterial({color:0xffe0b2});
-      let leftArm = new THREE.Mesh(new THREE.CylinderGeometry(0.25, 0.22, 1.5, 12), armMat);
-      leftArm.position.set(-0.95,2.2,0);
-      leftArm.rotation.z = Math.PI/10;
-      group.add(leftArm);
-      // Right arm
-      let rightArm = leftArm.clone();
-      rightArm.position.set(0.95,2.2,0);
-      rightArm.rotation.z = -Math.PI/10;
-      group.add(rightArm);
-      // Left leg
-      let pantMat = new THREE.MeshPhongMaterial({color:0x607d8b});
-      let leftLeg = new THREE.Mesh(new THREE.CylinderGeometry(0.29,0.27,1.7,12), pantMat);
-      leftLeg.position.set(-0.4,0.35,0);
-      group.add(leftLeg);
-      // Right leg
-      let rightLeg = leftLeg.clone();
-      rightLeg.position.set(0.4,0.35,0);
-      group.add(rightLeg);
-      group.position.set(0,1.3,0);
-      return group;
-    }
-    let player = createPlayerModel();
-    scene.add(player);
-
-    // --- COINS ---
-    let coins = [], coinYAnim = 0;
-    function createCoin(x, z) {
-      let geo = new THREE.TorusGeometry(0.7, 0.23, 18, 32);
-      let mat = new THREE.MeshPhongMaterial({
-        color: 0xffd700,
-        shininess: 100,
-        emissive: 0xfff16a,
-        emissiveIntensity: 0.35
-      });
-      let coin = new THREE.Mesh(geo, mat);
-      coin.position.set(x, 1.7, z);
-      coin.rotation.x = Math.PI/2;
-      coin.userData.pulse = Math.random();
-      scene.add(coin);
-      coins.push(coin);
-    }
-    function spawnCoins(startZ) {
-      for (let i = 0; i < 7; i++) {
-        let lane = [-4, 0, 4][Math.floor(Math.random()*3)];
-        createCoin(lane, startZ + 12 + i*7 + Math.random()*7);
-      }
-    }
-    spawnCoins(0);
-
-    // --- TREES & BUILDINGS ---
-    let decorations = [];
-    function createTree(x, z) {
-      let trunkMat = new THREE.MeshPhongMaterial({color:0x99582a});
-      let trunk = new THREE.Mesh(new THREE.CylinderGeometry(0.22*1.8,0.19*1.8,1.2*1.8,8), trunkMat);
-      trunk.position.set(x,0.6*1.8,z);
-      let leafMat = new THREE.MeshPhongMaterial({color:0x388e3c});
-      let leaves = new THREE.Mesh(new THREE.SphereGeometry(0.8*1.8,12,10), leafMat);
-      leaves.position.set(x,1.65*1.8,z);
-      scene.add(trunk); scene.add(leaves);
-      decorations.push({mesh:trunk, type:'tree'});
-      decorations.push({mesh:leaves, type:'tree'});
-    }
-    function createBuilding(x, z) {
-      let c = [0xb0bec5, 0xffb300, 0x90caf9, 0x8d6e63, 0xff7043][Math.floor(Math.random()*5)];
-      let mat = new THREE.MeshPhongMaterial({color:c});
-      let w = (3.4 + Math.random()*2.2)*1.5, h = (7 + Math.random()*7)*1.5, d = (4.2 + Math.random()*2)*1.5;
-      let geo = new THREE.BoxGeometry(w, h, d);
-      let mesh = new THREE.Mesh(geo, mat);
-      mesh.position.set(x, h/2-0.1, z);
-      scene.add(mesh);
-      decorations.push({mesh, type:'building'});
-    }
-    function createDecoRows(z) {
-      for(let i=0;i<2;i++) {
-        createTree(-7.7, z+i*8);
-        createTree(7.7, z+4+i*8);
-        createBuilding(-13, z+i*10);
-        createBuilding(13, z+5+i*10);
-      }
-    }
-    for(let i=0;i<8;i++) createDecoRows(i*20);
-
-    // --- GAME STATE ---
-    let lanes = [-4, 0, 4];
-    let targetLane = 1;
-    let speed = 0.38;
-    let score = 0;
-    let scoreDiv = document.getElementById("score");
-
-    function moveLeft() { targetLane = Math.max(0, targetLane-1); }
-    function moveRight() { targetLane = Math.min(2, targetLane+1); }
-
-    // FLIPPED BUTTON LOGIC (leftBtn moves right, rightBtn moves left)
-    document.getElementById('leftBtn').addEventListener('pointerdown', function(e){ e.preventDefault(); moveRight(); });
-    document.getElementById('rightBtn').addEventListener('pointerdown', function(e){ e.preventDefault(); moveLeft(); });
-
-    // KEYBOARD CONTROLS (unchanged: left key moves left, right key moves right)
-    window.addEventListener('keydown', function(e){
-      if (e.key==='ArrowLeft'||e.key==='a') moveLeft();
-      if (e.key==='ArrowRight'||e.key==='d') moveRight();
-    });
-
-    // --- GAME LOOP ---
-    function animate() {
-      // Move player forward
-      player.position.z += speed;
-      // Smooth lane change
-      let tx = lanes[targetLane];
-      player.position.x += (tx-player.position.x)*0.22;
-      // Animate player up/down (run bob)
-      player.position.y = 1.3 + Math.sin(Date.now()/120)*0.16;
-      // Animate legs (simple swing)
-      let t = Date.now()/220;
-      player.children[6].rotation.x = Math.sin(t)*0.5;
-      player.children[7].rotation.x = -Math.sin(t)*0.5;
-      // Camera follows behind and above
-      camera.position.lerp(
-        new THREE.Vector3(player.position.x, player.position.y+7, player.position.z-13),
-        0.13
+      // Place on front face
+      winMesh.position.set(
+        x-(w/2)+(col+0.5)*w/numCols,   // X across the building
+        mesh.position.y + h/2 - (row+1)*h/numRows, // Y down the building
+        z + d/2 + 0.08                 // Slightly in front of building
       );
-      camera.lookAt(player.position.x, 2, player.position.z+18);
-      // Move/loop road
-      for (let road of roads) {
-        if (road.position.z + 35 < player.position.z-35) {
-          road.position.z += 210;
-        }
-      }
-      // Animate/loop trees and buildings
-      for (let deco of decorations) {
-        if (deco.mesh.position.z < player.position.z-40) {
-          deco.mesh.position.z += 160;
-        }
-      }
-      // Animate coins: vertical bounce and glowing effect
-      coinYAnim += 0.09;
-      let time = Date.now()*0.002;
-      for (let coin of coins) {
-        coin.position.y = 1.7 + Math.sin(coin.position.z+coinYAnim)*0.22;
-        coin.rotation.z += 0.08;
-        let pulse = 0.32 + Math.sin(time*2 + coin.userData.pulse)*0.22;
-        coin.material.emissiveIntensity = 0.32 + pulse;
-      }
-      // Coin collection
-      for (let i=coins.length-1; i>=0; i--) {
-        let coin = coins[i];
-        if (
-          Math.abs(coin.position.z - player.position.z)<1.9 &&
-          Math.abs(coin.position.x - player.position.x)<2.1
-        ) {
-          scene.remove(coin);
-          coins.splice(i,1);
-          score++;
-          scoreDiv.innerText = "Score: "+score;
-        }
-      }
-      // Respawn coins: always have at least 10 ahead of the player
-      let maxZ = player.position.z + 120;
-      let activeCoins = coins.filter(c => c.position.z > player.position.z);
-      if (activeCoins.length < 10) spawnCoins(maxZ);
-
-      renderer.render(scene, camera);
-      requestAnimationFrame(animate);
+      scene.add(winMesh);
+      decorations.push({mesh: winMesh, type: 'window'});
     }
-    animate();
-
-    function resizeAll() {
-      camera.aspect=window.innerWidth/window.innerHeight;
-      camera.updateProjectionMatrix();
-      renderer.setSize(window.innerWidth, window.innerHeight);
-      resizeSnowCanvas();
-    }
-    window.addEventListener('resize', resizeAll);
-    window.addEventListener('orientationchange', resizeAll);
-  </script>
-</body>
-</html>
+  }
+}
