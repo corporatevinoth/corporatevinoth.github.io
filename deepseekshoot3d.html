@@ -1,15 +1,12 @@
 <!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <title>3D Shooter Runner - Collect Gold Coins</title>
+<html <title>3D Runner - Gold Coin Collector</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1,maximum-scale=1,user-scalable=0">
   <style>
-    body { margin: 0; overflow: hidden; background: linear-gradient(135deg,#00e2ff 0%,#ff96f9 100%);}
+    html, body { margin: 0; padding: 0; height: 100%; }
+    body { background: linear-gradient(135deg,#7ec9ff 0%,#ffe0d2 100%); overflow: hidden; }
     #score {
       position: absolute;
-      top: 24px;
-      left: 0;
-      right: 0;
+      top: 24px; left: 0; right: 0;
       color: #fff700;
       font-family: 'Arial Black', Arial, sans-serif;
       font-size: 2em;
@@ -17,11 +14,50 @@
       text-shadow: 2px 2px 8px #333;
       z-index: 10;
       letter-spacing: 2px;
+      pointer-events: none;
+    }
+    .controls {
+      position: absolute;
+      bottom: 3vh;
+      left: 0; right: 0;
+      display: flex;
+      justify-content: center;
+      gap: 10vw;
+      z-index: 11;
+      pointer-events: none;
+    }
+    .ctrl-btn {
+      width: 18vw; max-width: 100px; min-width: 60px;
+      aspect-ratio: 1/1;
+      border-radius: 50%;
+      background: rgba(80, 90, 120, 0.80);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 4px 18px #0004;
+      font-size: 2.4em;
+      color: #fff;
+      border: 2px solid #fff;
+      pointer-events: auto;
+      touch-action: manipulation;
+      user-select: none;
+      transition: background 0.18s;
+    }
+    .ctrl-btn:active {
+      background: #ffcc8860;
+      color: #222;
+    }
+    @media (min-width:600px) {
+      .controls { display: none; }
     }
   </style>
 </head>
 <body>
   <div id="score">Score: 0</div>
+  <div class="controls">
+    <div class="ctrl-btn" id="leftBtn">&#8592;</div>
+    <div class="ctrl-btn" id="rightBtn">&#8594;</div>
+  </div>
   <script src="https://cdn.jsdelivr.net/npm/three@0.152.2/build/three.min.js"></script>
   <script>
     // --- SETUP ---
@@ -32,18 +68,18 @@
     document.body.appendChild(renderer.domElement);
 
     // Lighting
-    let light = new THREE.DirectionalLight(0xffffff, 1.2);
+    let light = new THREE.DirectionalLight(0xffffff, 1.1);
     light.position.set(0, 20, 15);
     scene.add(light);
-    let ambLight = new THREE.AmbientLight(0xf3e5ab, 0.8);
+    let ambLight = new THREE.AmbientLight(0xf3e5ab, 0.7);
     scene.add(ambLight);
 
     // --- ROAD ---
     let roads = [];
     function createRoad(z) {
-      let color = new THREE.Color(`hsl(${Math.floor(180+z*2)%360},90%,60%)`);
-      let mat = new THREE.MeshPhongMaterial({color, shininess:30});
-      let geo = new THREE.BoxGeometry(14, 0.8, 70);
+      let color = new THREE.Color(0x8dc3e9); // soft blue
+      let mat = new THREE.MeshPhongMaterial({color, shininess:18});
+      let geo = new THREE.BoxGeometry(14, 0.7, 70);
       let mesh = new THREE.Mesh(geo, mat);
       mesh.position.set(0, -0.5, z);
       scene.add(mesh);
@@ -51,18 +87,50 @@
     }
     for(let i=0;i<3;i++) createRoad(i*70);
 
-    // --- PLAYER ---
-    let playerGeo = new THREE.CapsuleGeometry(1.1, 2.2, 8, 16);
-    let playerMat = new THREE.MeshPhongMaterial({color:0x00ffcc, shininess:90, emissive:0x1fffff, emissiveIntensity:0.1});
-    let player = new THREE.Mesh(playerGeo, playerMat);
-    player.position.set(0, 2, 0);
+    // --- PLAYER: Human Model ---
+    function createPlayerModel() {
+      let group = new THREE.Group();
+      // Torso
+      let torsoMat = new THREE.MeshPhongMaterial({color:0x1976d2}); // blue shirt
+      let torso = new THREE.Mesh(new THREE.BoxGeometry(1.3,2.2,0.7), torsoMat);
+      torso.position.set(0,2,0);
+      group.add(torso);
+      // Head
+      let headMat = new THREE.MeshPhongMaterial({color:0xffe0b2});
+      let head = new THREE.Mesh(new THREE.SphereGeometry(0.7,18,16), headMat);
+      head.position.set(0,3.5,0);
+      group.add(head);
+      // Left arm
+      let armMat = new THREE.MeshPhongMaterial({color:0xffe0b2});
+      let leftArm = new THREE.Mesh(new THREE.CylinderGeometry(0.25, 0.22, 1.5, 12), armMat);
+      leftArm.position.set(-0.95,2.2,0);
+      leftArm.rotation.z = Math.PI/10;
+      group.add(leftArm);
+      // Right arm
+      let rightArm = leftArm.clone();
+      rightArm.position.set(0.95,2.2,0);
+      rightArm.rotation.z = -Math.PI/10;
+      group.add(rightArm);
+      // Left leg
+      let pantMat = new THREE.MeshPhongMaterial({color:0x607d8b}); // blue-grey pants
+      let leftLeg = new THREE.Mesh(new THREE.CylinderGeometry(0.29,0.27,1.7,12), pantMat);
+      leftLeg.position.set(-0.4,0.35,0);
+      group.add(leftLeg);
+      // Right leg
+      let rightLeg = leftLeg.clone();
+      rightLeg.position.set(0.4,0.35,0);
+      group.add(rightLeg);
+      group.position.set(0,1.3,0);
+      return group;
+    }
+    let player = createPlayerModel();
     scene.add(player);
 
     // --- COINS ---
     let coins = [], coinYAnim = 0;
     function createCoin(x, z) {
-      let geo = new THREE.TorusGeometry(0.7, 0.25, 16, 32);
-      let mat = new THREE.MeshPhongMaterial({color:0xffd700, shininess:120, emissive:0xffff00, emissiveIntensity:0.4});
+      let geo = new THREE.TorusGeometry(0.7, 0.23, 18, 32);
+      let mat = new THREE.MeshPhongMaterial({color:0xffd700, shininess:60, emissive:0xffee88, emissiveIntensity:0.15});
       let coin = new THREE.Mesh(geo, mat);
       coin.position.set(x, 1.7, z);
       coin.rotation.x = Math.PI/2;
@@ -77,28 +145,60 @@
     }
     spawnCoins(0);
 
-    // --- ENVIRONMENT (Colorful Poles/Sky) ---
-    for (let i=0;i<32;i++) {
-      let color = new THREE.Color(`hsl(${Math.floor(i*25)%360},100%,60%)`);
-      let poleMat = new THREE.MeshPhongMaterial({color});
-      let pole = new THREE.Mesh(new THREE.CylinderGeometry(0.4,0.7,18,12), poleMat);
-      let x = (i%2==0)? -8.5 : 8.5;
-      pole.position.set(x, 9, i*18-40);
-      scene.add(pole);
+    // --- TREES & BUILDINGS ---
+    let decorations = [];
+    function createTree(x, z) {
+      let trunkMat = new THREE.MeshPhongMaterial({color:0x99582a});
+      let trunk = new THREE.Mesh(new THREE.CylinderGeometry(0.22,0.19,1.2,8), trunkMat);
+      trunk.position.set(x,0.6,z);
+      let leafMat = new THREE.MeshPhongMaterial({color:0x388e3c});
+      let leaves = new THREE.Mesh(new THREE.SphereGeometry(0.8,12,10), leafMat);
+      leaves.position.set(x,1.65,z);
+      scene.add(trunk); scene.add(leaves);
+      decorations.push({mesh:trunk, type:'tree'});
+      decorations.push({mesh:leaves, type:'tree'});
     }
+    function createBuilding(x, z) {
+      let c = [0xb0bec5, 0xffb300, 0x90caf9, 0x8d6e63, 0xff7043][Math.floor(Math.random()*5)];
+      let mat = new THREE.MeshPhongMaterial({color:c});
+      let w = 1.8 + Math.random()*1.3, h = 2.5 + Math.random()*3;
+      let geo = new THREE.BoxGeometry(w, h, 2.4 + Math.random());
+      let mesh = new THREE.Mesh(geo, mat);
+      mesh.position.set(x, h/2-0.1, z);
+      scene.add(mesh);
+      decorations.push({mesh, type:'building'});
+    }
+    // Place trees and buildings in a repeated pattern
+    function createDecoRows(z) {
+      for(let i=0;i<2;i++) {
+        createTree(-7.7, z+i*8);
+        createTree(7.7, z+4+i*8);
+        createBuilding(-10.8, z+i*10);
+        createBuilding(10.8, z+5+i*10);
+      }
+    }
+    for(let i=0;i<8;i++) createDecoRows(i*20);
 
     // --- GAME STATE ---
     let lane = 1; // 0:left 1:center 2:right
     let lanes = [-4, 0, 4];
     let targetLane = 1;
-    let speed = 0.48;
+    let speed = 0.38;
     let score = 0;
     let scoreDiv = document.getElementById("score");
 
-    // --- INPUT ---
+    // --- MOBILE CONTROLS ---
+    let isMobile = /Android|iPhone|iPad|iPod|Opera Mini|IEMobile|WPDesktop/i.test(navigator.userAgent);
+    function moveLeft() { targetLane = Math.max(0, targetLane-1); }
+    function moveRight() { targetLane = Math.min(2, targetLane+1); }
+    if(isMobile){
+      document.getElementById('leftBtn').addEventListener('touchstart', moveLeft);
+      document.getElementById('rightBtn').addEventListener('touchstart', moveRight);
+    }
+    // Desktop keyboard
     window.addEventListener('keydown', e=>{
-      if (e.key==='ArrowLeft'||e.key==='a') targetLane=Math.max(0,targetLane-1);
-      if (e.key==='ArrowRight'||e.key==='d') targetLane=Math.min(2,targetLane+1);
+      if (e.key==='ArrowLeft'||e.key==='a') moveLeft();
+      if (e.key==='ArrowRight'||e.key==='d') moveRight();
     });
 
     // --- GAME LOOP ---
@@ -108,22 +208,33 @@
 
       // Smooth lane change
       let tx = lanes[targetLane];
-      player.position.x += (tx-player.position.x)*0.25;
+      player.position.x += (tx-player.position.x)*0.22;
 
       // Animate player up/down (run bob)
-      player.position.y = 2 + Math.sin(Date.now()/120)*0.14;
+      player.position.y = 1.3 + Math.sin(Date.now()/120)*0.16;
+      // Animate legs (simple swing)
+      let t = Date.now()/220;
+      player.children[4].rotation.x = Math.sin(t)*0.5; // left leg
+      player.children[5].rotation.x = -Math.sin(t)*0.5; // right leg
 
       // Camera follows behind and above
       camera.position.lerp(
-        new THREE.Vector3(player.position.x, player.position.y+7, player.position.z-12),
-        0.12
+        new THREE.Vector3(player.position.x, player.position.y+7, player.position.z-13),
+        0.13
       );
       camera.lookAt(player.position.x, 2, player.position.z+18);
 
       // Move/loop road
       for (let road of roads) {
         if (road.position.z + 35 < player.position.z-35) {
-          road.position.z += 210; // 3*70
+          road.position.z += 210;
+        }
+      }
+
+      // Animate/loop trees and buildings
+      for (let deco of decorations) {
+        if (deco.mesh.position.z < player.position.z-30) {
+          deco.mesh.position.z += 160;
         }
       }
 
@@ -133,7 +244,6 @@
         coin.position.y = 1.7 + Math.sin(coin.position.z+coinYAnim)*0.22;
         coin.rotation.z += 0.08;
       }
-
       // Coin collection
       for (let i=coins.length-1; i>=0; i--) {
         let coin = coins[i];
@@ -145,11 +255,8 @@
           coins.splice(i,1);
           score++;
           scoreDiv.innerText = "Score: "+score;
-          // Vibrant effect on collection
-          document.body.style.background = `linear-gradient(135deg,hsl(${Math.random()*360},100%,65%),hsl(${Math.random()*360},100%,70%))`;
         }
       }
-
       // Spawn more coins if needed
       if (coins.length<7) spawnCoins(player.position.z+30);
 
