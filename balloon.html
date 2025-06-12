@@ -23,64 +23,13 @@
       background: transparent;
       cursor: none;
     }
-    #gameOverBanner {
-      display: none;
-      position: fixed;
-      top: 0; left: 0;
-      width: 100vw; height: 100vh;
-      background: rgba(0,0,0,0.85);
-      color: #fff;
-      z-index: 10;
-      align-items: center;
-      justify-content: center;
-      flex-direction: column;
-      font-family: Arial, sans-serif;
-    }
-    #gameOverBanner .score {
-      font-size: 2.5em;
-      margin-bottom: 20px;
-    }
-    #gameOverBanner button {
-      font-size: 1.3em;
-      margin: 10px 20px;
-      padding: 12px 32px;
-      border-radius: 8px;
-      border: none;
-      background: #0095ff;
-      color: #fff;
-      cursor: pointer;
-      transition: background 0.2s;
-    }
-    #gameOverBanner button:hover {
-      background: #0075cc;
-    }
-    #congrats-bg {
-      pointer-events: none;
-      position: fixed;
-      top: 0; left: 0;
-      width: 100vw; height: 100vh;
-      z-index: 7;
-      display: none;
-    }
   </style>
 </head>
 <body>
   <canvas id="snow-canvas"></canvas>
   <canvas id="gameCanvas"></canvas>
-  <div id="congrats-bg"></div>
-  <div id="gameOverBanner">
-    <div class="score"></div>
-    <div>
-      <button id="playAgainBtn">Replay</button>
-      <button id="exitBtn">Exit</button>
-    </div>
-  </div>
-  <!-- Sounds -->
-  <audio id="shootSound" src="https://github.com/corporatevinoth/corporatevinoth.github.io/raw/main/shoot.wav" preload="auto"></audio>
-  <audio id="explosionSound" src="https://github.com/corporatevinoth/corporatevinoth.github.io/raw/main/explosion.wav" preload="auto"></audio>
-  <audio id="congratsSound" src="https://github.com/corporatevinoth/corporatevinoth.github.io/raw/main/congrats.mp3" preload="auto"></audio>
   <script>
-    // --- SNOW EFFECT ---
+    // SNOW
     const snowCanvas = document.getElementById('snow-canvas');
     const snowCtx = snowCanvas.getContext('2d');
     let snowflakes = [];
@@ -92,7 +41,7 @@
     resizeSnowCanvas();
     function createSnowflakes() {
       snowflakes = [];
-      for (let i = 0; i < 30; i++) { // HALVED from 60 to 30
+      for (let i = 0; i < 30; i++) {
         snowflakes.push({
           x: Math.random() * snowCanvas.width,
           y: Math.random() * snowCanvas.height,
@@ -129,9 +78,40 @@
     }
     drawSnowflakes();
 
-    // --- GAME LOGIC ---
-    // (rest of your game logic stays unchanged)
-    // ... (the rest of the JavaScript code should remain as in your working balloon.html)
+    // MINIMAL GAME -- draws a blue gun and a red balloon
+    const canvas = document.getElementById('gameCanvas');
+    const ctx = canvas.getContext('2d');
+    function resizeGameCanvas() {
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+    }
+    window.addEventListener('resize', resizeGameCanvas);
+    resizeGameCanvas();
+
+    let gunY = canvas.height * 0.8;
+    let gunX = canvas.width / 2;
+    let balloonY = 100;
+    let balloonX = canvas.width / 2;
+    function gameLoop() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      // draw gun
+      ctx.save();
+      ctx.fillStyle = "#2e8cff";
+      ctx.beginPath();
+      ctx.ellipse(gunX, gunY, 50, 25, 0, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.restore();
+      // draw balloon
+      ctx.save();
+      ctx.fillStyle = "#e57373";
+      ctx.beginPath();
+      ctx.arc(balloonX, balloonY, 40, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.restore();
+
+      requestAnimationFrame(gameLoop);
+    }
+    gameLoop();
   </script>
 </body>
 </html>
