@@ -73,14 +73,22 @@
   <div class="ctrl-btn" id="rightBtn">&#8594;</div>
   <script src="https://cdn.jsdelivr.net/npm/three@0.152.2/build/three.min.js"></script>
   <script>
-    // --- SNOW EFFECT ---
+    // SNOW EFFECT
     const snowCanvas = document.getElementById('snow-canvas');
     const snowCtx = snowCanvas.getContext('2d');
     let snowflakes = [];
     function resizeSnowCanvas() {
       snowCanvas.width = window.innerWidth;
       snowCanvas.height = window.innerHeight;
-   .random() * snowCanvas.width,
+    }
+    window.addEventListener('resize', resizeSnowCanvas);
+    window.addEventListener('orientationchange', resizeSnowCanvas);
+    resizeSnowCanvas();
+    function createSnowflakes() {
+      snowflakes = [];
+      for (let i = 0; i < 60; i++) {
+        snowflakes.push({
+          x: Math.random() * snowCanvas.width,
           y: Math.random() * snowCanvas.height,
           r: 1 + Math.random() * 2,
           speed: 0.5 + Math.random() * 2,
@@ -90,8 +98,6 @@
       }
     }
     createSnowflakes();
-
-    // SNOWFALL "TOWARD THE USER"
     function drawSnowflakes() {
       snowCtx.clearRect(0, 0, snowCanvas.width, snowCanvas.height);
       const fallAngle = Math.PI / 2.7;
@@ -121,7 +127,7 @@
     }
     drawSnowflakes();
 
-    // --- THREE.JS GAME ---
+    // THREE.JS GAME SETUP
     let scene = new THREE.Scene();
     let camera = new THREE.PerspectiveCamera(75, window.innerWidth/window.innerHeight, 0.1, 500);
     let renderer = new THREE.WebGLRenderer({antialias:true, alpha:true});
@@ -136,7 +142,7 @@
     let ambLight = new THREE.AmbientLight(0xf3e5ab, 0.7);
     scene.add(ambLight);
 
-    // --- ROAD ---
+    // ROAD
     let roads = [];
     function createRoad(z) {
       let color = new THREE.Color(0x8dc3e9);
@@ -149,20 +155,18 @@
     }
     for(let i=0;i<3;i++) createRoad(i*70);
 
-    // --- PLAYER: Human Model with Cap ---
+    // PLAYER MODEL
     function createPlayerModel() {
       let group = new THREE.Group();
-      // Torso
       let torsoMat = new THREE.MeshPhongMaterial({color:0x1976d2});
       let torso = new THREE.Mesh(new THREE.BoxGeometry(1.3,2.2,0.7), torsoMat);
       torso.position.set(0,2,0);
       group.add(torso);
-      // Head
       let headMat = new THREE.MeshPhongMaterial({color:0xffe0b2});
       let head = new THREE.Mesh(new THREE.SphereGeometry(0.7,18,16), headMat);
       head.position.set(0,3.5,0);
       group.add(head);
-      // Cap ( = new THREE.MeshPhongMaterial({color:0xee2222});
+      let capMat = new THREE.MeshPhongMaterial({color:0xee2222});
       let capTop = new THREE.Mesh(new THREE.SphereGeometry(0.72,16,12,0,Math.PI*2,0,Math.PI/1.9), capMat);
       capTop.position.set(0,4.05,0);
       group.add(capTop);
@@ -170,23 +174,19 @@
       capBrim.position.set(0,3.84,0.56);
       capBrim.rotation.x = Math.PI/2.08;
       group.add(capBrim);
-      // Left arm
       let armMat = new THREE.MeshPhongMaterial({color:0xffe0b2});
       let leftArm = new THREE.Mesh(new THREE.CylinderGeometry(0.25, 0.22, 1.5, 12), armMat);
       leftArm.position.set(-0.95,2.2,0);
       leftArm.rotation.z = Math.PI/10;
       group.add(leftArm);
-      // Right arm
       let rightArm = leftArm.clone();
       rightArm.position.set(0.95,2.2,0);
       rightArm.rotation.z = -Math.PI/10;
       group.add(rightArm);
-      // Left leg
       let pantMat = new THREE.MeshPhongMaterial({color:0x607d8b});
       let leftLeg = new THREE.Mesh(new THREE.CylinderGeometry(0.29,0.27,1.7,12), pantMat);
       leftLeg.position.set(-0.4,0.35,0);
       group.add(leftLeg);
-      // Right leg
       let rightLeg = leftLeg.clone();
       rightLeg.position.set(0.4,0.35,0);
       group.add(rightLeg);
@@ -196,7 +196,7 @@
     let player = createPlayerModel();
     scene.add(player);
 
-    // --- COINS ---
+    // COINS
     let coins = [], coinYAnim = 0;
     function createCoin(x, z) {
       let geo = new THREE.TorusGeometry(0.7, 0.23, 18, 32);
@@ -221,7 +221,7 @@
     }
     spawnCoins(0);
 
-    // --- DIVERSE TREES ---
+    // RANDOM TREES
     function createRandomTree(x, z) {
       let t = Math.random();
       let group = new THREE.Group();
@@ -253,19 +253,17 @@
       decorations.push({mesh:group, type:'tree'});
     }
 
-    // --- BUILDINGS WITH WINDOWS & GLASS ---
+    // BUILDINGS WITH WINDOWS & GLASS
     function createBuilding(x, z) {
-      // Building base
       let c = [0xb0bec5, 0xffb300, 0x90caf9, 0x8d6e63, 0xff7043][Math.floor(Math.random()*5)];
       let mat = new THREE.MeshPhongMaterial({color: c});
-      let w = (3.4 + Math.random()*2.2)*1.5, h = (7 + Math.random()*7)*1.5, d = (4.2 + Math.random()*2)*1.5;
+      let w = (3.4 + Math.random()*2.21.5, h = (7 + Math.random()*7)*1.5, d = (4.2 + Math.random()*2)*1.5;
       let geo = new THREE.BoxGeometry(w, h, d);
       let mesh = new THREE.Mesh(geo, mat);
       mesh.position.set(x, h/2-0.1, z);
       scene.add(mesh);
       decorations.push({mesh, type:'building'});
-
-      // Add windows
+      // Windows
       let numRows = Math.floor(h/2);
       let numCols = Math.floor(w/1.1);
       for(let row=0; row<numRows; row++) {
@@ -288,9 +286,9 @@
       }
     }
 
-    // --- DECO ROW WITH RANDOMIZED TREES ---
+    // RANDOMIZED DECO ROWS
+    let decorations = [];
     function createDecoRow(z) {
-      // Left and right sides, random X but not overlapping buildings
       let leftX = -7.2 - Math.random()*2.4;
       let rightX = 7.2 + Math.random()*2.4;
       createRandomTree(leftX, z);
@@ -298,10 +296,9 @@
       createBuilding(-13, z);
       createBuilding(13, z);
     }
-    let decorations = [];
     for(let i=0;i<8;i++) createDecoRow(i*20);
 
-    // --- GAME STATE ---
+    // GAME STATE
     let lanes = [-4, 0, 4];
     let targetLane = 1;
     let speed = 0.38;
@@ -320,7 +317,7 @@
       if (e.key==='ArrowRight'||e.key==='d') moveRight();
     });
 
-    // --- GAME LOOP ---
+    // GAME LOOP
     function animate() {
       player.position.z += speed;
       let tx = lanes[targetLane];
@@ -349,7 +346,13 @@
       for (let coin of coins) {
         coin.position.y = 1.7 + Math.sin(coin.position.z+coinYAnim)*0.22;
         coin.rotation.z += 0.08;
-        let pulse = 0.32 + Math.sin(time*2 + coin.userData.pulse)* - player.position.z)<1.9 &&
+        let pulse = 0.32 + Math.sin(time*2 + coin.userData.pulse)*0.22;
+        coin.material.emissiveIntensity = 0.32 + pulse;
+      }
+      for (let i=coins.length-1; i>=0; i--) {
+        let coin = coins[i];
+        if (
+          Math.abs(coin.position.z - player.position.z)<1.9 &&
           Math.abs(coin.position.x - player.position.x)<2.1
         ) {
           scene.remove(coin);
