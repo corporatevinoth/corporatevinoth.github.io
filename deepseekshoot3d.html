@@ -27,50 +27,44 @@
       z-index: 2;
       display: block;
     }
-    .controls {
-      position: fixed;
-      bottom: 5vh;
-      left: 0; right: 0;
-      display: flex;
-      justify-content: center;
-      gap: 20vw;
-      z-index: 50;
-      pointer-events: none;
-    }
     .ctrl-btn {
-      width: 24vw; max-width: 120px; min-width: 60px;
+      width: 18vw; max-width: 100px; min-width: 60px;
       aspect-ratio: 1/1;
       border-radius: 50%;
       background: #2C387E;
       display: flex;
       align-items: center;
       justify-content: center;
-      box-shadow: 0 6px 24px #0008;
+      box-shadow: 0 4px 18px #0006;
       font-size: 3em;
       color: #fff;
-      border: 4px solid #fff;
+      border: 3px solid #fff;
       pointer-events: auto;
       touch-action: manipulation;
       user-select: none;
       transition: background 0.18s, color 0.18s;
-      opacity: 0.94;
+      opacity: 0.96;
+      position: fixed;
+      bottom: 4vh;
+      z-index: 100;
+    }
+    #leftBtn {
+      left: 4vw;
+    }
+    #rightBtn {
+      right: 4vw;
     }
     .ctrl-btn:active {
       background: #FFD600;
       color: #1a237e;
-    }
-    @media (min-width:800px) {
-      .controls { gap: 8vw; }
     }
   </style>
 </head>
 <body>
   <div id="score">Score: 0</div>
   <canvas id="snow-canvas"></canvas>
-  <div class="controls">
-    <div class="ctrl-btn" id="leftBtn">&#8592;</div>
-    <div class="ctrl-btn" id="rightBtn">&#8594;</div>
-  </div>
+  <div class="ctrl-btn" id="leftBtn">&#8592;</div>
+  <div class="ctrl-btn" id="rightBtn">&#8594;</div>
   <script src="https://cdn.jsdelivr.net/npm/three@0.152.2/build/three.min.js"></script>
   <script>
     // --- SNOW EFFECT ---
@@ -210,7 +204,8 @@
       });
       let coin = new THREE.Mesh(geo, mat);
       coin.position.set(x, 1.7, z);
-();
+      coin.rotation.x = Math.PI/2;
+      coin.userData.pulse = Math.random();
       scene.add(coin);
       coins.push(coin);
     }
