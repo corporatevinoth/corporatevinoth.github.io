@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html>
 <head>
@@ -77,7 +76,7 @@
     </div>
   </div>
   <!-- Sounds -->
-  <audio id="shootSound" src="https://github.com/corporatevinoth/corporatevinoth.github.io/raw/main/shoot.wav" preload="auto"></audio>
+  <audio id="shootSound" src="https="auto"></audio>
   <audio id="explosionSound" src="https://github.com/corporatevinoth/corporatevinoth.github.io/raw/main/explosion.wav" preload="auto"></audio>
   <audio id="congratsSound" src="https://github.com/corporatevinoth/corporatevinoth.github.io/raw/main/congrats.mp3" preload="auto"></audio>
   <script>
@@ -93,11 +92,11 @@
     resizeSnowCanvas();
     function createSnowflakes() {
       snowflakes = [];
-      for (let i = 0; i < 60; i++) { // HALVED from 120 to 60
+      for (let i = 0; i < 30; i++) { // HALVED from 60 to 30
         snowflakes.push({
           x: Math.random() * snowCanvas.width,
           y: Math.random() * snowCanvas.height,
-          r: 1.5 + Math.random() * 3.5,
+          r: 0.75 + Math.random() * 1.75, // thinner snowflakes
           speed: 0.7 + Math.random() * 1.8,
           drift: 0.2 + Math.random() * 1,
           phase: Math.random() * Math.PI * 2
@@ -131,6 +130,7 @@
     drawSnowflakes();
 
     // --- GAME LOGIC ---
+    // (no changes below)
     const canvas = document.getElementById('gameCanvas');
     const ctx = canvas.getContext('2d');
 
@@ -180,16 +180,7 @@
       helicopter.speed = unit * 0.5;
       helicopter.width = unit * 2;
       helicopter.height = unit;
-      bulletSize = unit * 0.2;
-      bulletSpeed = unit * 1;
-      regularBalloonSize = unit * 1.5;
-      minBigBalloonSize = unit * 2.0;
-      maxBigBalloonSize = unit * 4.0;
-      balloonSpeed = unit * 0.1;
-    }
-
-    // Helicopter/gun properties
-    const helicopter = { x: 0, y: 0, speed: 0, width: 0, height: 0 };
+      bulletSize, height: 0 };
 
     // Shooting properties
     const fireRate = 100;
@@ -249,20 +240,7 @@
       if (current < 10) return 10;
       if (current < 25) return 25;
       if (current < 50) return 50;
-      if (current < 100) return 100;
-      // After 100: 200, 400, 800, 1600, ...
-      if (current < 200) return 200;
-      // find next power of 2 * 100 >= current
-      let val = 200;
-      while (current >= val) val *= 2;
-      return val;
-    }
-
-    function spawnBalloon() {
-      const r = Math.random();
-      if (r < 0.15) { // bonus
-        const size = unit * 2.4;
-        const x = Math.random() * (canvas.width - size) + size / 2;
+      if (current < 100) return = Math.random() * (canvas.width - size) + size / 2;
         const y = -size;
         balloons.push({ x, y, size, type: 'bonus', score: 4 });
       } else if (r < 0.35) { // big balloon
@@ -270,8 +248,7 @@
         const size = minBigBalloonSize + (maxBigBalloonSize - minBigBalloonSize) * ((which-1)/9);
         const x = Math.random() * (canvas.width - size) + size / 2;
         const y = -size;
-        balloons.push({ x, y, size, type: 'big', bigIndex: which, score: which*2, color: getBigBalloonColor(which) });
-      } else { // regular
+        balloons.push({ x, y, size, type: 'big', regular
         const size = regularBalloonSize;
         const x = Math.random() * (canvas.width - size) + size / 2;
         const y = -size;
@@ -282,13 +259,7 @@
     function getBigBalloonColor(idx) {
       const palette = [
         "#e57373", "#f06292", "#ba68c8", "#7986cb", "#4fc3f7",
-        "#81c784", "#ffd54f", "#ffb74d", "#a1887f", "#90a4ae"
-      ];
-      return palette[(idx-1)%palette.length];
-    }
-
-    function updateBalloons() {
-      for (let i = 0; i < balloons.length; i++) {
+        "#81c784", "#ffd54f", "#ffb74d", "#a1887f", "# balloons.length; i++) {
         const balloon = balloons[i];
         balloon.y += balloonSpeed;
         if (checkGunCollisionWithBalloon(balloon)) {
@@ -473,24 +444,7 @@
           bullets.push({
             x: helicopter.x+gap,
             y: helicopter.y - helicopter.height / 2,
-            vx: 0, vy: -bulletSpeed
-          });
-        }
-        bullets.push({
-          x: helicopter.x,
-          y: helicopter.y - helicopter.height / 2,
-          vx: 0,
-          vy: -bulletSpeed
-        });
-        playShootSound();
-        lastFireTime = currentTime;
-      }
-    }
-
-    function updateHelicopterMovement() {
-      if (isLeftArrowPressed) {
-        helicopter.x -= helicopter.speed;
-        if (helicopter.x < helicopter.width / 2) helicopter.x = helicopter.width / 2;
+            vx:  / 2;
       }
       if (isRightArrowPressed) {
         helicopter.x += helicopter.speed;
@@ -505,19 +459,7 @@
         } else {
           helicopter.x += helicopter.speed * Math.sign(dx);
         }
-        if (helicopter.x < helicopter.width / 2) helicopter.x = helicopter.width / 2;
-        if (helicopter.x > canvas.width - helicopter.width / 2) helicopter.x = canvas.width - helicopter.width / 2;
-      }
-    }
-
-    function checkGunCollisionWithBalloon(balloon) {
-      function ellipseCollision(cx, cy, rx, ry, px, py, r) {
-        return Math.pow((px-cx)/(rx+r),2) + Math.pow((py-cy)/(ry+r),2) < 1;
-      }
-      if (ellipseCollision(helicopter.x, helicopter.y, helicopter.width/2, helicopter.height/2, balloon.x, balloon.y, balloon.size/2)) return true;
-      if (doubleGun) {
-        let gap = helicopter.width*0.7;
-        if (ellipseCollision(helicopter.x-gap, helicopter.y, helicopter.width/2, helicopter.height/2, balloon.x, balloon.y, balloon.size/2)) return true;
+        if (helicopter.x < helicopter.width /-gap, helicopter.y, helicopter.width/2, helicopter.height/2, balloon.x, balloon.y, balloon.size/2)) return true;
         if (ellipseCollision(helicopter.x+gap, helicopter.y, helicopter.width/2, helicopter.height/2, balloon.x, balloon.y, balloon.size/2)) return true;
       }
       return false;
@@ -554,8 +496,7 @@
         isLeftArrowPressed = true;
         tvMode = true; // Enable TV mode on arrow key usage
       }
-      if (e.key === "ArrowRight" || e.key === "Right" || e.keyCode === 39) {
-        isRightArrowPressed = true;
+RightArrowPressed = true;
         tvMode = true;
       }
     });
@@ -602,14 +543,7 @@
 
     function playShootSound() {
       if (soundEnabled) {
-        shootSound.currentTime = 0;
-        shootSound.play().catch(()=>{});
-      }
-    }
-    function playExplosionSound() {
-      if (soundEnabled) {
-        explosionSound.currentTime = 0;
-        explosionSound.play().catch(()=>{});
+        shootSound.currentTime = 0.play().catch(()=>{});
       }
     }
     function playCongratsSound() {
@@ -680,15 +614,7 @@
           cctx.save();
           cctx.font = `${50 + 20*stage}px Arial Black, Arial, sans-serif`;
           cctx.textAlign = "center";
-          cctx.fillStyle = colors[0];
-          cctx.shadowColor = "#111";
-          cctx.shadowBlur = 10;
-          cctx.fillText(text, confettiCanvas.width/2, confettiCanvas.height/3);
-          cctx.restore();
-        }
-        for (let i = 0; i < confetti.length; ++i) {
-          let p = confetti[i];
-          cctx.save();
+          c.save();
           cctx.beginPath();
           cctx.ellipse(p.x, p.y, p.r, p.r * 0.6, p.tiltAngle, 0, Math.PI * 2);
           cctx.fillStyle = p.color;
