@@ -269,7 +269,8 @@
 
     // --- MOBILE CONTROLS (pointerdown for mobile and desktop) ---
     function moveLeft() { targetLane = Math.max(0, targetLane-1); }
-    function moveRight() { targetLane = Math('leftBtn').addEventListener('pointerdown', function(e){ e.preventDefault(); moveLeft(); });
+    function moveRight() { targetLane = Math.min(2, targetLane+1); }
+    document.getElementById('leftBtn').addEventListener('pointerdown', function(e){ e.preventDefault(); moveLeft(); });
     document.getElementById('rightBtn').addEventListener('pointerdown', function(e){ e.preventDefault(); moveRight(); });
 
     // Desktop keyboard
