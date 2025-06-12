@@ -28,27 +28,27 @@
       display: block;
     }
     .controls {
-      position: absolute;
-      bottom: 3vh;
+      position: fixed;
+      bottom: 4vh;
       left: 0; right: 0;
       display: flex;
       justify-content: center;
-      gap: 10vw;
-      z-index: 11;
+      gap: 18vw;
+      z-index: 12;
       pointer-events: none;
     }
     .ctrl-btn {
-      width: 18vw; max-width: 100px; min-width: 60px;
+      width: 22vw; max-width: 140px; min-width: 70px;
       aspect-ratio: 1/1;
       border-radius: 50%;
-      background: rgba(80, 90, 120, 0.80);
+      background: rgba(80, 90, 120, 0.92);
       display: flex;
       align-items: center;
       justify-content: center;
       box-shadow: 0 4px 18px #0004;
-      font-size: 2.4em;
+      font-size: 3em;
       color: #fff;
-      border: 2px solid #fff;
+      border: 3px solid #fff;
       pointer-events: auto;
       touch-action: manipulation;
       user-select: none;
@@ -72,7 +72,7 @@
   </div>
   <script src="https://cdn.jsdelivr.net/npm/three@0.152.2/build/three.min.js"></script>
   <script>
-    // --- SNOW EFFECT START ---
+    // --- SNOW EFFECT ---
     const snowCanvas = document.getElementById('snow-canvas');
     const snowCtx = snowCanvas.getContext('2d');
     let snowflakes = [];
@@ -81,6 +81,7 @@
       snowCanvas.height = window.innerHeight;
     }
     window.addEventListener('resize', resizeSnowCanvas);
+    window.addEventListener('orientationchange', resizeSnowCanvas);
     resizeSnowCanvas();
     function createSnowflakes() {
       snowflakes = [];
@@ -120,7 +121,6 @@
       requestAnimationFrame(drawSnowflakes);
     }
     drawSnowflakes();
-    // --- SNOW EFFECT END ---
 
     // --- THREE.JS GAME ---
     let scene = new THREE.Scene();
@@ -226,22 +226,23 @@
     // --- TREES & BUILDINGS ---
     let decorations = [];
     function createTree(x, z) {
+      // Tree size 80% larger
       let trunkMat = new THREE.MeshPhongMaterial({color:0x99582a});
-      let trunk = new THREE.Mesh(new THREE.CylinderGeometry(0.22,0.19,1.2,8), trunkMat);
-      trunk.position.set(x,0.6,z);
+      let trunk = new THREE.Mesh(new THREE.CylinderGeometry(0.22*1.8,0.19*1.8,1.2*1.8,8), trunkMat);
+      trunk.position.set(x,0.6*1.8,z);
       let leafMat = new THREE.MeshPhongMaterial({color:0x388e3c});
-      let leaves = new THREE.Mesh(new THREE.SphereGeometry(0.8,12,10), leafMat);
-      leaves.position.set(x,1.65,z);
+      let leaves = new THREE.Mesh(new THREE.SphereGeometry(0.8*1.8,12,10), leafMat);
+      leaves.position.set(x,1.65*1.8,z);
       scene.add(trunk); scene.add(leaves);
       decorations.push({mesh:trunk, type:'tree'});
       decorations.push({mesh:leaves, type:'tree'});
     }
     function createBuilding(x, z) {
-      // Bigger building!
+      // Building size 50% larger
       let c = [0xb0bec5, 0xffb300, 0x90caf9, 0x8d6e63, 0xff7043][Math.floor(Math.random()*5)];
       let mat = new THREE.MeshPhongMaterial({color:c});
-      let w = 3.4 + Math.random()*2.2, h = 7 + Math.random()*7; // Much taller and wider
-      let geo = new THREE.BoxGeometry(w, h, 4.2 + Math.random()*2);
+      let w = (3.4 + Math.random()*2.2)*1.5, h = (7 + Math.random()*7)*1.5, d = (4.2 + Math.random()*2)*1.5;
+      let geo = new THREE.BoxGeometry(w, h, d);
       let mesh = new THREE.Mesh(geo, mat);
       mesh.position.set(x, h/2-0.1, z);
       scene.add(mesh);
@@ -266,18 +267,10 @@
     let score = 0;
     let scoreDiv = document.getElementById("score");
 
-    // --- MOBILE CONTROLS (FIXED) ---
-    let isMobile = /Android|iPhone|iPad|iPod|Opera Mini|IEMobile|WPDesktop/i.test(navigator.userAgent);
+    // --- MOBILE CONTROLS (pointerdown for mobile and desktop) ---
     function moveLeft() { targetLane = Math.max(0, targetLane-1); }
-    function moveRight() { targetLane = Math.min(2, targetLane+1); }
-
-    // Use both touchstart and click for reliability
-    function addTapEvent(el, fn) {
-      el.addEventListener('touchstart', function(e){ e.preventDefault(); fn(); }, {passive:false});
-      el.addEventListener('click', function(e){ e.preventDefault(); fn(); });
-    }
-    addTapEvent(document.getElementById('leftBtn'), moveLeft);
-    addTapEvent(document.getElementById('rightBtn'), moveRight);
+    function moveRight() { targetLane = Math('leftBtn').addEventListener('pointerdown', function(e){ e.preventDefault(); moveLeft(); });
+    document.getElementById('rightBtn').addEventListener('pointerdown', function(e){ e.preventDefault(); moveRight(); });
 
     // Desktop keyboard
     window.addEventListener('keydown', e=>{
@@ -356,12 +349,14 @@
     animate();
 
     // --- Responsive ---
-    window.addEventListener('resize', ()=>{
+    function resizeAll() {
       camera.aspect=window.innerWidth/window.innerHeight;
       camera.updateProjectionMatrix();
       renderer.setSize(window.innerWidth, window.innerHeight);
       resizeSnowCanvas();
-    });
+    }
+    window.addEventListener('resize', resizeAll);
+    window.addEventListener('orientationchange', resizeAll);
   </script>
 </body>
 </html>
