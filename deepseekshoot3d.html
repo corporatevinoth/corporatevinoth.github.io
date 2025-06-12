@@ -65,10 +65,20 @@
             border-radius: 5px;
             cursor: pointer;
         }
+        #timer {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            color: white;
+            font-size: 24px;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+            z-index: 100;
+        }
     </style>
 </head>
 <body>
     <div id="score">Score: 0</div>
+    <div id="timer">Time: 60</div>
     <div id="start-screen">
         <h1>Snowball Blitz</h1>
         <p>Shoot snowballs at the targets!</p>
@@ -93,6 +103,7 @@
         const spawnInterval = 1500; // 1.5 seconds
         const gameDuration = 60000; // 60 seconds
         let gameStartTime = 0;
+        let gameTimer = null;
         
         // Scene setup
         const scene = new THREE.Scene();
@@ -218,10 +229,10 @@
             targetGroup.add(mouth);
             
             // Position the target randomly in front of the player
-            const angle = Math.random() * Math.PI * 2;
+            const angle = (Math.random() * Math.PI * 2) - Math.PI; // -π to π (in front of player)
             const distance = 5 + Math.random() * 10;
-            const x = Math.cos(angle) * distance;
-            const z = Math.sin(angle) * distance;
+            const x = Math.sin(angle) * distance;
+            const z = Math.cos(angle) * distance;
             
             targetGroup.position.set(x, 1.5, z);
             
@@ -233,7 +244,8 @@
                     0,
                     Math.random() * 0.02 - 0.01
                 ),
-                hit: false
+                hit: false,
+                points: 10
             };
             
             scene.add(targetGroup);
@@ -251,15 +263,22 @@
             });
             const snowball = new THREE.Mesh(geometry, material);
             
-            // Start from camera position
-            snowball.position.copy(camera.position);
-            
-            // Get direction camera is facing
+            // Start from slightly in front of camera
+            const startPosition = camera.position.clone();
             const direction = new THREE.Vector3();
             camera.getWorldDirection(direction);
+            startPosition.add(direction.multiplyScalar(0.5));
+            
+            snowball.position.copy(startPosition);
+            
+            // Get direction camera is facing
+            const shootDirection = new THREE.Vector3();
+            camera.getWorldDirection(shootDirection);
+            
             snowball.userData = {
-                direction: direction.clone().multiplyScalar(0.5),
-                speed: 0.3
+                direction: shootDirection.clone().normalize(),
+                speed: 0.5,
+                distance: 0
             };
             
             scene.add(snowball);
@@ -279,6 +298,13 @@
             document.getElementById('score').textContent = `Score: ${score}`;
         }
         
+        // Update timer display
+        function updateTimer() {
+            const currentTime = Date.now();
+            const timeLeft = Math.max(0, Math.ceil((gameDuration - (currentTime - gameStartTime)) / 1000));
+            document.getElementById('timer').textContent = `Time: ${timeLeft}`;
+        }
+        
         // Game loop
         function animate() {
             requestAnimationFrame(animate);
@@ -292,33 +318,28 @@
                     lastSpawnTime = currentTime;
                 }
                 
-                // Check if game time is up
-                if (currentTime - gameStartTime > gameDuration) {
-                    endGame();
-                    return;
-                }
-                
                 // Update targets
-                targets.forEach((target, index) => {
-                    // Move target
-                    target.position.add(target.userData.direction);
+                for (let i = targets.length - 1; i >= 0; i--) {
+                    const target = targets[i];
                     
-                    // Bounce off imaginary walls
-                    if (target.position.x > 15 || target.position.x < -15) {
-                        target.userData.direction.x *= -1;
-                    }
-                    if (target.position.z > 15 || target.position.z < -15) {
-                        target.userData.direction.z *= -1;
-                    }
-                    
-                    // Random direction changes
-                    if (Math.random() < 0.01) {
-                        target.userData.direction.x = Math.random() * 0.02 - 0.01;
-                        target.userData.direction.z = Math.random() * 0.02 - 0.01;
-                    }
-                    
-                    // Check if target was hit
-                    if (target.userData.hit) {
+                    // Move target if not hit
+                    if (!target.userData.hit) {
+                        target.position.add(target.userData.direction);
+                        
+                        // Bounce off imaginary walls
+                        if (target.position.x > 15 || target.position.x < -15) {
+                            target.userData.direction.x *= -1;
+                        }
+                        if (target.position.z > 15 || target.position.z < -15) {
+                            target.userData.direction.z *= -1;
+                        }
+                        
+                        // Random direction changes
+                        if (Math.random() < 0.01) {
+                            target.userData.direction.x = Math.random() * 0.02 - 0.01;
+                            target.userData.direction.z = Math.random() * 0.02 - 0.01;
+                        }
+                    } else {
                         // Animate hit target (fall down)
                         target.rotation.z += 0.1;
                         target.position.y -= 0.05;
@@ -326,29 +347,32 @@
                         // Remove when below ground
                         if (target.position.y < -2) {
                             scene.remove(target);
-                            targets.splice(index, 1);
+                            targets.splice(i, 1);
                         }
                     }
-                });
+                }
                 
                 // Update snowballs
-                snowballs.forEach((snowball, index) => {
+                for (let i = snowballs.length - 1; i >= 0; i--) {
+                    const snowball = snowballs[i];
+                    
                     // Move snowball
-                    snowball.position.add(
-                        snowball.userData.direction.clone().multiplyScalar(snowball.userData.speed)
-                    );
+                    const moveDistance = snowball.userData.speed;
+                    snowball.position.add(snowball.userData.direction.clone().multiplyScalar(moveDistance));
+                    snowball.userData.distance += moveDistance;
                     
                     // Check for collisions with targets
                     let hit = false;
-                    targets.forEach((target, targetIndex) => {
+                    for (let j = targets.length - 1; j >= 0; j--) {
+                        const target = targets[j];
                         if (!target.userData.hit && checkCollision(snowball, target)) {
                             target.userData.hit = true;
-                            score += 10;
+                            score += target.userData.points;
                             updateScore();
                             hit = true;
                             
                             // Add explosion effect
-                            const explosionGeometry = new THREE.SphereGeometry(0.2, 8, 8);
+                            const explosionGeometry = new THREE.SphereGeometry(0.5, 8, 8);
                             const explosionMaterial = new THREE.MeshStandardMaterial({
                                 color: 0xffffff,
                                 transparent: true,
@@ -362,15 +386,16 @@
                             setTimeout(() => {
                                 scene.remove(explosion);
                             }, 300);
+                            break;
                         }
-                    });
+                    }
                     
                     // Remove snowball if it goes too far or hits something
-                    if (snowball.position.distanceTo(camera.position) > 30 || hit) {
+                    if (snowball.userData.distance > 30 || hit) {
                         scene.remove(snowball);
-                        snowballs.splice(index, 1);
+                        snowballs.splice(i, 1);
                     }
-                });
+                }
                 
                 // Animate snow particles
                 const positions = snow.geometry.attributes.position.array;
@@ -401,12 +426,19 @@
             snowballs.forEach(snowball => scene.remove(snowball));
             snowballs = [];
             
+            // Start timer
+            clearInterval(gameTimer);
+            gameTimer = setInterval(updateTimer, 200);
+            updateTimer();
+            
             document.getElementById('start-screen').style.display = 'none';
+            document.getElementById('game-over').style.display = 'none';
         }
         
         // End game
         function endGame() {
             gameActive = false;
+            clearInterval(gameTimer);
             document.getElementById('final-score').textContent = `Your score: ${score}`;
             document.getElementById('game-over').style.display = 'flex';
         }
@@ -431,6 +463,13 @@
         
         // Start animation loop
         animate();
+        
+        // Check for game end periodically
+        setInterval(() => {
+            if (gameActive && Date.now() - gameStartTime > gameDuration) {
+                endGame();
+            }
+        }, 1000);
     </script>
 </body>
 </html>
