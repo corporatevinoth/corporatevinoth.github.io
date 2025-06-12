@@ -19,6 +19,14 @@
       letter-spacing: 2px;
       pointer-events: none;
     }
+    #snow-canvas {
+      pointer-events: none;
+      position: fixed;
+      top: 0; left: 0;
+      width: 100vw; height: 100vh;
+      z-index: 2;
+      display: block;
+    }
     .controls {
       position: absolute;
       bottom: 3vh;
@@ -57,13 +65,64 @@
 </head>
 <body>
   <div id="score">Score: 0</div>
+  <canvas id="snow-canvas"></canvas>
   <div class="controls">
     <div class="ctrl-btn" id="leftBtn">&#8592;</div>
     <div class="ctrl-btn" id="rightBtn">&#8594;</div>
   </div>
   <script src="https://cdn.jsdelivr.net/npm/three@0.152.2/build/three.min.js"></script>
   <script>
-    // --- SETUP ---
+    // --- SNOW EFFECT START ---
+    const snowCanvas = document.getElementById('snow-canvas');
+    const snowCtx = snowCanvas.getContext('2d');
+    let snowflakes = [];
+    function resizeSnowCanvas() {
+      snowCanvas.width = window.innerWidth;
+      snowCanvas.height = window.innerHeight;
+    }
+    window.addEventListener('resize', resizeSnowCanvas);
+    resizeSnowCanvas();
+    function createSnowflakes() {
+      snowflakes = [];
+      for (let i = 0; i < 60; i++) {
+        snowflakes.push({
+          x: Math.random() * snowCanvas.width,
+          y: Math.random() * snowCanvas.height,
+          r: 1 + Math.random() * 2,
+          speed: 0.5 + Math.random() * 2,
+          drift: 0.3 + Math.random() * 1,
+          phase: Math.random() * Math.PI * 2
+        });
+      }
+    }
+    createSnowflakes();
+    function drawSnowflakes() {
+      snowCtx.clearRect(0, 0, snowCanvas.width, snowCanvas.height);
+      for (let s of snowflakes) {
+        snowCtx.save();
+        snowCtx.beginPath();
+        snowCtx.arc(s.x, s.y, s.r, 0, Math.PI * 2);
+        snowCtx.fillStyle = "rgba(255,255,255,0.82)";
+        snowCtx.shadowColor = "#fff";
+        snowCtx.shadowBlur = 8;
+        snowCtx.fill();
+        snowCtx.restore();
+        s.x += Math.sin(s.phase) * s.drift;
+        s.y += s.speed;
+        s.phase += 0.01;
+        if (s.y > snowCanvas.height) {
+          s.y = -5;
+          s.x = Math.random() * snowCanvas.width;
+        }
+        if (s.x > snowCanvas.width) s.x = 0;
+        if (s.x < 0) s.x = snowCanvas.width;
+      }
+      requestAnimationFrame(drawSnowflakes);
+    }
+    drawSnowflakes();
+    // --- SNOW EFFECT END ---
+
+    // --- THREE.JS GAME ---
     let scene = new THREE.Scene();
     let camera = new THREE.PerspectiveCamera(75, window.innerWidth/window.innerHeight, 0.1, 500);
     let renderer = new THREE.WebGLRenderer({antialias:true});
@@ -138,7 +197,7 @@
     let player = createPlayerModel();
     scene.add(player);
 
-    // --- COINS (always on road, animate with glow) ---
+    // --- COINS (always on road, animate with glow, spawn indefinitely) ---
     let coins = [], coinYAnim = 0;
     function createCoin(x, z) {
       let geo = new THREE.TorusGeometry(0.7, 0.23, 18, 32);
@@ -146,7 +205,7 @@
         color: 0xffd700,
         shininess: 100,
         emissive: 0xfff16a,
-        emissiveIntensity: 0.3
+        emissiveIntensity: 0.35
       });
       let coin = new THREE.Mesh(geo, mat);
       coin.position.set(x, 1.7, z);
@@ -158,9 +217,10 @@
     function spawnCoins(startZ) {
       for (let i = 0; i < 7; i++) {
         let lane = [-4, 0, 4][Math.floor(Math.random()*3)];
-        createCoin(lane, startZ + 15 + i*7 + Math.random()*5);
+        createCoin(lane, startZ + 12 + i*7 + Math.random()*7);
       }
     }
+    // Initial coins
     spawnCoins(0);
 
     // --- TREES & BUILDINGS ---
@@ -177,10 +237,11 @@
       decorations.push({mesh:leaves, type:'tree'});
     }
     function createBuilding(x, z) {
+      // Bigger building!
       let c = [0xb0bec5, 0xffb300, 0x90caf9, 0x8d6e63, 0xff7043][Math.floor(Math.random()*5)];
       let mat = new THREE.MeshPhongMaterial({color:c});
-      let w = 1.8 + Math.random()*1.3, h = 2.5 + Math.random()*3;
-      let geo = new THREE.BoxGeometry(w, h, 2.4 + Math.random());
+      let w = 3.4 + Math.random()*2.2, h = 7 + Math.random()*7; // Much taller and wider
+      let geo = new THREE.BoxGeometry(w, h, 4.2 + Math.random()*2);
       let mesh = new THREE.Mesh(geo, mat);
       mesh.position.set(x, h/2-0.1, z);
       scene.add(mesh);
@@ -191,8 +252,8 @@
       for(let i=0;i<2;i++) {
         createTree(-7.7, z+i*8);
         createTree(7.7, z+4+i*8);
-        createBuilding(-10.8, z+i*10);
-        createBuilding(10.8, z+5+i*10);
+        createBuilding(-13, z+i*10);
+        createBuilding(13, z+5+i*10);
       }
     }
     for(let i=0;i<8;i++) createDecoRows(i*20);
@@ -205,15 +266,19 @@
     let score = 0;
     let scoreDiv = document.getElementById("score");
 
-    // --- MOBILE CONTROLS ---
+    // --- MOBILE CONTROLS (FIXED) ---
     let isMobile = /Android|iPhone|iPad|iPod|Opera Mini|IEMobile|WPDesktop/i.test(navigator.userAgent);
     function moveLeft() { targetLane = Math.max(0, targetLane-1); }
     function moveRight() { targetLane = Math.min(2, targetLane+1); }
-    // Make mobile controls work (touch, not click!)
-    if(isMobile){
-      document.getElementById('leftBtn').addEventListener('touchstart', function(e){ e.preventDefault(); moveLeft(); });
-      document.getElementById('rightBtn').addEventListener('touchstart', function(e){ e.preventDefault(); moveRight(); });
+
+    // Use both touchstart and click for reliability
+    function addTapEvent(el, fn) {
+      el.addEventListener('touchstart', function(e){ e.preventDefault(); fn(); }, {passive:false});
+      el.addEventListener('click', function(e){ e.preventDefault(); fn(); });
     }
+    addTapEvent(document.getElementById('leftBtn'), moveLeft);
+    addTapEvent(document.getElementById('rightBtn'), moveRight);
+
     // Desktop keyboard
     window.addEventListener('keydown', e=>{
       if (e.key==='ArrowLeft'||e.key==='a') moveLeft();
@@ -252,7 +317,7 @@
 
       // Animate/loop trees and buildings
       for (let deco of decorations) {
-        if (deco.mesh.position.z < player.position.z-30) {
+        if (deco.mesh.position.z < player.position.z-40) {
           deco.mesh.position.z += 160;
         }
       }
@@ -280,8 +345,10 @@
           scoreDiv.innerText = "Score: "+score;
         }
       }
-      // Spawn more coins if needed
-      if (coins.length<7) spawnCoins(player.position.z+30);
+      // Respawn coins: always have at least 10 ahead of the player
+      let maxZ = player.position.z + 120;
+      let activeCoins = coins.filter(c => c.position.z > player.position.z);
+      if (activeCoins.length < 10) spawnCoins(maxZ);
 
       renderer.render(scene, camera);
       requestAnimationFrame(animate);
@@ -293,6 +360,7 @@
       camera.aspect=window.innerWidth/window.innerHeight;
       camera.updateProjectionMatrix();
       renderer.setSize(window.innerWidth, window.innerHeight);
+      resizeSnowCanvas();
     });
   </script>
 </body>
