@@ -1,5 +1,8 @@
 <!DOCTYPE html>
-<html <title>3D Runner - Gold Coin Collector</title>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>3D Runner - Gold Coin Collector</title>
   <meta name="viewport" content="width=device-width, initial-scale=1,maximum-scale=1,user-scalable=0">
   <style>
     html, body { margin: 0; padding: 0; height: 100%; }
@@ -87,7 +90,7 @@
     }
     for(let i=0;i<3;i++) createRoad(i*70);
 
-    // --- PLAYER: Human Model ---
+    // --- PLAYER: Human Model with Cap ---
     function createPlayerModel() {
       let group = new THREE.Group();
       // Torso
@@ -100,6 +103,15 @@
       let head = new THREE.Mesh(new THREE.SphereGeometry(0.7,18,16), headMat);
       head.position.set(0,3.5,0);
       group.add(head);
+      // Cap (red, with a brim)
+      let capMat = new THREE.MeshPhongMaterial({color:0xee2222});
+      let capTop = new THREE.Mesh(new THREE.SphereGeometry(0.72,16,12,0,Math.PI*2,0,Math.PI/1.9), capMat);
+      capTop.position.set(0,4.05,0);
+      group.add(capTop);
+      let capBrim = new THREE.Mesh(new THREE.CylinderGeometry(0.42, 0.51, 0.18, 24, 1, false, Math.PI*0.8, Math.PI*1.4), capMat);
+      capBrim.position.set(0,3.84,0.56);
+      capBrim.rotation.x = Math.PI/2.08;
+      group.add(capBrim);
       // Left arm
       let armMat = new THREE.MeshPhongMaterial({color:0xffe0b2});
       let leftArm = new THREE.Mesh(new THREE.CylinderGeometry(0.25, 0.22, 1.5, 12), armMat);
@@ -126,14 +138,20 @@
     let player = createPlayerModel();
     scene.add(player);
 
-    // --- COINS ---
+    // --- COINS (always on road, animate with glow) ---
     let coins = [], coinYAnim = 0;
     function createCoin(x, z) {
       let geo = new THREE.TorusGeometry(0.7, 0.23, 18, 32);
-      let mat = new THREE.MeshPhongMaterial({color:0xffd700, shininess:60, emissive:0xffee88, emissiveIntensity:0.15});
+      let mat = new THREE.MeshPhongMaterial({
+        color: 0xffd700,
+        shininess: 100,
+        emissive: 0xfff16a,
+        emissiveIntensity: 0.3
+      });
       let coin = new THREE.Mesh(geo, mat);
       coin.position.set(x, 1.7, z);
       coin.rotation.x = Math.PI/2;
+      coin.userData.pulse = Math.random(); // for glow animation
       scene.add(coin);
       coins.push(coin);
     }
@@ -191,9 +209,10 @@
     let isMobile = /Android|iPhone|iPad|iPod|Opera Mini|IEMobile|WPDesktop/i.test(navigator.userAgent);
     function moveLeft() { targetLane = Math.max(0, targetLane-1); }
     function moveRight() { targetLane = Math.min(2, targetLane+1); }
+    // Make mobile controls work (touch, not click!)
     if(isMobile){
-      document.getElementById('leftBtn').addEventListener('touchstart', moveLeft);
-      document.getElementById('rightBtn').addEventListener('touchstart', moveRight);
+      document.getElementById('leftBtn').addEventListener('touchstart', function(e){ e.preventDefault(); moveLeft(); });
+      document.getElementById('rightBtn').addEventListener('touchstart', function(e){ e.preventDefault(); moveRight(); });
     }
     // Desktop keyboard
     window.addEventListener('keydown', e=>{
@@ -214,8 +233,8 @@
       player.position.y = 1.3 + Math.sin(Date.now()/120)*0.16;
       // Animate legs (simple swing)
       let t = Date.now()/220;
-      player.children[4].rotation.x = Math.sin(t)*0.5; // left leg
-      player.children[5].rotation.x = -Math.sin(t)*0.5; // right leg
+      player.children[6].rotation.x = Math.sin(t)*0.5; // left leg
+      player.children[7].rotation.x = -Math.sin(t)*0.5; // right leg
 
       // Camera follows behind and above
       camera.position.lerp(
@@ -238,11 +257,15 @@
         }
       }
 
-      // Coin animation and collision
+      // Animate coins: vertical bounce and glowing effect
       coinYAnim += 0.09;
+      let time = Date.now()*0.002;
       for (let coin of coins) {
         coin.position.y = 1.7 + Math.sin(coin.position.z+coinYAnim)*0.22;
         coin.rotation.z += 0.08;
+        // Animate glow
+        let pulse = 0.32 + Math.sin(time*2 + coin.userData.pulse)*0.22;
+        coin.material.emissiveIntensity = 0.32 + pulse;
       }
       // Coin collection
       for (let i=coins.length-1; i>=0; i--) {
