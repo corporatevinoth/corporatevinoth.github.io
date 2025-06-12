@@ -58,12 +58,21 @@
       background: #FFD600;
       color: #1a237e;
     }
+    /* Make sure renderer is always behind UI */
+    #threejs-canvas {
+      position: absolute;
+      top: 0; left: 0; width: 100vw; height: 100vh;
+      z-index: 1;
+      display: block;
+    }
   </style>
 </head>
 <body>
   <div id="score">Score: 0</div>
-  <canvas id="snow-canvasdiv class="ctrl-btn" id="leftBtn">&#8592;</div>
+  <canvas id="snow-canvas"></canvas>
+  <div class="ctrl-btn" id="leftBtn">&#8592;</div>
   <div class="ctrl-btn" id="rightBtn">&#8594;</div>
+  <!-- Three.js script -->
   <script src="https://cdn.jsdelivr.net/npm/three@0.152.2/build/three.min.js"></script>
   <script>
     // --- SNOW EFFECT ---
@@ -127,8 +136,9 @@
     // --- THREE.JS GAME ---
     let scene = new THREE.Scene();
     let camera = new THREE.PerspectiveCamera(75, window.innerWidth/window.innerHeight, 0.1, 500);
-    let renderer = new THREE.WebGLRenderer({antialias:true});
+    let renderer = new THREE.WebGLRenderer({antialias:true, alpha:true});
     renderer.setSize(window.innerWidth, window.innerHeight);
+    renderer.domElement.id = "threejs-canvas";
     document.body.appendChild(renderer.domElement);
 
     // Lighting
