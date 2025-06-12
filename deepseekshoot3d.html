@@ -1,475 +1,169 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Snowball Blitz</title>
-    <style>
-        body {
-            margin: 0;
-            padding: 0;
-            overflow: hidden;
-            touch-action: none;
-            font-family: 'Arial', sans-serif;
-        }
-        #score {
-            position: absolute;
-            top: 20px;
-            right: 20px;
-            color: white;
-            font-size: 24px;
-            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
-            z-index: 100;
-        }
-        #start-screen {
-            position: absolute;
-            width: 100%;
-            height: 100%;
-            background: rgba(0, 0, 0, 0.7);
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-            z-index: 200;
-            color: white;
-        }
-        #start-button {
-            margin-top: 20px;
-            padding: 15px 30px;
-            font-size: 20px;
-            background: #4CAF50;
-            color: white;
-            border: none;
-            border-radius: 5px;
-            cursor: pointer;
-        }
-        #game-over {
-            position: absolute;
-            width: 100%;
-            height: 100%;
-            background: rgba(0, 0, 0, 0.7);
-            display: none;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-            z-index: 200;
-            color: white;
-        }
-        #restart-button {
-            margin-top: 20px;
-            padding: 15px 30px;
-            font-size: 20px;
-            background: #4CAF50;
-            color: white;
-            border: none;
-            border-radius: 5px;
-            cursor: pointer;
-        }
-        #timer {
-            position: absolute;
-            top: 20px;
-            left: 20px;
-            color: white;
-            font-size: 24px;
-            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
-            z-index: 100;
-        }
-    </style>
+  <meta charset="UTF-8">
+  <title>3D Shooter Runner - Collect Gold Coins</title>
+  <style>
+    body { margin: 0; overflow: hidden; background: linear-gradient(135deg,#00e2ff 0%,#ff96f9 100%);}
+    #score {
+      position: absolute;
+      top: 24px;
+      left: 0;
+      right: 0;
+      color: #fff700;
+      font-family: 'Arial Black', Arial, sans-serif;
+      font-size: 2em;
+      text-align: center;
+      text-shadow: 2px 2px 8px #333;
+      z-index: 10;
+      letter-spacing: 2px;
+    }
+  </style>
 </head>
 <body>
-    <div id="score">Score: 0</div>
-    <div id="timer">Time: 60</div>
-    <div id="start-screen">
-        <h1>Snowball Blitz</h1>
-        <p>Shoot snowballs at the targets!</p>
-        <p>Tap to shoot, tilt to aim</p>
-        <button id="start-button">Start Game</button>
-    </div>
-    <div id="game-over">
-        <h1>Game Over</h1>
-        <p id="final-score">Your score: 0</p>
-        <button id="restart-button">Play Again</button>
-    </div>
+  <div id="score">Score: 0</div>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.152.2/build/three.min.js"></script>
+  <script>
+    // --- SETUP ---
+    let scene = new THREE.Scene();
+    let camera = new THREE.PerspectiveCamera(75, window.innerWidth/window.innerHeight, 0.1, 500);
+    let renderer = new THREE.WebGLRenderer({antialias:true});
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    document.body.appendChild(renderer.domElement);
 
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/DeviceOrientationControls.js"></script>
-    <script>
-        // Game variables
-        let score = 0;
-        let gameActive = false;
-        let targets = [];
-        let snowballs = [];
-        let lastSpawnTime = 0;
-        const spawnInterval = 1500; // 1.5 seconds
-        const gameDuration = 60000; // 60 seconds
-        let gameStartTime = 0;
-        let gameTimer = null;
-        
-        // Scene setup
-        const scene = new THREE.Scene();
-        scene.background = new THREE.Color(0x87CEEB); // Sky blue
-        
-        // Camera
-        const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
-        camera.position.set(0, 1.6, 0); // Eye level
-        
-        // Renderer
-        const renderer = new THREE.WebGLRenderer({ antialias: true });
-        renderer.setSize(window.innerWidth, window.innerHeight);
-        renderer.setPixelRatio(window.devicePixelRatio);
-        document.body.appendChild(renderer.domElement);
-        
-        // Device orientation controls
-        const controls = new THREE.DeviceOrientationControls(camera);
-        
-        // Lighting
-        const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
-        scene.add(ambientLight);
-        
-        const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
-        directionalLight.position.set(1, 1, 1);
-        scene.add(directionalLight);
-        
-        // Ground (snow)
-        const groundGeometry = new THREE.PlaneGeometry(100, 100);
-        const groundMaterial = new THREE.MeshStandardMaterial({ 
-            color: 0xffffff, 
-            roughness: 0.8 
-        });
-        const ground = new THREE.Mesh(groundGeometry, groundMaterial);
-        ground.rotation.x = -Math.PI / 2;
-        ground.position.y = -0.5;
-        scene.add(ground);
-        
-        // Add some snow-covered trees
-        function createTree(x, z) {
-            // Trunk
-            const trunkGeometry = new THREE.CylinderGeometry(0.1, 0.1, 1);
-            const trunkMaterial = new THREE.MeshStandardMaterial({ color: 0x8B4513 });
-            const trunk = new THREE.Mesh(trunkGeometry, trunkMaterial);
-            trunk.position.set(x, 0, z);
-            
-            // Leaves (snow-covered)
-            const leavesGeometry = new THREE.ConeGeometry(1, 2, 4);
-            const leavesMaterial = new THREE.MeshStandardMaterial({ color: 0xffffff });
-            const leaves = new THREE.Mesh(leavesGeometry, leavesMaterial);
-            leaves.position.set(x, 1, z);
-            
-            scene.add(trunk);
-            scene.add(leaves);
+    // Lighting
+    let light = new THREE.DirectionalLight(0xffffff, 1.2);
+    light.position.set(0, 20, 15);
+    scene.add(light);
+    let ambLight = new THREE.AmbientLight(0xf3e5ab, 0.8);
+    scene.add(ambLight);
+
+    // --- ROAD ---
+    let roads = [];
+    function createRoad(z) {
+      let color = new THREE.Color(`hsl(${Math.floor(180+z*2)%360},90%,60%)`);
+      let mat = new THREE.MeshPhongMaterial({color, shininess:30});
+      let geo = new THREE.BoxGeometry(14, 0.8, 70);
+      let mesh = new THREE.Mesh(geo, mat);
+      mesh.position.set(0, -0.5, z);
+      scene.add(mesh);
+      roads.push(mesh);
+    }
+    for(let i=0;i<3;i++) createRoad(i*70);
+
+    // --- PLAYER ---
+    let playerGeo = new THREE.CapsuleGeometry(1.1, 2.2, 8, 16);
+    let playerMat = new THREE.MeshPhongMaterial({color:0x00ffcc, shininess:90, emissive:0x1fffff, emissiveIntensity:0.1});
+    let player = new THREE.Mesh(playerGeo, playerMat);
+    player.position.set(0, 2, 0);
+    scene.add(player);
+
+    // --- COINS ---
+    let coins = [], coinYAnim = 0;
+    function createCoin(x, z) {
+      let geo = new THREE.TorusGeometry(0.7, 0.25, 16, 32);
+      let mat = new THREE.MeshPhongMaterial({color:0xffd700, shininess:120, emissive:0xffff00, emissiveIntensity:0.4});
+      let coin = new THREE.Mesh(geo, mat);
+      coin.position.set(x, 1.7, z);
+      coin.rotation.x = Math.PI/2;
+      scene.add(coin);
+      coins.push(coin);
+    }
+    function spawnCoins(startZ) {
+      for (let i = 0; i < 7; i++) {
+        let lane = [-4, 0, 4][Math.floor(Math.random()*3)];
+        createCoin(lane, startZ + 15 + i*7 + Math.random()*5);
+      }
+    }
+    spawnCoins(0);
+
+    // --- ENVIRONMENT (Colorful Poles/Sky) ---
+    for (let i=0;i<32;i++) {
+      let color = new THREE.Color(`hsl(${Math.floor(i*25)%360},100%,60%)`);
+      let poleMat = new THREE.MeshPhongMaterial({color});
+      let pole = new THREE.Mesh(new THREE.CylinderGeometry(0.4,0.7,18,12), poleMat);
+      let x = (i%2==0)? -8.5 : 8.5;
+      pole.position.set(x, 9, i*18-40);
+      scene.add(pole);
+    }
+
+    // --- GAME STATE ---
+    let lane = 1; // 0:left 1:center 2:right
+    let lanes = [-4, 0, 4];
+    let targetLane = 1;
+    let speed = 0.48;
+    let score = 0;
+    let scoreDiv = document.getElementById("score");
+
+    // --- INPUT ---
+    window.addEventListener('keydown', e=>{
+      if (e.key==='ArrowLeft'||e.key==='a') targetLane=Math.max(0,targetLane-1);
+      if (e.key==='ArrowRight'||e.key==='d') targetLane=Math.min(2,targetLane+1);
+    });
+
+    // --- GAME LOOP ---
+    function animate() {
+      // Move player forward
+      player.position.z += speed;
+
+      // Smooth lane change
+      let tx = lanes[targetLane];
+      player.position.x += (tx-player.position.x)*0.25;
+
+      // Animate player up/down (run bob)
+      player.position.y = 2 + Math.sin(Date.now()/120)*0.14;
+
+      // Camera follows behind and above
+      camera.position.lerp(
+        new THREE.Vector3(player.position.x, player.position.y+7, player.position.z-12),
+        0.12
+      );
+      camera.lookAt(player.position.x, 2, player.position.z+18);
+
+      // Move/loop road
+      for (let road of roads) {
+        if (road.position.z + 35 < player.position.z-35) {
+          road.position.z += 210; // 3*70
         }
-        
-        // Create trees in a circle around the player
-        for (let i = 0; i < 8; i++) {
-            const angle = (i / 8) * Math.PI * 2;
-            const distance = 10 + Math.random() * 5;
-            const x = Math.cos(angle) * distance;
-            const z = Math.sin(angle) * distance;
-            createTree(x, z);
+      }
+
+      // Coin animation and collision
+      coinYAnim += 0.09;
+      for (let coin of coins) {
+        coin.position.y = 1.7 + Math.sin(coin.position.z+coinYAnim)*0.22;
+        coin.rotation.z += 0.08;
+      }
+
+      // Coin collection
+      for (let i=coins.length-1; i>=0; i--) {
+        let coin = coins[i];
+        if (
+          Math.abs(coin.position.z - player.position.z)<1.9 &&
+          Math.abs(coin.position.x - player.position.x)<2.1
+        ) {
+          scene.remove(coin);
+          coins.splice(i,1);
+          score++;
+          scoreDiv.innerText = "Score: "+score;
+          // Vibrant effect on collection
+          document.body.style.background = `linear-gradient(135deg,hsl(${Math.random()*360},100%,65%),hsl(${Math.random()*360},100%,70%))`;
         }
-        
-        // Snow particles
-        const snowParticles = [];
-        const snowGeometry = new THREE.BufferGeometry();
-        const snowMaterial = new THREE.PointsMaterial({
-            color: 0xffffff,
-            size: 0.1,
-            transparent: true,
-            opacity: 0.8
-        });
-        
-        const snowCount = 1000;
-        const snowPositions = new Float32Array(snowCount * 3);
-        
-        for (let i = 0; i < snowCount; i++) {
-            snowPositions[i * 3] = Math.random() * 100 - 50;
-            snowPositions[i * 3 + 1] = Math.random() * 20;
-            snowPositions[i * 3 + 2] = Math.random() * 100 - 50;
-        }
-        
-        snowGeometry.setAttribute('position', new THREE.BufferAttribute(snowPositions, 3));
-        const snow = new THREE.Points(snowGeometry, snowMaterial);
-        scene.add(snow);
-        
-        // Create a target
-        function createTarget() {
-            const colors = [0xFF0000, 0x00FF00, 0x0000FF, 0xFFFF00, 0xFF00FF];
-            const color = colors[Math.floor(Math.random() * colors.length)];
-            
-            const targetGroup = new THREE.Group();
-            
-            // Main target body
-            const geometry = new THREE.SphereGeometry(0.5, 16, 16);
-            const material = new THREE.MeshStandardMaterial({ 
-                color: color,
-                roughness: 0.1,
-                metalness: 0.3
-            });
-            const sphere = new THREE.Mesh(geometry, material);
-            targetGroup.add(sphere);
-            
-            // Eyes
-            const eyeGeometry = new THREE.SphereGeometry(0.1, 8, 8);
-            const eyeMaterial = new THREE.MeshStandardMaterial({ color: 0x000000 });
-            
-            const leftEye = new THREE.Mesh(eyeGeometry, eyeMaterial);
-            leftEye.position.set(-0.2, 0.1, 0.4);
-            targetGroup.add(leftEye);
-            
-            const rightEye = new THREE.Mesh(eyeGeometry, eyeMaterial);
-            rightEye.position.set(0.2, 0.1, 0.4);
-            targetGroup.add(rightEye);
-            
-            // Mouth (smile)
-            const mouthGeometry = new THREE.TorusGeometry(0.2, 0.05, 8, 8, Math.PI);
-            const mouthMaterial = new THREE.MeshStandardMaterial({ color: 0x000000 });
-            const mouth = new THREE.Mesh(mouthGeometry, mouthMaterial);
-            mouth.rotation.x = Math.PI;
-            mouth.position.set(0, -0.1, 0.4);
-            targetGroup.add(mouth);
-            
-            // Position the target randomly in front of the player
-            const angle = (Math.random() * Math.PI * 2) - Math.PI; // -π to π (in front of player)
-            const distance = 5 + Math.random() * 10;
-            const x = Math.sin(angle) * distance;
-            const z = Math.cos(angle) * distance;
-            
-            targetGroup.position.set(x, 1.5, z);
-            
-            // Random movement direction
-            targetGroup.userData = {
-                speed: 0.02 + Math.random() * 0.03,
-                direction: new THREE.Vector3(
-                    Math.random() * 0.02 - 0.01,
-                    0,
-                    Math.random() * 0.02 - 0.01
-                ),
-                hit: false,
-                points: 10
-            };
-            
-            scene.add(targetGroup);
-            targets.push(targetGroup);
-            
-            return targetGroup;
-        }
-        
-        // Create a snowball
-        function createSnowball() {
-            const geometry = new THREE.SphereGeometry(0.1, 16, 16);
-            const material = new THREE.MeshStandardMaterial({ 
-                color: 0xffffff,
-                roughness: 0.9
-            });
-            const snowball = new THREE.Mesh(geometry, material);
-            
-            // Start from slightly in front of camera
-            const startPosition = camera.position.clone();
-            const direction = new THREE.Vector3();
-            camera.getWorldDirection(direction);
-            startPosition.add(direction.multiplyScalar(0.5));
-            
-            snowball.position.copy(startPosition);
-            
-            // Get direction camera is facing
-            const shootDirection = new THREE.Vector3();
-            camera.getWorldDirection(shootDirection);
-            
-            snowball.userData = {
-                direction: shootDirection.clone().normalize(),
-                speed: 0.5,
-                distance: 0
-            };
-            
-            scene.add(snowball);
-            snowballs.push(snowball);
-            
-            return snowball;
-        }
-        
-        // Check collision between snowball and target
-        function checkCollision(snowball, target) {
-            const distance = snowball.position.distanceTo(target.position);
-            return distance < 0.6; // Snowball radius + target radius
-        }
-        
-        // Update score display
-        function updateScore() {
-            document.getElementById('score').textContent = `Score: ${score}`;
-        }
-        
-        // Update timer display
-        function updateTimer() {
-            const currentTime = Date.now();
-            const timeLeft = Math.max(0, Math.ceil((gameDuration - (currentTime - gameStartTime)) / 1000));
-            document.getElementById('timer').textContent = `Time: ${timeLeft}`;
-        }
-        
-        // Game loop
-        function animate() {
-            requestAnimationFrame(animate);
-            
-            if (gameActive) {
-                const currentTime = Date.now();
-                
-                // Spawn new targets periodically
-                if (currentTime - lastSpawnTime > spawnInterval) {
-                    createTarget();
-                    lastSpawnTime = currentTime;
-                }
-                
-                // Update targets
-                for (let i = targets.length - 1; i >= 0; i--) {
-                    const target = targets[i];
-                    
-                    // Move target if not hit
-                    if (!target.userData.hit) {
-                        target.position.add(target.userData.direction);
-                        
-                        // Bounce off imaginary walls
-                        if (target.position.x > 15 || target.position.x < -15) {
-                            target.userData.direction.x *= -1;
-                        }
-                        if (target.position.z > 15 || target.position.z < -15) {
-                            target.userData.direction.z *= -1;
-                        }
-                        
-                        // Random direction changes
-                        if (Math.random() < 0.01) {
-                            target.userData.direction.x = Math.random() * 0.02 - 0.01;
-                            target.userData.direction.z = Math.random() * 0.02 - 0.01;
-                        }
-                    } else {
-                        // Animate hit target (fall down)
-                        target.rotation.z += 0.1;
-                        target.position.y -= 0.05;
-                        
-                        // Remove when below ground
-                        if (target.position.y < -2) {
-                            scene.remove(target);
-                            targets.splice(i, 1);
-                        }
-                    }
-                }
-                
-                // Update snowballs
-                for (let i = snowballs.length - 1; i >= 0; i--) {
-                    const snowball = snowballs[i];
-                    
-                    // Move snowball
-                    const moveDistance = snowball.userData.speed;
-                    snowball.position.add(snowball.userData.direction.clone().multiplyScalar(moveDistance));
-                    snowball.userData.distance += moveDistance;
-                    
-                    // Check for collisions with targets
-                    let hit = false;
-                    for (let j = targets.length - 1; j >= 0; j--) {
-                        const target = targets[j];
-                        if (!target.userData.hit && checkCollision(snowball, target)) {
-                            target.userData.hit = true;
-                            score += target.userData.points;
-                            updateScore();
-                            hit = true;
-                            
-                            // Add explosion effect
-                            const explosionGeometry = new THREE.SphereGeometry(0.5, 8, 8);
-                            const explosionMaterial = new THREE.MeshStandardMaterial({
-                                color: 0xffffff,
-                                transparent: true,
-                                opacity: 0.8
-                            });
-                            const explosion = new THREE.Mesh(explosionGeometry, explosionMaterial);
-                            explosion.position.copy(snowball.position);
-                            scene.add(explosion);
-                            
-                            // Animate and remove explosion
-                            setTimeout(() => {
-                                scene.remove(explosion);
-                            }, 300);
-                            break;
-                        }
-                    }
-                    
-                    // Remove snowball if it goes too far or hits something
-                    if (snowball.userData.distance > 30 || hit) {
-                        scene.remove(snowball);
-                        snowballs.splice(i, 1);
-                    }
-                }
-                
-                // Animate snow particles
-                const positions = snow.geometry.attributes.position.array;
-                for (let i = 0; i < snowCount; i++) {
-                    positions[i * 3 + 1] -= 0.01;
-                    if (positions[i * 3 + 1] < 0) {
-                        positions[i * 3 + 1] = 20;
-                    }
-                }
-                snow.geometry.attributes.position.needsUpdate = true;
-            }
-            
-            controls.update();
-            renderer.render(scene, camera);
-        }
-        
-        // Start game
-        function startGame() {
-            score = 0;
-            updateScore();
-            gameActive = true;
-            gameStartTime = Date.now();
-            lastSpawnTime = Date.now();
-            
-            // Clear any existing targets and snowballs
-            targets.forEach(target => scene.remove(target));
-            targets = [];
-            snowballs.forEach(snowball => scene.remove(snowball));
-            snowballs = [];
-            
-            // Start timer
-            clearInterval(gameTimer);
-            gameTimer = setInterval(updateTimer, 200);
-            updateTimer();
-            
-            document.getElementById('start-screen').style.display = 'none';
-            document.getElementById('game-over').style.display = 'none';
-        }
-        
-        // End game
-        function endGame() {
-            gameActive = false;
-            clearInterval(gameTimer);
-            document.getElementById('final-score').textContent = `Your score: ${score}`;
-            document.getElementById('game-over').style.display = 'flex';
-        }
-        
-        // Event listeners
-        document.getElementById('start-button').addEventListener('click', startGame);
-        document.getElementById('restart-button').addEventListener('click', startGame);
-        
-        // Touch/mouse controls
-        document.addEventListener('click', () => {
-            if (gameActive) {
-                createSnowball();
-            }
-        });
-        
-        // Handle window resize
-        window.addEventListener('resize', () => {
-            camera.aspect = window.innerWidth / window.innerHeight;
-            camera.updateProjectionMatrix();
-            renderer.setSize(window.innerWidth, window.innerHeight);
-        });
-        
-        // Start animation loop
-        animate();
-        
-        // Check for game end periodically
-        setInterval(() => {
-            if (gameActive && Date.now() - gameStartTime > gameDuration) {
-                endGame();
-            }
-        }, 1000);
-    </script>
+      }
+
+      // Spawn more coins if needed
+      if (coins.length<7) spawnCoins(player.position.z+30);
+
+      renderer.render(scene, camera);
+      requestAnimationFrame(animate);
+    }
+    animate();
+
+    // --- Responsive ---
+    window.addEventListener('resize', ()=>{
+      camera.aspect=window.innerWidth/window.innerHeight;
+      camera.updateProjectionMatrix();
+      renderer.setSize(window.innerWidth, window.innerHeight);
+    });
+  </script>
 </body>
 </html>
