@@ -62,8 +62,7 @@
 </head>
 <body>
   <div id="score">Score: 0</div>
-  <canvas id="snow-canvas"></canvas>
-  <div class="ctrl-btn" id="leftBtn">&#8592;</div>
+  <canvas id="snow-canvasdiv class="ctrl-btn" id="leftBtn">&#8592;</div>
   <div class="ctrl-btn" id="rightBtn">&#8594;</div>
   <script src="https://cdn.jsdelivr.net/npm/three@0.152.2/build/three.min.js"></script>
   <script>
@@ -92,8 +91,14 @@
       }
     }
     createSnowflakes();
+
+    // SNOWFALL "TOWARD THE USER"
     function drawSnowflakes() {
       snowCtx.clearRect(0, 0, snowCanvas.width, snowCanvas.height);
+      // Angle: more toward the viewer (bottom-center), not straight down
+      const fallAngle = Math.PI / 2.7; // tweak for more/less "toward" effect
+      const vx = Math.sin(fallAngle);  // X drift
+      const vy = Math.cos(fallAngle);  // Y drift (mostly vertical)
       for (let s of snowflakes) {
         snowCtx.save();
         snowCtx.beginPath();
@@ -103,8 +108,10 @@
         snowCtx.shadowBlur = 8;
         snowCtx.fill();
         snowCtx.restore();
-        s.x += Math.sin(s.phase) * s.drift;
-        s.y += s.speed;
+        // Drift toward the center horizontally for a "3D" feel
+        let centerDrift = (snowCanvas.width/2 - s.x) * 0.004; // snow falls slightly toward screen center
+        s.x += vx * s.drift + Math.sin(s.phase) * 0.5 + centerDrift;
+        s.y += vy * s.speed;
         s.phase += 0.01;
         if (s.y > snowCanvas.height) {
           s.y = -5;
@@ -260,9 +267,11 @@
     function moveLeft() { targetLane = Math.max(0, targetLane-1); }
     function moveRight() { targetLane = Math.min(2, targetLane+1); }
 
-    document.getElementById('leftBtn').addEventListener('pointerdown', function(e){ e.preventDefault(); moveLeft(); });
-    document.getElementById('rightBtn').addEventListener('pointerdown', function(e){ e.preventDefault(); moveRight(); });
+    // FLIPPED BUTTON LOGIC (leftBtn moves right, rightBtn moves left)
+    document.getElementById('leftBtn').addEventListener('pointerdown', function(e){ e.preventDefault(); moveRight(); });
+    document.getElementById('rightBtn').addEventListener('pointerdown', function(e){ e.preventDefault(); moveLeft(); });
 
+    // KEYBOARD CONTROLS (unchanged: left key moves left, right key moves right)
     window.addEventListener('keydown', function(e){
       if (e.key==='ArrowLeft'||e.key==='a') moveLeft();
       if (e.key==='ArrowRight'||e.key==='d') moveRight();
@@ -337,7 +346,7 @@
       renderer.setSize(window.innerWidth, window.innerHeight);
       resizeSnowCanvas();
     }
-    window.addEventListener('resize', resizeAll);;
+    window.addEventListener('resize', resizeAll);
     window.addEventListener('orientationchange', resizeAll);
   </script>
 </body>
