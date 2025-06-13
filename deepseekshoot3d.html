@@ -151,41 +151,97 @@
     }
     for(let i=0;i<3;i++) createRoad(i*70);
 
-    // PLAYER MODEL
+    // PLAYER MODEL - More realistic man
     function createPlayerModel() {
       let group = new THREE.Group();
-      let torsoMat = new THREE.MeshPhongMaterial({color:0x1976d2});
-      let torso = new THREE.Mesh(new THREE.BoxGeometry(1.3,2.2,0.7), torsoMat);
-      torso.position.set(0,2,0);
+      // Torso (broad with taper)
+      let torsoMat = new THREE.MeshPhongMaterial({color:0x23418e});
+      let torso = new THREE.Mesh(new THREE.BoxGeometry(1.6,2.5,0.9), torsoMat);
+      torso.position.set(0,2.1,0);
       group.add(torso);
-      let headMat = new THREE.MeshPhongMaterial({color:0xffe0b2});
-      let head = new THREE.Mesh(new THREE.SphereGeometry(0.7,18,16), headMat);
-      head.position.set(0,3.5,0);
+
+      // Neck
+      let neckMat = new THREE.MeshPhongMaterial({color:0xe1b382});
+      let neck = new THREE.Mesh(new THREE.CylinderGeometry(0.22,0.22,0.35,14), neckMat);
+      neck.position.set(0,3.4,0);
+      group.add(neck);
+
+      // Head (oval)
+      let headMat = new THREE.MeshPhongMaterial({color:0xf8d2b0});
+      let head = new THREE.Mesh(new THREE.SphereGeometry(0.68,18,16), headMat);
+      head.scale.y = 1.13;
+      head.position.set(0,4.1,0);
       group.add(head);
+
+      // Eyes
+      let eyeMat = new THREE.MeshPhongMaterial({color:0x222});
+      let leftEye = new THREE.Mesh(new THREE.SphereGeometry(0.09,8,8), eyeMat);
+      leftEye.position.set(-0.23,4.23,0.60);
+      group.add(leftEye);
+      let rightEye = leftEye.clone();
+      rightEye.position.set(0.23,4.23,0.60);
+      group.add(rightEye);
+
+      // Nose
+      let noseMat = new THREE.MeshPhongMaterial({color:0xe1b382});
+      let nose = new THREE.Mesh(new THREE.CylinderGeometry(0.06,0.10,0.18,8), noseMat);
+      nose.rotation.x = Math.PI/2;
+      nose.position.set(0,4.09,0.72);
+      group.add(nose);
+
+      // Mouth
+      let mouthMat = new THREE.MeshPhongMaterial({color:0x935116});
+      let mouth = new THREE.Mesh(new THREE.CylinderGeometry(0.08,0.08,0.03,10), mouthMat);
+      mouth.rotation.x = Math.PI/2;
+      mouth.position.set(0,3.98,0.68);
+      group.add(mouth);
+
+      // Cap (better fit)
       let capMat = new THREE.MeshPhongMaterial({color:0xee2222});
-      let capTop = new THREE.Mesh(new THREE.SphereGeometry(0.72,16,12,0,Math.PI*2,0,Math.PI/1.9), capMat);
-      capTop.position.set(0,4.05,0);
+      let capTop = new THREE.Mesh(new THREE.SphereGeometry(0.7,16,12,0,Math.PI*2,0,Math.PI/1.7), capMat);
+      capTop.position.set(0,4.45,0);
       group.add(capTop);
-      let capBrim = new THREE.Mesh(new THREE.CylinderGeometry(0.42, 0.51, 0.18, 24, 1, false, Math.PI*0.8, Math.PI*1.4), capMat);
-      capBrim.position.set(0,3.84,0.56);
+      let capBrim = new THREE.Mesh(new THREE.CylinderGeometry(0.4, 0.5, 0.15, 24, 1, false, Math.PI*0.8, Math.PI*1.4), capMat);
+      capBrim.position.set(0,4.18,0.56);
       capBrim.rotation.x = Math.PI/2.08;
       group.add(capBrim);
-      let armMat = new THREE.MeshPhongMaterial({color:0xffe0b2});
-      let leftArm = new THREE.Mesh(new THREE.CylinderGeometry(0.25, 0.22, 1.5, 12), armMat);
-      leftArm.position.set(-0.95,2.2,0);
-      leftArm.rotation.z = Math.PI/10;
-      group.add(leftArm);
-      let rightArm = leftArm.clone();
-      rightArm.position.set(0.95,2.2,0);
-      rightArm.rotation.z = -Math.PI/10;
-      group.add(rightArm);
-      let pantMat = new THREE.MeshPhongMaterial({color:0x607d8b});
-      let leftLeg = new THREE.Mesh(new THREE.CylinderGeometry(0.29,0.27,1.7,12), pantMat);
-      leftLeg.position.set(-0.4,0.35,0);
-      group.add(leftLeg);
-      let rightLeg = leftLeg.clone();
-      rightLeg.position.set(0.4,0.35,0);
-      group.add(rightLeg);
+
+      // Arms (upper and lower)
+      let upperArmMat = new THREE.MeshPhongMaterial({color:0x23418e});
+      let lowerArmMat = new THREE.MeshPhongMaterial({color:0xf8d2b0});
+      function createArm(side) {
+        let upper = new THREE.Mesh(new THREE.CylinderGeometry(0.19,0.21,1,10), upperArmMat);
+        upper.position.set(0.90*side,2.95,0);
+        upper.rotation.z = -Math.PI/8*side;
+        group.add(upper);
+        let lower = new THREE.Mesh(new THREE.CylinderGeometry(0.14,0.15,1,10), lowerArmMat);
+        lower.position.set(1.18*side,2.15,0);
+        lower.rotation.z = -Math.PI/8*side;
+        group.add(lower);
+        let hand = new THREE.Mesh(new THREE.SphereGeometry(0.15,10,10), lowerArmMat);
+        hand.position.set(1.18*side,1.67,0);
+        group.add(hand);
+      }
+      createArm(1);  // right arm
+      createArm(-1); // left arm
+
+      // Legs (upper and lower)
+      let pantMat = new THREE.MeshPhongMaterial({color:0x22223b});
+      let legMat = new THREE.MeshPhongMaterial({color:0xf8d2b0});
+      function createLeg(side) {
+        let upper = new THREE.Mesh(new THREE.CylinderGeometry(0.23,0.25,1.25,12), pantMat);
+        upper.position.set(0.48*side,0.65,0.11);
+        group.add(upper);
+        let lower = new THREE.Mesh(new THREE.CylinderGeometry(0.18,0.20,1.0,12), legMat);
+        lower.position.set(0.48*side,0.02,0.11);
+        group.add(lower);
+        let foot = new THREE.Mesh(new THREE.BoxGeometry(0.33,0.14,0.7), new THREE.MeshPhongMaterial({color:0x444}));
+        foot.position.set(0.48*side,-0.49,0.34);
+        group.add(foot);
+      }
+      createLeg(1);
+      createLeg(-1);
+
       group.position.set(0,1.3,0);
       return group;
     }
@@ -199,11 +255,7 @@
       let mat = new THREE.MeshPhongMaterial({
         color: 0xffd700,
         shininess: 100,
-        emissive: 0xfff16a,
-        emissiveIntensity: 0.35
-      });
-      let coin = new THREE.Mesh(geo, mat);
-      coin.position.set(x, 1.7, z);
+        emissive:  coin.position.set(x, 1.7, z);
       coin.rotation.x = Math.PI/2;
       coin.userData.pulse = Math.random();
       scene.add(coin);
@@ -253,7 +305,7 @@
     function createBuilding(x, z) {
       let c = [0xb0bec5, 0xffb300, 0x90caf9, 0x8d6e63, 0xff7043][Math.floor(Math.random()*5)];
       let mat = new THREE.MeshPhongMaterial({color: c});
-      let w = (3.4 + Math.random()*2.2)*1.5, h = (7 + Math.random()*7)*1.5, d = (4.2 + Math.random()*2)*1.5;
+      let w = (3.4 + Math.random()*2.2)*1.5,)*1.5, d = (4.2 + Math.random()*2)*1.5;
       let geo = new THREE.BoxGeometry(w, h, d);
       let mesh = new THREE.Mesh(geo, mat);
       mesh.position.set(x, h/2-0.1, z);
@@ -297,7 +349,7 @@
     // GAME STATE
     let lanes = [-4, 0, 4];
     let targetLane = 1;
-    let speed = 0.38;
+    let speed = 0.75; // INCREASED SPEED HERE
     let score = 0;
     let scoreDiv = document.getElementById("score");
 
@@ -305,12 +357,7 @@
     function moveRight() { targetLane = Math.min(2, targetLane+1); }
 
     // FLIPPED BUTTON LOGIC
-    document.getElementById('leftBtn').addEventListener('pointerdown', function(e){ e.preventDefault(); moveRight(); });
-    document.getElementById('rightBtn').addEventListener('pointerdown', function(e){ e.preventDefault(); moveLeft(); });
-
-    window.addEventListener('keydown', function(e){
-      if (e.key==='ArrowLeft'||e.key==='a') moveLeft();
-      if (e.key==='ArrowRight'||e.key==='d') moveRight();
+    document.getElementById('leftBtn').addEventListener('pointerdown', function(e){ e.preventDefault(); moveRight==='d') moveRight();
     });
 
     // GAME LOOP
@@ -320,8 +367,13 @@
       player.position.x += (tx-player.position.x)*0.22;
       player.position.y = 1.3 + Math.sin(Date.now()/120)*0.16;
       let t = Date.now()/220;
-      player.children[6].rotation.x = Math.sin(t)*0.5;
-      player.children[7].rotation.x = -Math.sin(t)*0.5;
+      // Arm/leg swing (find correct children indices for new model)
+      // For this improved model, arms are children[12,15], legs are children[18,21]
+      player.children[12].rotation.x = Math.sin(t)*0.4; // right upper arm
+      player.children[15].rotation.x = -Math.sin(t)*0.4; // left upper arm
+      player.children[18].rotation.x = Math.sin(t)*0.5; // right upper leg
+      player.children[21].rotation.x = -Math.sin(t)*0.5; // left upper leg
+
       camera.position.lerp(
         new THREE.Vector3(player.position.x, player.position.y+7, player.position.z-13),
         0.13
