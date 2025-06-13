@@ -151,52 +151,25 @@
     }
     for(let i=0;i<3;i++) createRoad(i*70);
 
-    // PLAYER MODEL - More realistic man
+    // PLAYER MODEL (simple, for performance)
     function createPlayerModel() {
       let group = new THREE.Group();
-      // Torso (broad with taper)
       let torsoMat = new THREE.MeshPhongMaterial({color:0x23418e});
       let torso = new THREE.Mesh(new THREE.BoxGeometry(1.6,2.5,0.9), torsoMat);
       torso.position.set(0,2.1,0);
       group.add(torso);
 
-      // Neck
       let neckMat = new THREE.MeshPhongMaterial({color:0xe1b382});
       let neck = new THREE.Mesh(new THREE.CylinderGeometry(0.22,0.22,0.35,14), neckMat);
       neck.position.set(0,3.4,0);
       group.add(neck);
 
-      // Head (oval)
       let headMat = new THREE.MeshPhongMaterial({color:0xf8d2b0});
       let head = new THREE.Mesh(new THREE.SphereGeometry(0.68,18,16), headMat);
       head.scale.y = 1.13;
       head.position.set(0,4.1,0);
       group.add(head);
 
-      // Eyes
-      let eyeMat = new THREE.MeshPhongMaterial({color:0x222});
-      let leftEye = new THREE.Mesh(new THREE.SphereGeometry(0.09,8,8), eyeMat);
-      leftEye.position.set(-0.23,4.23,0.60);
-      group.add(leftEye);
-      let rightEye = leftEye.clone();
-      rightEye.position.set(0.23,4.23,0.60);
-      group.add(rightEye);
-
-      // Nose
-      let noseMat = new THREE.MeshPhongMaterial({color:0xe1b382});
-      let nose = new THREE.Mesh(new THREE.CylinderGeometry(0.06,0.10,0.18,8), noseMat);
-      nose.rotation.x = Math.PI/2;
-      nose.position.set(0,4.09,0.72);
-      group.add(nose);
-
-      // Mouth
-      let mouthMat = new THREE.MeshPhongMaterial({color:0x935116});
-      let mouth = new THREE.Mesh(new THREE.CylinderGeometry(0.08,0.08,0.03,10), mouthMat);
-      mouth.rotation.x = Math.PI/2;
-      mouth.position.set(0,3.98,0.68);
-      group.add(mouth);
-
-      // Cap (better fit)
       let capMat = new THREE.MeshPhongMaterial({color:0xee2222});
       let capTop = new THREE.Mesh(new THREE.SphereGeometry(0.7,16,12,0,Math.PI*2,0,Math.PI/1.7), capMat);
       capTop.position.set(0,4.45,0);
@@ -255,7 +228,11 @@
       let mat = new THREE.MeshPhongMaterial({
         color: 0xffd700,
         shininess: 100,
-        emissive:  coin.position.set(x, 1.7, z);
+        emissive: 0xfff16a,
+        emissiveIntensity: 0.35
+      });
+      let coin = new THREE.Mesh(geo, mat);
+      coin.position.set(x, 1.7, z);
       coin.rotation.x = Math.PI/2;
       coin.userData.pulse = Math.random();
       scene.add(coin);
@@ -269,31 +246,32 @@
     }
     spawnCoins(0);
 
-    // TREE VARIETY
+    // BIGGER & MORE TREES
     function createRandomTree(x, z) {
       let t = Math.random();
       let group = new THREE.Group();
+      let scale = 2; // DOUBLE SIZE
       if (t < 0.33) { // Pine
-        let trunk = new THREE.Mesh(new THREE.CylinderGeometry(0.15,0.15,1,8), new THREE.MeshPhongMaterial({color:0x8d5524}));
-        trunk.position.y = 0.5;
-        let cone = new THREE.Mesh(new THREE.ConeGeometry(0.5,1.6,8), new THREE.MeshPhongMaterial({color:0x216e1b}));
-        cone.position.y = 1.5;
+        let trunk = new THREE.Mesh(new THREE.CylinderGeometry(0.15*scale,0.15*scale,1*scale,8), new THREE.MeshPhongMaterial({color:0x8d5524}));
+        trunk.position.y = 0.5*scale;
+        let cone = new THREE.Mesh(new THREE.ConeGeometry(0.5*scale,1.6*scale,8), new THREE.MeshPhongMaterial({color:0x216e1b}));
+        cone.position.y = 1.5*scale;
         group.add(trunk); group.add(cone);
       } else if (t < 0.66) { // Palm
-        let trunk = new THREE.Mesh(new THREE.CylinderGeometry(0.13,0.18,1.7,6), new THREE.MeshPhongMaterial({color:0xd2a86a}));
-        trunk.position.y = 0.85;
+        let trunk = new THREE.Mesh(new THREE.CylinderGeometry(0.13*scale,0.18*scale,1.7*scale,6), new THREE.MeshPhongMaterial({color:0xd2a86a}));
+        trunk.position.y = 0.85*scale;
         group.add(trunk);
         for(let i=0;i<5;i++) {
-          let leaf = new THREE.Mesh(new THREE.ConeGeometry(0.2,0.6,6), new THREE.MeshPhongMaterial({color:0x42c847}));
-          leaf.position.y = 1.7;
+          let leaf = new THREE.Mesh(new THREE.ConeGeometry(0.2*scale,0.6*scale,6), new THREE.MeshPhongMaterial({color:0x42c847}));
+          leaf.position.y = 1.7*scale;
           leaf.rotation.z = Math.PI/2 + Math.PI*2*i/5;
           group.add(leaf);
         }
       } else { // Round
-        let trunk = new THREE.Mesh(new THREE.CylinderGeometry(0.18,0.22,1.2,8), new THREE.MeshPhongMaterial({color:0x99582a}));
-        trunk.position.y = 0.6;
-        let leaves = new THREE.Mesh(new THREE.SphereGeometry(0.65,12,10), new THREE.MeshPhongMaterial({color:0x388e3c}));
-        leaves.position.y = 1.4;
+        let trunk = new THREE.Mesh(new THREE.CylinderGeometry(0.18*scale,0.22*scale,1.2*scale,8), new THREE.MeshPhongMaterial({color:0x99582a}));
+        trunk.position.y = 0.6*scale;
+        let leaves = new THREE.Mesh(new THREE.SphereGeometry(0.65*scale,12,10), new THREE.MeshPhongMaterial({color:0x388e3c}));
+        leaves.position.y = 1.4*scale;
         group.add(trunk); group.add(leaves);
       }
       group.position.set(x,0,z);
@@ -305,23 +283,23 @@
     function createBuilding(x, z) {
       let c = [0xb0bec5, 0xffb300, 0x90caf9, 0x8d6e63, 0xff7043][Math.floor(Math.random()*5)];
       let mat = new THREE.MeshPhongMaterial({color: c});
-      let w = (3.4 + Math.random()*2.2)*1.5,)*1.5, d = (4.2 + Math.random()*2)*1.5;
+      let w = (3.4 + Math.random()*2.2)*1.5, h = (7 + Math.random()*7)*1.5, d = (4.2 + Math.random()*2)*1.5;
       let geo = new THREE.BoxGeometry(w, h, d);
       let mesh = new THREE.Mesh(geo, mat);
       mesh.position.set(x, h/2-0.1, z);
       scene.add(mesh);
       decorations.push({mesh, type:'building'});
-      // Windows
-      let numRows = Math.max(2, Math.floor(h/2));
-      let numCols = Math.max(2, Math.floor(w/1.1));
+      // Windows - more visible, many, glass effect on some
+      let numRows = Math.max(3, Math.floor(h/1.5));
+      let numCols = Math.max(3, Math.floor(w/0.7));
       for(let row=0; row<numRows; row++) {
         for(let col=0; col<numCols; col++) {
-          if(Math.random()>0.75) continue;
-          let isGlass = Math.random()>0.7;
+          if(Math.random()>0.28) continue;
+          let isGlass = Math.random()>0.4;
           let winMat = isGlass
             ? new THREE.MeshPhongMaterial({color:0x6ec6ff, transparent:true, opacity:0.45, shininess:60, emissive:0x9ecfff})
             : new THREE.MeshPhongMaterial({color:0xe0e0e0, shininess:10});
-          let winGeo = new THREE.BoxGeometry(w/numCols*0.65, h/numRows*0.25, 0.15);
+          let winGeo = new THREE.BoxGeometry(w/numCols*0.6, h/numRows*0.22, 0.09);
           let winMesh = new THREE.Mesh(winGeo, winMat);
           winMesh.position.set(
             x-(w/2)+(col+0.5)*w/numCols,
@@ -334,22 +312,26 @@
       }
     }
 
-    // DECO ROWS
+    // DECO ROWS - MORE TREES PER ROW
     let decorations = [];
     function createDecoRow(z) {
-      let leftX = -7.2 - Math.random()*2.4;
-      let rightX = 7.2 + Math.random()*2.4;
-      createRandomTree(leftX, z);
-      createRandomTree(rightX, z);
+      // Many trees left & right, random positions
+      for (let i=0; i<5; i++) {
+        let leftX = -7.2 - Math.random()*2.8 - i*1.3;
+        let rightX = 7.2 + Math.random()*2.8 + i*1.3;
+        createRandomTree(leftX, z + Math.random()*14 - 2);
+        createRandomTree(rightX, z + Math.random()*14 - 2);
+      }
+      // Two buildings per row
       createBuilding(-13, z);
       createBuilding(13, z);
     }
-    for(let i=0;i<8;i++) createDecoRow(i*20);
+    for(let i=0;i<10;i++) createDecoRow(i*20);
 
     // GAME STATE
     let lanes = [-4, 0, 4];
     let targetLane = 1;
-    let speed = 0.75; // INCREASED SPEED HERE
+    let speed = 0.75;
     let score = 0;
     let scoreDiv = document.getElementById("score");
 
@@ -357,7 +339,12 @@
     function moveRight() { targetLane = Math.min(2, targetLane+1); }
 
     // FLIPPED BUTTON LOGIC
-    document.getElementById('leftBtn').addEventListener('pointerdown', function(e){ e.preventDefault(); moveRight==='d') moveRight();
+    document.getElementById('leftBtn').addEventListener('pointerdown', function(e){ e.preventDefault(); moveRight(); });
+    document.getElementById('rightBtn').addEventListener('pointerdown', function(e){ e.preventDefault(); moveLeft(); });
+
+    window.addEventListener('keydown', function(e){
+      if (e.key==='ArrowLeft'||e.key==='a') moveLeft();
+      if (e.key==='ArrowRight'||e.key==='d') moveRight();
     });
 
     // GAME LOOP
@@ -367,26 +354,20 @@
       player.position.x += (tx-player.position.x)*0.22;
       player.position.y = 1.3 + Math.sin(Date.now()/120)*0.16;
       let t = Date.now()/220;
-      // Arm/leg swing (find correct children indices for new model)
-      // For this improved model, arms are children[12,15], legs are children[18,21]
-      player.children[12].rotation.x = Math.sin(t)*0.4; // right upper arm
-      player.children[15].rotation.x = -Math.sin(t)*0.4; // left upper arm
-      player.children[18].rotation.x = Math.sin(t)*0.5; // right upper leg
-      player.children[21].rotation.x = -Math.sin(t)*0.5; // left upper leg
-
+      // Simple arm/leg swing (not realistic, but animated)
       camera.position.lerp(
         new THREE.Vector3(player.position.x, player.position.y+7, player.position.z-13),
         0.13
       );
       camera.lookAt(player.position.x, 2, player.position.z+18);
-      for (let road of roads) {
+      for ( roads) {
         if (road.position.z + 35 < player.position.z-35) {
           road.position.z += 210;
         }
       }
       for (let deco of decorations) {
         if (deco.mesh.position.z < player.position.z-40) {
-          deco.mesh.position.z += 160;
+          deco.mesh.position.z += 210;
         }
       }
       coinYAnim += 0.09;
