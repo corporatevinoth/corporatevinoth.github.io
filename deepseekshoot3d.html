@@ -48,12 +48,8 @@
       bottom: 4vh;
       z-index: 100;
     }
-    #leftBtn {
-      left: 4vw;
-    }
-    #rightBtn {
-      right: 4vw;
-    }
+    #leftBtn { left: 4vw; }
+    #rightBtn { right: 4vw; }
     .ctrl-btn:active {
       background: #FFD600;
       color: #1a237e;
@@ -221,7 +217,7 @@
     }
     spawnCoins(0);
 
-    // RANDOM TREES
+    // TREE VARIETY
     function createRandomTree(x, z) {
       let t = Math.random();
       let group = new THREE.Group();
@@ -257,15 +253,15 @@
     function createBuilding(x, z) {
       let c = [0xb0bec5, 0xffb300, 0x90caf9, 0x8d6e63, 0xff7043][Math.floor(Math.random()*5)];
       let mat = new THREE.MeshPhongMaterial({color: c});
-      let w = (3.4 + Math.random()*2.21.5, h = (7 + Math.random()*7)*1.5, d = (4.2 + Math.random()*2)*1.5;
+      let w = (3.4 + Math.random()*2.2)*1.5, h = (7 + Math.random()*7)*1.5, d = (4.2 + Math.random()*2)*1.5;
       let geo = new THREE.BoxGeometry(w, h, d);
       let mesh = new THREE.Mesh(geo, mat);
       mesh.position.set(x, h/2-0.1, z);
       scene.add(mesh);
       decorations.push({mesh, type:'building'});
       // Windows
-      let numRows = Math.floor(h/2);
-      let numCols = Math.floor(w/1.1);
+      let numRows = Math.max(2, Math.floor(h/2));
+      let numCols = Math.max(2, Math.floor(w/1.1));
       for(let row=0; row<numRows; row++) {
         for(let col=0; col<numCols; col++) {
           if(Math.random()>0.75) continue;
@@ -286,7 +282,7 @@
       }
     }
 
-    // RANDOMIZED DECO ROWS
+    // DECO ROWS
     let decorations = [];
     function createDecoRow(z) {
       let leftX = -7.2 - Math.random()*2.4;
