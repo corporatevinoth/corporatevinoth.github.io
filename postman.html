@@ -1,0 +1,626 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>API Client - Postman Clone</title>
+    <style>
+        :root {
+            --primary: #FF6C37;
+            --secondary: #33373D;
+            --light-bg: #F6F6F6;
+            --text: #2D2D2D;
+            --border: #E0E0E0;
+            --success: #4CAF50;
+            --error: #F44336;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        body {
+            color: var(--text);
+            background-color: var(--light-bg);
+            line-height: 1.6;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 15px 0;
+            border-bottom: 1px solid var(--border);
+            margin-bottom: 20px;
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+        }
+
+        .logo img {
+            height: 32px;
+            margin-right: 10px;
+        }
+
+        .logo h1 {
+            font-size: 1.5rem;
+            color: var(--primary);
+            font-weight: 600;
+        }
+
+        .api-client {
+            display: grid;
+            grid-template-columns: 250px 1fr;
+            gap: 20px;
+            background-color: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+        }
+
+        .sidebar {
+            background-color: var(--secondary);
+            color: white;
+            padding: 20px;
+        }
+
+        .sidebar h2 {
+            font-size: 1.2rem;
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .request-list {
+            list-style: none;
+        }
+
+        .request-list li {
+            padding: 8px 10px;
+            margin-bottom: 5px;
+            border-radius: 4px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+        }
+
+        .request-list li:hover {
+            background-color: rgba(255, 255, 255, 0.1);
+        }
+
+        .request-list li .method {
+            font-weight: bold;
+            margin-right: 8px;
+            font-size: 0.8rem;
+            padding: 2px 5px;
+            border-radius: 3px;
+        }
+
+        .get-method { background-color: #61AFFE; }
+        .post-method { background-color: #49CC90; }
+        .put-method { background-color: #FCA130; }
+        .delete-method { background-color: #F93E3E; }
+        .patch-method { background-color: #50E3C2; }
+
+        .main-content {
+            padding: 20px;
+        }
+
+        .request-controls {
+            display: grid;
+            grid-template-columns: 100px 1fr 120px;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        select, input, button {
+            padding: 10px;
+            border: 1px solid var(--border);
+            border-radius: 4px;
+            font-size: 14px;
+        }
+
+        select {
+            appearance: none;
+            background-color: white;
+        }
+
+        input {
+            flex: 1;
+        }
+
+        button {
+            background-color: var(--primary);
+            color: white;
+            border: none;
+            cursor: pointer;
+            font-weight: 600;
+            transition: background-color 0.3s;
+        }
+
+        button:hover {
+            background-color: #e05a2b;
+        }
+
+        .tabbed-interface {
+            margin-bottom: 20px;
+        }
+
+        .tabs {
+            display: flex;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .tab {
+            padding: 10px 15px;
+            cursor: pointer;
+            font-weight: 500;
+            position: relative;
+        }
+
+        .tab.active {
+            color: var(--primary);
+        }
+
+        .tab.active:after {
+            content: '';
+            position: absolute;
+            bottom: -1px;
+            left: 0;
+            width: 100%;
+            height: 2px;
+            background-color: var(--primary);
+        }
+
+        .tab-content {
+            display: none;
+            padding: 15px 0;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        .params-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .params-table th, .params-table td {
+            padding: 10px;
+            border: 1px solid var(--border);
+            text-align: left;
+        }
+
+        .params-table th {
+            background-color: var(--light-bg);
+        }
+
+        .params-table input {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid var(--border);
+            border-radius: 4px;
+        }
+
+        .params-table button {
+            padding: 5px 10px;
+            background-color: transparent;
+            color: var(--primary);
+            border: 1px solid var(--primary);
+        }
+
+        .headers-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .headers-table th, .headers-table td {
+            padding: 10px;
+            border: 1px solid var(--border);
+            text-align: left;
+        }
+
+        .headers-table th {
+            background-color: var(--light-bg);
+        }
+
+        .headers-table input {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid var(--border);
+            border-radius: 4px;
+        }
+
+        .headers-table button {
+            padding: 5px 10px;
+            background-color: transparent;
+            color: var(--primary);
+            border: 1px solid var(--primary);
+        }
+
+        .json-editor {
+            width: 100%;
+            min-height: 150px;
+            padding: 10px;
+            border: 1px solid var(--border);
+            border-radius: 4px;
+            font-family: 'Consolas', monospace;
+            font-size: 14px;
+            resize: vertical;
+        }
+
+        .response-section {
+            margin-top: 30px;
+        }
+
+        .response-tabs {
+            display: flex;
+            border-bottom: 1px solid var(--border);
+            margin-bottom: 10px;
+        }
+
+        .response-tab {
+            padding: 8px 15px;
+            cursor: pointer;
+        }
+
+        .response-tab.active {
+            font-weight: bold;
+            color: var(--primary);
+            border-bottom: 2px solid var(--primary);
+        }
+
+        .response-container {
+            border: 1px solid var(--border);
+            border-radius: 4px;
+            padding: 15px;
+            background-color: white;
+            min-height: 200px;
+            max-height: 400px;
+            overflow: auto;
+        }
+
+        .response-info {
+            display: flex;
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .status-code {
+            font-weight: bold;
+            margin-right: 15px;
+        }
+
+        .status-code.success {
+            color: var(--success);
+        }
+
+        .status-code.error {
+            color: var(--error);
+        }
+
+        .response-time, .response-size {
+            margin-right: 15px;
+            color: #777;
+        }
+
+        .add-row-btn {
+            margin-top: 10px;
+            background-color: transparent;
+            color: var(--primary);
+            border: 1px solid var(--primary);
+            padding: 5px 10px;
+        }
+
+        .add-row-btn:hover {
+            background-color: rgba(255, 108, 55, 0.1);
+        }
+
+        .json-pretty {
+            white-space: pre-wrap;
+            font-family: 'Consolas', monospace;
+        }
+
+        .saved-requests {
+            margin-top: 20px;
+        }
+
+        .saved-requests h2 {
+            font-size: 1.2rem;
+            margin-bottom: 10px;
+        }
+
+        .welcome-screen {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 300px;
+            text-align: center;
+        }
+
+        .welcome-screen img {
+            width: 120px;
+            margin-bottom: 20px;
+        }
+
+        .welcome-screen h2 {
+            margin-bottom: 10px;
+            color: var(--primary);
+        }
+
+        .request-history {
+            margin-top: 25px;
+        }
+
+        .request-history h3 {
+            font-size: 1rem;
+            margin-bottom: 10px;
+            padding-bottom: 5px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .history-list {
+            list-style: none;
+        }
+
+        .history-list li {
+            padding: 6px 10px;
+            margin-bottom: 5px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            opacity: 0.8;
+        }
+
+        .history-list li:hover {
+            background-color: rgba(255, 255, 255, 0.1);
+            opacity: 1;
+        }
+
+        .status-indicator {
+            display: inline-block;
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            margin-right: 8px;
+        }
+
+        .status-success {
+            background-color: var(--success);
+        }
+
+        .status-error {
+            background-color: var(--error);
+        }
+
+        @media (max-width: 768px) {
+            .api-client {
+                grid-template-columns: 1fr;
+            }
+
+            .sidebar {
+                display: none;
+            }
+
+            .request-controls {
+                grid-template-columns: 1fr;
+            }
+
+            button.send-btn {
+                width: 100%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <div class="logo">
+                <img src="https://storage.googleapis.com/workspace-0f70711f-8b4e-4d94-86f1-2a93ccde5887/image/404af1b3-9567-4d40-8c42-4f623d21c773.png" alt="API Client logo with a rocket and network connection symbol" />
+                <h1>API Client</h1>
+            </div>
+        </header>
+
+        <div class="api-client">
+            <div class="sidebar">
+                <div class="saved-requests">
+                    <h2>Collections</h2>
+                    <ul class="request-list">
+                        <li>
+                            <span class="method get-method">GET</span>
+                            Fetch Users
+                        </li>
+                        <li>
+                            <span class="method post-method">POST</span>
+                            Create User
+                        </li>
+                        <li>
+                            <span class="method put-method">PUT</span>
+                            Update User
+                        </li>
+                        <li>
+                            <span class="method delete-method">DELETE</span>
+                            Remove User
+                        </li>
+                        <li>
+                            <span class="method patch-method">PATCH</span>
+                            Partial Update
+                        </li>
+                    </ul>
+                </div>
+
+                <div class="request-history">
+                    <h3>History</h3>
+                    <ul class="history-list">
+                        <li>
+                            <span class="status-indicator status-success"></span>
+                            GET https://api.example.com/users
+                        </li>
+                        <li>
+                            <span class="status-indicator status-success"></span>
+                            POST https://api.example.com/users
+                        </li>
+                        <li>
+                            <span class="status-indicator status-error"></span>
+                            PUT https://api.example.com/users/123
+                        </li>
+                    </ul>
+                </div>
+            </div>
+
+            <div class="main-content">
+                <div class="request-controls">
+                    <select id="method-selector">
+                        <option value="GET">GET</option>
+                        <option value="POST">POST</option>
+                        <option value="PUT">PUT</option>
+                        <option value="PATCH">PATCH</option>
+                        <option value="DELETE">DELETE</option>
+                    </select>
+                    <input type="text" id="url-input" placeholder="Enter request URL (e.g., https://api.example.com/users)">
+                    <button class="send-btn" id="send-btn">Send</button>
+                </div>
+
+                <div class="tabbed-interface">
+                    <div class="tabs">
+                        <div class="tab active" data-tab="params">Params</div>
+                        <div class="tab" data-tab="headers">Headers</div>
+                        <div class="tab" data-tab="body">Body</div>
+                    </div>
+
+                    <div class="tab-content active" id="params-tab">
+                        <table class="params-table">
+                            <thead>
+                                <tr>
+                                    <th width="30%">Key</th>
+                                    <th width="60%">Value</th>
+                                    <th width="10%">Action</th>
+                                </tr>
+                            </thead>
+                            <tbody id="params-table-body">
+                                <tr>
+                                    <td><input type="text" placeholder="param1"></td>
+                                    <td><input type="text" placeholder="value1"></td>
+                                    <td><button class="remove-param-btn">Remove</button></td>
+                                </tr>
+                            </tbody>
+                        </table>
+                        <button class="add-row-btn" id="add-param-btn">Add Parameter</button>
+                    </div>
+
+                    <div class="tab-content" id="headers-tab">
+                        <table class="headers-table">
+                            <thead>
+                                <tr>
+                                    <th width="30%">Key</th>
+                                    <th width="60%">Value</th>
+                                    <th width="10%">Action</th>
+                                </tr>
+                            </thead>
+                            <tbody id="headers-table-body">
+                                <tr>
+                                    <td><input type="text" placeholder="Content-Type"></td>
+                                    <td><input type="text" placeholder="application/json"></td>
+                                    <td><button class="remove-header-btn">Remove</button></td>
+                                </tr>
+                            </tbody>
+                        </table>
+                        <button class="add-row-btn" id="add-header-btn">Add Header</button>
+                    </div>
+
+                    <div class="tab-content" id="body-tab">
+                        <select id="body-type-selector" style="margin-bottom: 10px;">
+                            <option value="raw">Raw</option>
+                            <option value="form-data">Form Data</option>
+                            <option value="x-www-form-urlencoded">x-www-form-urlencoded</option>
+                        </select>
+                        <div id="body-content">
+                            <textarea class="json-editor" id="request-body" placeholder='{"key": "value"}'></textarea>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="response-section">
+                    <div class="response-tabs">
+                        <div class="response-tab active" data-response-tab="body">Body</div>
+                        <div class="response-tab" data-response-tab="headers">Headers</div>
+                    </div>
+                    <div class="response-info">
+                        <div class="status-code" id="status-code">No request sent</div>
+                        <div class="response-time" id="response-time">Time: -</div>
+                        <div class="response-size" id="response-size">Size: -</div>
+                    </div>
+                    <div class="response-container" id="response-container">
+                        <div id="response-body" class="json-pretty">
+                            <div class="welcome-screen">
+                                <img src="https://storage.googleapis.com/workspace-0f70711f-8b4e-4d94-86f1-2a93ccde5887/image/50621fca-be4b-4df4-b792-169d4a0f6c21.png" alt="API interface illustration with cloud servers sending and receiving data" />
+                                <h2>API Client</h2>
+                                <p>Enter a URL, add parameters if needed, and click Send to make a request.</p>
+                            </div>
+                        </div>
+                        <div id="response-headers" class="json-pretty" style="display: none;"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Tab switching functionality
+            const tabs = document.querySelectorAll('.tab');
+            tabs.forEach(tab => {
+                tab.addEventListener('click', function() {
+                    // Remove active class from all tabs and content
+                    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+                    document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+                    
+                    // Add active class to clicked tab and corresponding content
+                    this.classList.add('active');
+                    const tabName = this.getAttribute('data-tab');
+                    document.getElementById(`${tabName}-tab`).classList.add('active');
+                });
+            });
+
+            // Response tab switching
+            const responseTabs = document.querySelectorAll('.response-tab');
+            responseTabs.forEach(tab => {
+                tab.addEventListener('click', function() {
+                    // Remove active class from all response tabs
+                    document.querySelectorAll('.response-tab').forEach(t => t.classList.remove('active'));
+                    
+                    // Add active class to clicked tab
+                    this.classList.add('active');
+                    
+                    // Show corresponding response content
+                    const responseTab = this.getAttribute('data-response-tab');
+                    if (responseTab === 'body') {
+                        document.getElementById('response-body').style.display = 'block';
+                        document.getElementById('response-headers').style.display = 'none';
+                    } else {
+                        document.getElementById('response-body').style.display = 'none';
+                        document.getElementById('response-headers').style.display = 'block';
+                    }
+                });
+            });
+
+            // Add parameter row
+            document.getElementById('add-param-btn').addEventListener('click', function() {
+                const tableBody = document.getElementById('params-table-body');
+                const newRow = document.createElement('tr');
+                newRow.innerHTML = `
+                    <t
