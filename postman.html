@@ -580,6 +580,85 @@
     </div>
 
     <script>
+
+// --- Simple in-memory storage for collections ---
+let collections = JSON.parse(localStorage.getItem('pm_collections') || '[]');
+
+// Render collections (simple list, replace with your actual UI logic)
+function renderCollections() {
+  let area = document.getElementById('collectionsList');
+  if (!area) {
+    area = document.createElement('div');
+    area.id = 'collectionsList';
+    document.body.appendChild(area);
+  }
+  area.innerHTML = collections.map((c,i)=>`
+    <div style="border:1px solid #ccc;margin:4px 0;padding:6px;">
+      <b>${c.info?.name || 'Unnamed Collection'}</b>
+      <button onclick="deleteCollection(${i})" style="float:right;">Delete</button>
+      <div style="font-size:0.9em;color:#666;">${c.item?.length||0} requests</div>
+    </div>
+  `).join('');
+}
+window.deleteCollection = function(idx) {
+  collections.splice(idx,1);
+  localStorage.setItem('pm_collections', JSON.stringify(collections));
+  renderCollections();
+};
+renderCollections();
+
+// --- Import ---
+document.getElementById('importBtn').onclick = ()=>document.getElementById('importInput').click();
+document.getElementById('importInput').addEventListener('change', function(e){
+  const file = e.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = function(evt){
+    try {
+      const imported = JSON.parse(evt.target.result);
+      // Accept single or array
+      if (Array.isArray(imported)) {
+        collections = collections.concat(imported);
+      } else {
+        collections.push(imported);
+      }
+      localStorage.setItem('pm_collections', JSON.stringify(collections));
+      renderCollections();
+      alert('Imported!');
+    } catch(err) {
+      alert('Invalid Postman collection JSON.');
+    }
+  };
+  reader.readAsText(file);
+});
+
+// --- Export ---
+document.getElementById('exportBtn').onclick = function() {
+  const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(collections, null, 2));
+  const dl = document.createElement('a');
+  dl.setAttribute("href", dataStr);
+  dl.setAttribute("download", "postman-collections.json");
+  document.body.appendChild(dl);
+  dl.click();
+  dl.remove();
+};
+
+// --- Create Collection ---
+document.getElementById('createBtn').onclick = function() {
+  const name = prompt('Collection name?');
+  if (!name) return;
+  const newCol = {
+    info: {
+      name: name,
+      schema: "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+    },
+    item: []
+  };
+  collections.push(newCol);
+  localStorage.setItem('pm_collections', JSON.stringify(collections));
+  renderCollections();
+};
+
         document.addEventListener('DOMContentLoaded', function() {
             // Tab switching functionality
             const tabs = document.querySelectorAll('.tab');
