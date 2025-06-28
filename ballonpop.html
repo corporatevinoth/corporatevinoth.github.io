@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Balloon Shooting Game</title>
+    <style>
+        body {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            font-family: Arial, sans-serif;
+            background-color: #f0f0f0;
+        }
+        #gameCanvas {
+            border: 2px solid #333;
+            background-color: #87CEEB;
+        }
+        #score {
+            font-size: 24px;
+            margin: 10px 0;
+        }
+        #startButton {
+            padding: 10px 20px;
+            font-size: 18px;
+            cursor: pointer;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 5px;
+        }
+        #startButton:hover {
+            background-color: #45a049;
+        }
+    </style>
+</head>
+<body>
+    <h1>Balloon Shooting Game</h1>
+    <div id="score">Score: 0</div>
+    <canvas id="gameCanvas" width="800" height="600"></canvas>
+    <button id="startButton" onclick="startGame()">Start Game</button>
+
+    <script>
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        const scoreDisplay = document.getElementById('score');
+
+        let score = 0;
+        let balloons = [];
+        let particles = [];
+        let gameRunning = false;
+        let animationFrameId;
+
+        // Load sound effect
+        const popSound = new Audio('https://www.soundjay.com/buttons/sounds/button-30.mp3'); // Public domain pop sound
+        popSound.preload = 'auto';
+
+        // Balloon object constructor
+        class Balloon {
+            constructor() {
+                this.x = Math.random() * (canvas.width - 50);
+                this.y = canvas.height;
+                this.radius = 25;
+                this.color = `hsl(${Math.random() * 360}, 70%, 50%)`;
+                this.speed = Math.random() * 3 + 1;
+            }
+
+            draw() {
+                // Simulate 3D effect with radial gradient and shadow
+                const gradient = ctx.createRadialGradient(
+                    this.x - this.radius * 0.5,
+                    this.y - this.radius * 0.5,
+                    this.radius * 0.2,
+                    this.x,
+                    this.y,
+                    this.radius
+                );
+                gradient.addColorStop(0, '#fff');
+                gradient.addColorStop(1, this.color);
+
+                ctx.save();
+                ctx.shadowColor = 'rgba(0, 0, 0, 0.5)';
+                ctx.shadowBlur = 10;
+                ctx.shadowOffsetX = 5;
+                ctx.shadowOffsetY = 5;
+
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
+                ctx.fillStyle = gradient;
+                ctx.fill();
+                ctx.closePath();
+
+                // Draw string
+                ctx.beginPath();
+                ctx.moveTo(this.x, this.y + this.radius);
+                ctx.lineTo(this.x, this.y + this.radius + 20);
+                ctx.strokeStyle = '#000';
+                ctx.stroke();
+                ctx.closePath();
+
+                ctx.restore();
+            }
+
+            update() {
+                this.y -= this.speed;
+            }
+        }
+
+        // Particle for pop animation
+        class Particle {
+            constructor(x, y, color) {
+                this.x = x;
+                this.y = y;
+                this.color = color;
+                this.radius = Math.random() * 5 + 2;
+                this.vx = (Math.random() - 0.5) * 8;
+                this.vy = (Math.random() - 0.5) * 8;
+                this.life = 20;
+            }
+
+            draw() {
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
+                ctx.fillStyle = this.color;
+                ctx.globalAlpha = this.life / 20;
+                ctx.fill();
+                ctx.closePath();
+            }
+
+            update() {
+                this.x += this.vx;
+                this.y += this.vy;
+                this.life--;
+            }
+        }
+
+        // Spawn new balloons
+        function spawnBalloon() {
+            if (gameRunning) {
+                balloons.push(new Balloon());
+            }
+        }
+
+        // Update game state
+        function updateGame() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            // Update and draw balloons
+            balloons = balloons.filter(balloon => balloon.y + balloon.radius > 0);
+            balloons.forEach(balloon => {
+                balloon.update();
+                balloon.draw();
+            });
+
+            // Update and draw particles
+            particles = particles.filter(particle => particle.life > 0);
+            particles.forEach(particle => {
+                particle.update();
+                particle.draw();
+            });
+            ctx.globalAlpha = 1; // Reset alpha
+
+            if (gameRunning) {
+                animationFrameId = requestAnimationFrame(updateGame);
+            }
+        }
+
+        // Handle balloon popping
+        function handleClick(event) {
+            if (!gameRunning) return;
+
+            const rect = canvas.getBoundingClientRect();
+            const mouseX = event.clientX - rect.left;
+            const mouseY = event.clientY - rect.top;
+
+            balloons = balloons.filter(balloon => {
+                const distance = Math.sqrt((mouseX - balloon.x) ** 2 + (mouseY - balloon.y) ** 2);
+                if (distance < balloon.radius) {
+                    // Play sound
+                    popSound.currentTime = 0; // Reset sound
+                    popSound.play().catch(err => console.log('Sound error:', err));
+
+                    // Create particles
+                    for (let i = 0; i < 10; i++) {
+                        particles.push(new Particle(balloon.x, balloon.y, balloon.color));
+                    }
+
+                    score += 10;
+                    scoreDisplay.textContent = `Score: ${score}`;
+                    return false; // Remove balloon
+                }
+                return true;
+            });
+        }
+
+        // Start the game
+        function startGame() {
+            if (!gameRunning) {
+                gameRunning = true;
+                score = 0;
+                scoreDisplay.textContent = `Score: ${score}`;
+                balloons = [];
+                particles = [];
+                cancelAnimationFrame(animationFrameId);
+                updateGame();
+                setInterval(spawnBalloon, 1000);
+                document.getElementById('startButton').textContent = 'Restart Game';
+            } else {
+                // Restart the game
+                gameRunning = false;
+                cancelAnimationFrame(animationFrameId);
+                balloons = [];
+                particles = [];
+                score = 0;
+                scoreDisplay.textContent = `Score: ${score}`;
+                gameRunning = true;
+                updateGame();
+                setTimeout(() => setInterval(spawnBalloon, 1000), 1000);
+            }
+        }
+
+        // Add click event listener to canvas
+        canvas.addEventListener('click', handleClick);
+
+        // Initial message
+        ctx.font = '30px Arial';
+        ctx.fillText('Click Start Game to begin!', canvas.width / 2 - 150, canvas.height / 2);
+    </script>
+</body>
+</html>
