@@ -1,36 +1,58 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <metaObl>    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Balloon Shooting Game</title>
     <style>
         body {
             display: flex;
             flex-direction: column;
             align-items: center;
+            justify-content: center;
             font-family: Arial, sans-serif;
             background-color: #f0f0f0;
+            margin: 0;
+            height: 100vh;
+            overflow: hidden;
         }
         #gameCanvas {
             border: 2px solid #333;
             background-color: #87CEEB;
+            max-width: 800px;
+            max-height: 600px;
+            width: 100%;
+            height: auto;
+            aspect-ratio: 800 / 600;
+            display: block;
         }
         #score {
             font-size: 24px;
             margin: 10px 0;
+            color: #333;
         }
         #startButton {
-            padding: 10px 20px;
+            padding: 12px 24px;
             font-size: 18px;
             cursor: pointer;
             background-color: #4CAF50;
             color: white;
             border: none;
             border-radius: 5px;
+            margin-top: 10px;
+            touch-action: manipulation;
         }
         #startButton:hover {
             background-color: #45a049;
+        }
+        @media (max-width: 600px) {
+            #score {
+                font-size: 18px;
+            }
+            #startButton {
+                padding: 10px 20px;
+                font-size: 16px;
+            }
         }
     </style>
 </head>
@@ -50,51 +72,79 @@
         let particles = [];
         let gameRunning = false;
         let animationFrameId;
+        let scaleFactor = 1;
 
         // Load sound effect
-        const popSound = new Audio('https://www.soundjay.com/buttons/sounds/button-30.mp3'); // Public domain pop sound
+        const popSound = new Audio('https://www.soundjay.com/buttons/sounds/button-30.mp3');
         popSound.preload = 'auto';
+
+        // Adjust canvas for high-DPI displays and responsiveness
+        function resizeCanvas() {
+            const dpr = window.devicePixelRatio || 1;
+            const maxWidth = 800;
+            const maxHeight = 600;
+            const aspectRatio = maxWidth / maxHeight;
+
+            const windowWidth = window.innerWidth * 0.9;
+            const windowHeight = window.innerHeight * 0.9;
+            let canvasWidth = Math.min(windowWidth, maxWidth);
+            let canvasHeight = canvasWidth / aspectRatio;
+
+            if (canvasHeight > windowHeight) {
+                canvasHeight = Math.min(windowHeight, maxHeight);
+                canvasWidth = canvasHeight * aspectRatio;
+            }
+
+            canvas.style.width = `${canvasWidth}px`;
+            canvas.style.height = `${canvasHeight}px`;
+            canvas.width = canvasWidth * dpr;
+            canvas.height = canvasHeight * dpr;
+            scaleFactor = canvas.width / 800;
+            ctx.scale(scaleFactor * dpr, scaleFactor * dpr);
+
+            // Adjust font size and balloon size for smaller screens
+            ctx.font = `${30 / scaleFactor}px Arial`;
+        }
 
         // Balloon object constructor
         class Balloon {
             constructor() {
-                this.x = Math.random() * (canvas.width - 50);
-                this.y = canvas.height;
-                this.radius = 25;
+                this.x = Math.random() * (800 - 100);
+                this.y = 600;
+                this.radius = window.innerWidth <= 600 ? 30 : 25;
                 this.color = `hsl(${Math.random() * 360}, 70%, 50%)`;
                 this.speed = Math.random() * 3 + 1;
             }
 
             draw() {
-                // Simulate 3D effect with radial gradient and shadow
                 const gradient = ctx.createRadialGradient(
-                    this.x - this.radius * 0.5,
-                    this.y - this.radius * 0.5,
-                    this.radius * 0.2,
+                    this.x - this.radius * 0.5 / scaleFactor,
+                    this.y - this.radius * 0.5 / scaleFactor,
+                    this.radius * 0.2 / scaleFactor,
                     this.x,
                     this.y,
-                    this.radius
+                    this.radius / scaleFactor
                 );
                 gradient.addColorStop(0, '#fff');
                 gradient.addColorStop(1, this.color);
 
                 ctx.save();
                 ctx.shadowColor = 'rgba(0, 0, 0, 0.5)';
-                ctx.shadowBlur = 10;
-                ctx.shadowOffsetX = 5;
-                ctx.shadowOffsetY = 5;
+                ctx.shadowBlur = 10 / scaleFactor;
+                ctx.shadowOffsetX = 5 / scaleFactor;
+                ctx.shadowOffsetY = 5 / scaleFactor;
 
                 ctx.beginPath();
-                ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
+                ctx.arc(this.x, this.y, this.radius / scaleFactor, 0, Math.PI * 2);
                 ctx.fillStyle = gradient;
                 ctx.fill();
                 ctx.closePath();
 
-                // Draw string
                 ctx.beginPath();
-                ctx.moveTo(this.x, this.y + this.radius);
-                ctx.lineTo(this.x, this.y + this.radius + 20);
+                ctx.moveTo(this.x, this.y + this.radius / scaleFactor);
+                ctx.lineTo(this.x, this.y + (this.radius + 20) / scaleFactor);
                 ctx.strokeStyle = '#000';
+                ctx.lineWidth = 1 / scaleFactor;
                 ctx.stroke();
                 ctx.closePath();
 
@@ -102,7 +152,7 @@
             }
 
             update() {
-                this.y -= this.speed;
+                this.y -= this.speed / scaleFactor;
             }
         }
 
@@ -112,9 +162,9 @@
                 this.x = x;
                 this.y = y;
                 this.color = color;
-                this.radius = Math.random() * 5 + 2;
-                this.vx = (Math.random() - 0.5) * 8;
-                this.vy = (Math.random() - 0.5) * 8;
+                this.radius = (Math.random() * 5 + 2) / scaleFactor;
+                this.vx = (Math.random() - 0.5) * 8 / scaleFactor;
+                this.vy = (Math.random() - 0.5) * 8 / scaleFactor;
                 this.life = 20;
             }
 
@@ -143,51 +193,54 @@
 
         // Update game state
         function updateGame() {
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            ctx.clearRect(0, 0, 800, 600);
 
-            // Update and draw balloons
-            balloons = balloons.filter(balloon => balloon.y + balloon.radius > 0);
+            balloons = balloons.filter(balloon => balloon.y + balloon.radius / scaleFactor > 0);
             balloons.forEach(balloon => {
                 balloon.update();
                 balloon.draw();
             });
 
-            // Update and draw particles
             particles = particles.filter(particle => particle.life > 0);
             particles.forEach(particle => {
                 particle.update();
                 particle.draw();
             });
-            ctx.globalAlpha = 1; // Reset alpha
+            ctx.globalAlpha = 1;
 
             if (gameRunning) {
                 animationFrameId = requestAnimationFrame(updateGame);
             }
         }
 
-        // Handle balloon popping
-        function handleClick(event) {
+        // Handle input (mouse or touch)
+        function handleInput(event) {
             if (!gameRunning) return;
 
+            event.preventDefault();
             const rect = canvas.getBoundingClientRect();
-            const mouseX = event.clientX - rect.left;
-            const mouseY = event.clientY - rect.top;
+            const dpr = window.devicePixelRatio || 1;
+            let x, y;
+
+            if (event.type === 'touchstart') {
+                x = (event.touches[0].clientX - rect.left) * (800 / rect.width) / scaleFactor;
+                y = (event.touches[0].clientY - rect.top) * (600 / rect.height) / scaleFactor;
+            } else {
+                x = (event.clientX - rect.left) * (800 / rect.width) / scaleFactor;
+                y = (event.clientY - rect.top) * (600 / rect.height) / scaleFactor;
+            }
 
             balloons = balloons.filter(balloon => {
-                const distance = Math.sqrt((mouseX - balloon.x) ** 2 + (mouseY - balloon.y) ** 2);
-                if (distance < balloon.radius) {
-                    // Play sound
-                    popSound.currentTime = 0; // Reset sound
+                const distance = Math.sqrt((x - balloon.x) ** 2 + (y - balloon.y) ** 2);
+                if (distance < balloon.radius / scaleFactor) {
+                    popSound.currentTime = 0;
                     popSound.play().catch(err => console.log('Sound error:', err));
-
-                    // Create particles
-                    for (let i = 0; i < 10; i++) {
+                    for (let i = 0; i < 10RB> i++) {
                         particles.push(new Particle(balloon.x, balloon.y, balloon.color));
                     }
-
                     score += 10;
                     scoreDisplay.textContent = `Score: ${score}`;
-                    return false; // Remove balloon
+                    return false;
                 }
                 return true;
             });
@@ -202,11 +255,11 @@
                 balloons = [];
                 particles = [];
                 cancelAnimationFrame(animationFrameId);
+                resizeCanvas();
                 updateGame();
                 setInterval(spawnBalloon, 1000);
                 document.getElementById('startButton').textContent = 'Restart Game';
             } else {
-                // Restart the game
                 gameRunning = false;
                 cancelAnimationFrame(animationFrameId);
                 balloons = [];
@@ -214,17 +267,21 @@
                 score = 0;
                 scoreDisplay.textContent = `Score: ${score}`;
                 gameRunning = true;
+                resizeCanvas();
                 updateGame();
                 setTimeout(() => setInterval(spawnBalloon, 1000), 1000);
             }
         }
 
-        // Add click event listener to canvas
-        canvas.addEventListener('click', handleClick);
+        // Event listeners
+        canvas.addEventListener('click', handleInput);
+        canvas.addEventListener('touchstart', handleInput);
+        window.addEventListener('resize', resizeCanvas);
 
-        // Initial message
-        ctx.font = '30px Arial';
-        ctx.fillText('Click Start Game to begin!', canvas.width / 2 - 150, canvas.height / 2);
+        // Initial setup
+        resizeCanvas();
+        ctx.font = `${30 / scaleFactor}px Arial`;
+        ctx.fillText('Click Start Game to begin!', 400 - 150 / scaleFactor, 300);
     </script>
 </body>
 </html>
