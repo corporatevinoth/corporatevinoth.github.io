@@ -1,183 +1,177 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>3D Racing Game Prototype</title>
+  <title>3D Car Race</title>
   <style>
-    body { margin: 0; overflow: hidden; background: #222; }
-    canvas { display: block; background: #222; }
-    #info { position: absolute; top: 10px; left: 10px; color: #fff; font-family: sans-serif; }
+    body { margin: 0; overflow: hidden; }
+    canvas { display: block; background: #87CEEB; }
   </style>
 </head>
 <body>
-<div id="info">Use ← → to steer. Overtake the cars!</div>
-<canvas id="game"></canvas>
+<canvas id="gameCanvas"></canvas>
 <script>
-const canvas = document.getElementById('game');
+const canvas = document.getElementById('gameCanvas');
 const ctx = canvas.getContext('2d');
-let W = window.innerWidth, H = window.innerHeight;
-canvas.width = W; canvas.height = H;
+let width = window.innerWidth;
+let height = window.innerHeight;
+canvas.width = width;
+canvas.height = height;
 
-// Game constants
-const ROAD_WIDTH = 2000;   // World units
-const CAMERA_HEIGHT = 1000;
-const CAMERA_DIST = 2000;
-const PLAYER_Z = 0;
-const SEGMENT_LENGTH = 200;
-const NUM_SEGMENTS = 200;
-const FIELD_OF_VIEW = Math.PI / 4;
+// Sky with clouds
+function drawSky() {
+  ctx.fillStyle = "#87CEEB"; // Blue sky
+  ctx.fillRect(0, 0, width, height);
 
-// Player state
-let playerX = 0, playerSpeed = 200, maxSpeed = 400;
-let keys = { left: false, right: false };
+  // Draw clouds
+  for (let i = 0; i < 5; i++) {
+    let x = (i * 300 + 100) % width;
+    let y = 60 + (i % 2) * 40;
+    ctx.beginPath();
+    ctx.arc(x, y, 40, 0, Math.PI * 2);
+    ctx.arc(x + 40, y, 30, 0, Math.PI * 2);
+    ctx.arc(x - 40, y, 30, 0, Math.PI * 2);
+    ctx.fillStyle = "#FFF";
+    ctx.globalAlpha = 0.8;
+    ctx.fill();
+    ctx.globalAlpha = 1;
+  }
+}
 
-// Road and cars
-let road = [];
-let cars = [];
+// Road
+function drawRoad() {
+  ctx.save();
+  ctx.beginPath();
+  ctx.moveTo(width * 0.35, height);
+  ctx.lineTo(width * 0.45, 0);
+  ctx.lineTo(width * 0.55, 0);
+  ctx.lineTo(width * 0.65, height);
+  ctx.closePath();
+  ctx.fillStyle = "#333";
+  ctx.fill();
 
-// Generate a simple straight road
-for (let i = 0; i < NUM_SEGMENTS; i++) {
-  road.push({
-    index: i,
-    curve: 0,
-    y: 0,
-    z: i * SEGMENT_LENGTH
+  // Road lane markings
+  ctx.strokeStyle = "#fff";
+  ctx.lineWidth = 4;
+  for (let i = 0; i < 20; i++) {
+    let y = height - i * 80;
+    let x1 = width * 0.5 - 10;
+    let x2 = width * 0.5 + 10;
+    ctx.beginPath();
+    ctx.moveTo(x1, y);
+    ctx.lineTo(x2, y - 40);
+    ctx.stroke();
+  }
+  ctx.restore();
+}
+
+// Buildings
+function drawBuildings() {
+  for (let i = 0; i < 8; i++) {
+    // Left side
+    ctx.fillStyle = i % 2 === 0 ? "#b0b0b0" : "#e0e0e0";
+    ctx.fillRect(width * 0.15, height - i * 150 - 250, 60, 120);
+
+    // Windows
+    ctx.fillStyle = "#a0d4e0";
+    for (let w = 0; w < 5; w++) {
+      for (let h = 0; h < 2; h++) {
+        ctx.fillRect(width * 0.15 + 10 + w * 8, height - i * 150 - 230 + h * 45, 6, 16);
+      }
+    }
+
+    // Right side
+    ctx.fillStyle = i % 2 === 0 ? "#b0b0b0" : "#e0e0e0";
+    ctx.fillRect(width * 0.85 - 60, height - i * 150 - 250, 60, 120);
+
+    // Windows
+    ctx.fillStyle = "#a0d4e0";
+    for (let w = 0; w < 5; w++) {
+      for (let h = 0; h < 2; h++) {
+        ctx.fillRect(width * 0.85 - 50 + w * 8, height - i * 150 - 230 + h * 45, 6, 16);
+      }
+    }
+  }
+}
+
+// Trees
+function drawTrees() {
+  for (let i = 0; i < 16; i++) {
+    // Left side
+    let x = width * 0.25 - 30;
+    let y = height - i * 90 - 120;
+    ctx.fillStyle = "#8B5A2B"; // Brown trunk
+    ctx.fillRect(x, y, 8, 30);
+    ctx.beginPath();
+    ctx.arc(x + 4, y, 24, 0, Math.PI * 2);
+    ctx.fillStyle = "#228B22"; // Green leaves
+    ctx.fill();
+
+    // Right side
+    x = width * 0.75 + 22;
+    ctx.fillStyle = "#8B5A2B";
+    ctx.fillRect(x, y, 8, 30);
+    ctx.beginPath();
+    ctx.arc(x + 4, y, 24, 0, Math.PI * 2);
+    ctx.fillStyle = "#228B22";
+    ctx.fill();
+  }
+}
+
+// Draw a car (simple car shape)
+function drawCar(x, y, color = "#f00", scale = 1) {
+  ctx.save();
+  ctx.translate(x, y);
+  ctx.scale(scale, scale);
+
+  // Car body
+  ctx.fillStyle = color;
+  ctx.fillRect(-25, -15, 50, 30);
+
+  // Car roof
+  ctx.fillStyle = "#fff";
+  ctx.fillRect(-15, -25, 30, 15);
+
+  // Car windows
+  ctx.fillStyle = "#a0d4e0";
+  ctx.fillRect(-12, -23, 12, 10);
+  ctx.fillRect(0, -23, 12, 10);
+
+  // Wheels
+  ctx.fillStyle = "#222";
+  ctx.beginPath(); ctx.arc(-18, 17, 7, 0, Math.PI * 2); ctx.fill();
+  ctx.beginPath(); ctx.arc(18, 17, 7, 0, Math.PI * 2); ctx.fill();
+  ctx.beginPath(); ctx.arc(-18, -17, 7, 0, Math.PI * 2); ctx.fill();
+  ctx.beginPath(); ctx.arc(18, -17, 7, 0, Math.PI * 2); ctx.fill();
+
+  ctx.restore();
+}
+
+// Draw enemy cars (other cars)
+function drawEnemyCars() {
+  let positions = [
+    [width * 0.48, height * 0.4, "#0ff"],
+    [width * 0.52, height * 0.6, "#ff0"],
+    [width * 0.47, height * 0.7, "#0f0"],
+    [width * 0.53, height * 0.8, "#00f"],
+  ];
+  positions.forEach(([x, y, color]) => {
+    drawCar(x, y, color, 0.8);
   });
 }
 
-function spawnCars() {
-  cars = [];
-  for (let i = 10; i < NUM_SEGMENTS; i += 20) {
-    cars.push({
-      x: (Math.random() - 0.5) * ROAD_WIDTH * 0.8,
-      z: i * SEGMENT_LENGTH + 100,
-      passed: false
-    });
-  }
+// Game render loop
+function render() {
+  drawSky();
+  drawBuildings();
+  drawTrees();
+  drawRoad();
+  drawEnemyCars();
+  // Player's car
+  drawCar(width * 0.5, height * 0.85, "#d00", 1.1);
+  requestAnimationFrame(render);
 }
 
-// Project world point to screen
-function project(x, y, z, cameraX, cameraY, cameraZ) {
-  let dz = z - cameraZ;
-  if (dz <= 0.1) dz = 0.1;
-  let scale = CAMERA_DIST / dz;
-  let sx = W / 2 + (x - cameraX) * scale;
-  let sy = H / 2 - (y - cameraY) * scale;
-  return { x: sx, y: sy, scale };
-}
-
-// Draw road and cars
-function drawScene(playerZ) {
-  ctx.clearRect(0, 0, W, H);
-
-  // Draw road segments (from farthest to nearest)
-  for (let n = NUM_SEGMENTS - 1; n > 0; n--) {
-    let seg = road[n];
-    let segNext = road[n-1];
-
-    // World coordinates
-    let x1 = 0, y1 = seg.y, z1 = seg.z - playerZ;
-    let x2 = 0, y2 = segNext.y, z2 = segNext.z - playerZ;
-
-    // Left/right road edges
-    let left1 = project(-ROAD_WIDTH/2, y1, z1, playerX, CAMERA_HEIGHT, 0);
-    let right1 = project(ROAD_WIDTH/2, y1, z1, playerX, CAMERA_HEIGHT, 0);
-    let left2 = project(-ROAD_WIDTH/2, y2, z2, playerX, CAMERA_HEIGHT, 0);
-    let right2 = project(ROAD_WIDTH/2, y2, z2, playerX, CAMERA_HEIGHT, 0);
-
-    // Draw road
-    ctx.beginPath();
-    ctx.moveTo(left1.x, left1.y);
-    ctx.lineTo(right1.x, right1.y);
-    ctx.lineTo(right2.x, right2.y);
-    ctx.lineTo(left2.x, left2.y);
-    ctx.closePath();
-    ctx.fillStyle = n % 2 === 0 ? "#444" : "#555";
-    ctx.fill();
-
-    // Lane markings
-    if (n % 20 === 0) {
-      ctx.beginPath();
-      ctx.moveTo(W / 2, (left1.y + right1.y) / 2);
-      ctx.lineTo(W / 2, (left2.y + right2.y) / 2);
-      ctx.strokeStyle = "#fff";
-      ctx.lineWidth = 2;
-      ctx.stroke();
-    }
-  }
-
-  // Draw other cars
-  for (let car of cars) {
-    let carZ = car.z - playerZ;
-    if (carZ < 0) continue;
-
-    let carProj = project(car.x, 0, carZ, playerX, CAMERA_HEIGHT, 0);
-    let carW = 80 * carProj.scale, carH = 120 * carProj.scale;
-    ctx.fillStyle = "#ff3333";
-    ctx.fillRect(carProj.x - carW / 2, carProj.y - carH, carW, carH);
-
-    // Mark cars already overtaken
-    if (playerZ > car.z && !car.passed) {
-      car.passed = true;
-    }
-  }
-
-  // Draw player car
-  ctx.fillStyle = "#33ff66";
-  ctx.fillRect(W/2 - 50, H*0.8, 100, 160);
-
-  // UI: show overtaken count
-  let overtaken = cars.filter(c => c.passed).length;
-  ctx.fillStyle = "#fff";
-  ctx.font = "32px sans-serif";
-  ctx.fillText(`Cars overtaken: ${overtaken}/${cars.length}`, 30, 60);
-}
-
-// Game loop
-let lastTime = 0, playerZ = 0;
-function gameLoop(ts) {
-  let dt = (ts - lastTime) / 1000;
-  lastTime = ts;
-  if (isNaN(dt)) dt = 0.016;
-
-  // Move player
-  if (keys.left) playerX -= 600 * dt;
-  if (keys.right) playerX += 600 * dt;
-  playerX = Math.max(-ROAD_WIDTH/2 + 100, Math.min(ROAD_WIDTH/2 - 100, playerX));
-
-  playerZ += playerSpeed * dt;
-
-  // Move cars forward (simulate them moving slower than player)
-  for (let car of cars) {
-    if (car.z < playerZ - 200) {
-      // Respawn car ahead
-      car.z += NUM_SEGMENTS * SEGMENT_LENGTH;
-      car.x = (Math.random() - 0.5) * ROAD_WIDTH * 0.8;
-      car.passed = false;
-    }
-  }
-
-  drawScene(playerZ);
-
-  requestAnimationFrame(gameLoop);
-}
-
-// Controls
-window.addEventListener('keydown', e => {
-  if (e.key === "ArrowLeft") keys.left = true;
-  if (e.key === "ArrowRight") keys.right = true;
-});
-window.addEventListener('keyup', e => {
-  if (e.key === "ArrowLeft") keys.left = false;
-  if (e.key === "ArrowRight") keys.right = false;
-});
-window.addEventListener('resize', () => {
-  W = window.innerWidth; H = window.innerHeight;
-  canvas.width = W; canvas.height = H;
-});
-
-// Start
-spawnCars();
-requestAnimationFrame(gameLoop);
+render();
 </script>
 </body>
 </html>
