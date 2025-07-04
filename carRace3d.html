@@ -83,18 +83,27 @@ light.position.set(0, 20, 15);
 scene.add(light);
 scene.add(new THREE.AmbientLight(0xf3e5ab, 0.7));
 
-// Track
-function createTrack() {
-  let mat = new THREE.MeshPhongMaterial({color:0x444444});
-  let geo = new THREE.BoxGeometry(16,0.6,300);
+// --- Begin Endless Black Road ---
+let roadSegments = [];
+const ROAD_WIDTH = 12; // Reduced width
+const ROAD_LENGTH = 100;
+const NUM_ROAD_SEGMENTS = 4;
+
+function createRoadSegment(zPos) {
+  let mat = new THREE.MeshPhongMaterial({color:0x000000}); // pure black
+  let geo = new THREE.BoxGeometry(ROAD_WIDTH, 0.6, ROAD_LENGTH);
   let mesh = new THREE.Mesh(geo, mat);
-  mesh.position.set(0,-0.6,150);
+  mesh.position.set(0, -0.6, zPos);
   scene.add(mesh);
   return mesh;
 }
-let track = createTrack();
+for(let i=0; i<NUM_ROAD_SEGMENTS; i++) {
+  let seg = createRoadSegment(i * ROAD_LENGTH);
+  roadSegments.push(seg);
+}
+// --- End Endless Black Road ---
 
-// Lane markers
+// Lane markers (no change)
 for(let i=0; i<30; i++) {
   let geo = new THREE.BoxGeometry(0.3,0.05,4);
   let mat = new THREE.MeshPhongMaterial({color:0xffffff});
@@ -237,6 +246,16 @@ function recycleObject(obj, range = 300) {
   }
 }
 
+// --- Endless Road Recycle Logic ---
+function recycleRoadSegments() {
+  roadSegments.forEach(seg => {
+    if(seg.position.z + ROAD_LENGTH < player.position.z - 10) {
+      seg.position.z += NUM_ROAD_SEGMENTS * ROAD_LENGTH;
+    }
+  });
+}
+// --- End Road Recycle Logic ---
+
 // Main loop
 function animate() {
   // Player movement
@@ -282,6 +301,9 @@ function animate() {
   // Endless decorations
   decorations.forEach(obj=>recycleObject(obj, 300));
   buildings.forEach(obj=>recycleObject(obj, 300));
+
+  // --- Recycle Road Segments ---
+  recycleRoadSegments();
 
   // Score
   scoreDiv.innerText = "Distance: " + distance + " m";
