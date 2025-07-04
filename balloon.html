@@ -92,25 +92,31 @@
     let gunX = canvas.width / 2;
     let balloonY = 100;
     let balloonX = canvas.width / 2;
-    function gameLoop() {
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-      // draw gun
-      ctx.save();
-      ctx.fillStyle = "#2e8cff";
-      ctx.beginPath();
-      ctx.ellipse(gunX, gunY, 50, 25, 0, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.restore();
-      // draw balloon
-      ctx.save();
-      ctx.fillStyle = "#e57373";
-      ctx.beginPath();
-      ctx.arc(balloonX, balloonY, 40, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.restore();
+   let balloonY = canvas.height - 100; // Start at the bottom
 
-      requestAnimationFrame(gameLoop);
-    }
+function gameLoop() {
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  // draw gun
+  ctx.save();
+  ctx.fillStyle = "#2e8cff";
+  ctx.beginPath();
+  ctx.ellipse(gunX, gunY, 50, 25, 0, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.restore();
+  // draw balloon
+  ctx.save();
+  ctx.fillStyle = "#e57373";
+  ctx.beginPath();
+  ctx.arc(balloonX, balloonY, 40, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.restore();
+
+  // Move balloon up
+  balloonY -= 2;
+  if (balloonY < -40) balloonY = canvas.height + 40; // Reset to bottom
+
+  requestAnimationFrame(gameLoop);
+}
     gameLoop();
   </script>
 </body>
