@@ -85,12 +85,12 @@ scene.add(new THREE.AmbientLight(0xf3e5ab, 0.7));
 
 // --- Begin Endless Black Road ---
 let roadSegments = [];
-const ROAD_WIDTH = 12; // Reduced width
+const ROAD_WIDTH = 12;
 const ROAD_LENGTH = 100;
 const NUM_ROAD_SEGMENTS = 4;
 
 function createRoadSegment(zPos) {
-  let mat = new THREE.MeshPhongMaterial({color:0x000000}); // pure black
+  let mat = new THREE.MeshPhongMaterial({color:0x000000});
   let geo = new THREE.BoxGeometry(ROAD_WIDTH, 0.6, ROAD_LENGTH);
   let mesh = new THREE.Mesh(geo, mat);
   mesh.position.set(0, -0.6, zPos);
@@ -103,13 +103,16 @@ for(let i=0; i<NUM_ROAD_SEGMENTS; i++) {
 }
 // --- End Endless Black Road ---
 
-// Lane markers (no change)
-for(let i=0; i<30; i++) {
+// Lane markers (now endless)
+let laneMarkers = [];
+const NUM_LANE_MARKERS = 30;
+for(let i=0; i<NUM_LANE_MARKERS; i++) {
   let geo = new THREE.BoxGeometry(0.3,0.05,4);
   let mat = new THREE.MeshPhongMaterial({color:0xffffff});
   let mesh = new THREE.Mesh(geo, mat);
   mesh.position.set(0,0.1,i*10+5);
   scene.add(mesh);
+  laneMarkers.push(mesh);
 }
 
 // Simple car model
@@ -138,7 +141,7 @@ let player = createCar(0x1976d2, 0,true);
 player.position.z = 6;
 scene.add(player);
 
-// AI cars - more opponents!
+// AI cars
 let aiCars = [];
 const aiColors = [0xd32f2f, 0x388e3c, 0xfbc02d, 0x6d4c41, 0x1976d2, 0x7b1fa2, 0xff5722];
 for(let i=0;i<7;i++) {
@@ -256,6 +259,15 @@ function recycleRoadSegments() {
 }
 // --- End Road Recycle Logic ---
 
+// Recycle lane markers
+function recycleLaneMarkers() {
+  laneMarkers.forEach(marker => {
+    if(marker.position.z < player.position.z - 10) {
+      marker.position.z += NUM_LANE_MARKERS * 10;
+    }
+  });
+}
+
 // Main loop
 function animate() {
   // Player movement
@@ -304,6 +316,9 @@ function animate() {
 
   // --- Recycle Road Segments ---
   recycleRoadSegments();
+
+  // --- Recycle Lane Markers ---
+  recycleLaneMarkers();
 
   // Score
   scoreDiv.innerText = "Distance: " + distance + " m";
