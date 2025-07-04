@@ -3,22 +3,45 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Balloon Shooting Game</title>
+    <title>Balloon Pop Game</title>
     <style>
+        html, body {
+            height: 100%;
+            margin: 0;
+            padding: 0;
+        }
         body {
+            width: 100vw;
+            height: 100vh;
+            overflow: hidden;
             display: flex;
             flex-direction: column;
             align-items: center;
-            font-family: Arial, sans-serif;
+            justify-content: flex-start;
             background-color: #f0f0f0;
         }
-        #gameCanvas {
-            border: 2px solid #333;
-            background-color: #87CEEB;
+        #gameContainer {
+            width: 100vw;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: flex-start;
         }
         #score {
             font-size: 24px;
             margin: 10px 0;
+            color: #333;
+            z-index: 2;
+            background: rgba(255,255,255,0.7);
+            border-radius: 6px;
+            padding: 4px 10px;
+        }
+        #gameCanvas {
+            display: block;
+            background-color: #87CEEB;
+            border: 2px solid #333;
+            touch-action: none; /* Prevent scrolling on swipe */
         }
         #startButton {
             padding: 10px 20px;
@@ -28,6 +51,8 @@
             color: white;
             border: none;
             border-radius: 5px;
+            margin: 10px 0;
+            z-index: 2;
         }
         #startButton:hover {
             background-color: #45a049;
@@ -35,38 +60,48 @@
     </style>
 </head>
 <body>
-    <h1>Balloon Shooting Game</h1>
-    <div id="score">Score: 0</div>
-    <canvas id="gameCanvas" width="800" height="600"></canvas>
-    <button id="startButton" onclick="startGame()">Start Game</button>
-
+    <div id="gameContainer">
+        <div id="score">Score: 0</div>
+        <canvas id="gameCanvas"></canvas>
+        <button id="startButton" onclick="startGame()">Start Game</button>
+    </div>
     <script>
         const canvas = document.getElementById('gameCanvas');
         const ctx = canvas.getContext('2d');
         const scoreDisplay = document.getElementById('score');
-
+        const startButton = document.getElementById('startButton');
         let score = 0;
         let balloons = [];
         let particles = [];
         let gameRunning = false;
         let animationFrameId;
+        let balloonIntervalId;
 
-        // Load sound effect
-        const popSound = new Audio('https://www.soundjay.com/buttons/sounds/button-30.mp3'); // Public domain pop sound
+        // Sound effect
+        const popSound = new Audio('https://www.soundjay.com/buttons/sounds/button-30.mp3');
         popSound.preload = 'auto';
 
-        // Balloon object constructor
+        // Responsive canvas
+        function resizeCanvas() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight - scoreDisplay.offsetHeight - startButton.offsetHeight - 20;
+        }
+        window.addEventListener('resize', () => {
+            resizeCanvas();
+            if (!gameRunning) drawInitialMessage();
+        });
+        resizeCanvas();
+
+        // Balloon object
         class Balloon {
             constructor() {
-                this.x = Math.random() * (canvas.width - 50);
-                this.y = canvas.height;
-                this.radius = 25;
+                this.radius = Math.max(canvas.width, canvas.height) * 0.03 + 20;
+                this.x = this.radius + Math.random() * (canvas.width - 2 * this.radius);
+                this.y = canvas.height + this.radius;
                 this.color = `hsl(${Math.random() * 360}, 70%, 50%)`;
-                this.speed = Math.random() * 3 + 1;
+                this.speed = Math.random() * 2 + 1 + canvas.height/500;
             }
-
             draw() {
-                // Simulate 3D effect with radial gradient and shadow
                 const gradient = ctx.createRadialGradient(
                     this.x - this.radius * 0.5,
                     this.y - this.radius * 0.5,
@@ -77,13 +112,11 @@
                 );
                 gradient.addColorStop(0, '#fff');
                 gradient.addColorStop(1, this.color);
-
                 ctx.save();
                 ctx.shadowColor = 'rgba(0, 0, 0, 0.5)';
                 ctx.shadowBlur = 10;
                 ctx.shadowOffsetX = 5;
                 ctx.shadowOffsetY = 5;
-
                 ctx.beginPath();
                 ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
                 ctx.fillStyle = gradient;
@@ -97,16 +130,14 @@
                 ctx.strokeStyle = '#000';
                 ctx.stroke();
                 ctx.closePath();
-
                 ctx.restore();
             }
-
             update() {
                 this.y -= this.speed;
             }
         }
 
-        // Particle for pop animation
+        // Pop particles
         class Particle {
             constructor(x, y, color) {
                 this.x = x;
@@ -117,7 +148,6 @@
                 this.vy = (Math.random() - 0.5) * 8;
                 this.life = 20;
             }
-
             draw() {
                 ctx.beginPath();
                 ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
@@ -126,7 +156,6 @@
                 ctx.fill();
                 ctx.closePath();
             }
-
             update() {
                 this.x += this.vx;
                 this.y += this.vy;
@@ -134,97 +163,131 @@
             }
         }
 
-        // Spawn new balloons
         function spawnBalloon() {
-            if (gameRunning) {
-                balloons.push(new Balloon());
-            }
+            if (gameRunning) balloons.push(new Balloon());
         }
 
-        // Update game state
         function updateGame() {
             ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-            // Update and draw balloons
+            // Balloons
             balloons = balloons.filter(balloon => balloon.y + balloon.radius > 0);
             balloons.forEach(balloon => {
                 balloon.update();
                 balloon.draw();
             });
-
-            // Update and draw particles
+            // Particles
             particles = particles.filter(particle => particle.life > 0);
             particles.forEach(particle => {
                 particle.update();
                 particle.draw();
             });
-            ctx.globalAlpha = 1; // Reset alpha
-
-            if (gameRunning) {
-                animationFrameId = requestAnimationFrame(updateGame);
-            }
+            ctx.globalAlpha = 1;
+            if (gameRunning) animationFrameId = requestAnimationFrame(updateGame);
         }
 
-        // Handle balloon popping
-        function handleClick(event) {
-            if (!gameRunning) return;
-
-            const rect = canvas.getBoundingClientRect();
-            const mouseX = event.clientX - rect.left;
-            const mouseY = event.clientY - rect.top;
-
+        // Pop logic (shared by click, swipe, mouseover)
+        function popAt(x, y) {
+            let popped = false;
             balloons = balloons.filter(balloon => {
-                const distance = Math.sqrt((mouseX - balloon.x) ** 2 + (mouseY - balloon.y) ** 2);
-                if (distance < balloon.radius) {
-                    // Play sound
-                    popSound.currentTime = 0; // Reset sound
-                    popSound.play().catch(err => console.log('Sound error:', err));
-
-                    // Create particles
+                const distance = Math.sqrt((x - balloon.x) ** 2 + (y - balloon.y) ** 2);
+                if (!popped && distance < balloon.radius) {
+                    popSound.currentTime = 0;
+                    popSound.play().catch(()=>{});
                     for (let i = 0; i < 10; i++) {
                         particles.push(new Particle(balloon.x, balloon.y, balloon.color));
                     }
-
                     score += 10;
                     scoreDisplay.textContent = `Score: ${score}`;
-                    return false; // Remove balloon
+                    popped = true;
+                    return false;
                 }
                 return true;
             });
+            return popped;
         }
+        // Mouse click
+        canvas.addEventListener('click', (event) => {
+            if (!gameRunning) return;
+            const rect = canvas.getBoundingClientRect();
+            const mouseX = event.clientX - rect.left;
+            const mouseY = event.clientY - rect.top;
+            popAt(mouseX, mouseY);
+        });
 
-        // Start the game
-        function startGame() {
-            if (!gameRunning) {
-                gameRunning = true;
-                score = 0;
-                scoreDisplay.textContent = `Score: ${score}`;
-                balloons = [];
-                particles = [];
-                cancelAnimationFrame(animationFrameId);
-                updateGame();
-                setInterval(spawnBalloon, 1000);
-                document.getElementById('startButton').textContent = 'Restart Game';
-            } else {
-                // Restart the game
-                gameRunning = false;
-                cancelAnimationFrame(animationFrameId);
-                balloons = [];
-                particles = [];
-                score = 0;
-                scoreDisplay.textContent = `Score: ${score}`;
-                gameRunning = true;
-                updateGame();
-                setTimeout(() => setInterval(spawnBalloon, 1000), 1000);
+        // Mouseover pop
+        canvas.addEventListener('mousemove', (event) => {
+            if (!gameRunning) return;
+            const rect = canvas.getBoundingClientRect();
+            const mouseX = event.clientX - rect.left;
+            const mouseY = event.clientY - rect.top;
+            popAt(mouseX, mouseY);
+        });
+
+        // Swipe logic
+        let lastTouch = null, lastPopBalloon = -1;
+        canvas.addEventListener('touchstart', e => {
+            if (!gameRunning) return;
+            if (e.touches.length === 1) {
+                const rect = canvas.getBoundingClientRect();
+                lastTouch = {
+                    x: e.touches[0].clientX - rect.left,
+                    y: e.touches[0].clientY - rect.top
+                };
             }
+        });
+        canvas.addEventListener('touchmove', e => {
+            if (!gameRunning || !lastTouch) return;
+            e.preventDefault();
+            const rect = canvas.getBoundingClientRect();
+            const curr = {
+                x: e.touches[0].clientX - rect.left,
+                y: e.touches[0].clientY - rect.top
+            };
+            // Check for intersection along the swipe path
+            balloons.forEach((balloon, index) => {
+                if (index === lastPopBalloon) return;
+                // Line segment-balloon intersection approximation
+                let bx = balloon.x, by = balloon.y, r = balloon.radius;
+                let dx = curr.x - lastTouch.x, dy = curr.y - lastTouch.y;
+                let t = ((bx - lastTouch.x)*dx + (by - lastTouch.y)*dy) / (dx*dx + dy*dy);
+                t = Math.max(0, Math.min(1, t));
+                let closestX = lastTouch.x + t * dx, closestY = lastTouch.y + t * dy;
+                let dist = Math.sqrt((bx - closestX) ** 2 + (by - closestY) ** 2);
+                if (dist < r) {
+                    lastPopBalloon = index;
+                    popAt(bx, by);
+                }
+            });
+            lastTouch = curr;
+        });
+        canvas.addEventListener('touchend', e => {
+            lastTouch = null;
+            setTimeout(()=>{lastPopBalloon = -1}, 100); // Prevents double-pop on quick swipes
+        });
+
+        function startGame() {
+            if (gameRunning) {
+                cancelAnimationFrame(animationFrameId);
+                clearInterval(balloonIntervalId);
+            }
+            score = 0;
+            scoreDisplay.textContent = `Score: ${score}`;
+            balloons = [];
+            particles = [];
+            gameRunning = true;
+            updateGame();
+            balloonIntervalId = setInterval(spawnBalloon, 1000);
+            startButton.textContent = 'Restart Game';
         }
 
-        // Add click event listener to canvas
-        canvas.addEventListener('click', handleClick);
-
-        // Initial message
-        ctx.font = '30px Arial';
-        ctx.fillText('Click Start Game to begin!', canvas.width / 2 - 150, canvas.height / 2);
+        function drawInitialMessage() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            ctx.font = '30px Arial';
+            ctx.fillStyle = '#222';
+            ctx.textAlign = 'center';
+            ctx.fillText('Click or tap Start Game to begin!', canvas.width / 2, canvas.height / 2);
+        }
+        drawInitialMessage();
     </script>
 </body>
 </html>
