@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>3D Racing Game Prototype</title>
+  <style>
+    body { margin: 0; overflow: hidden; background: #222; }
+    canvas { display: block; background: #222; }
+    #info { position: absolute; top: 10px; left: 10px; color: #fff; font-family: sans-serif; }
+  </style>
+</head>
+<body>
+<div id="info">Use ← → to steer. Overtake the cars!</div>
+<canvas id="game"></canvas>
+<script>
+const canvas = document.getElementById('game');
+const ctx = canvas.getContext('2d');
+let W = window.innerWidth, H = window.innerHeight;
+canvas.width = W; canvas.height = H;
+
+// Game constants
+const ROAD_WIDTH = 2000;   // World units
+const CAMERA_HEIGHT = 1000;
+const CAMERA_DIST = 2000;
+const PLAYER_Z = 0;
+const SEGMENT_LENGTH = 200;
+const NUM_SEGMENTS = 200;
+const FIELD_OF_VIEW = Math.PI / 4;
+
+// Player state
+let playerX = 0, playerSpeed = 200, maxSpeed = 400;
+let keys = { left: false, right: false };
+
+// Road and cars
+let road = [];
+let cars = [];
+
+// Generate a simple straight road
+for (let i = 0; i < NUM_SEGMENTS; i++) {
+  road.push({
+    index: i,
+    curve: 0,
+    y: 0,
+    z: i * SEGMENT_LENGTH
+  });
+}
+
+function spawnCars() {
+  cars = [];
+  for (let i = 10; i < NUM_SEGMENTS; i += 20) {
+    cars.push({
+      x: (Math.random() - 0.5) * ROAD_WIDTH * 0.8,
+      z: i * SEGMENT_LENGTH + 100,
+      passed: false
+    });
+  }
+}
+
+// Project world point to screen
+function project(x, y, z, cameraX, cameraY, cameraZ) {
+  let dz = z - cameraZ;
+  if (dz <= 0.1) dz = 0.1;
+  let scale = CAMERA_DIST / dz;
+  let sx = W / 2 + (x - cameraX) * scale;
+  let sy = H / 2 - (y - cameraY) * scale;
+  return { x: sx, y: sy, scale };
+}
+
+// Draw road and cars
+function drawScene(playerZ) {
+  ctx.clearRect(0, 0, W, H);
+
+  // Draw road segments (from farthest to nearest)
+  for (let n = NUM_SEGMENTS - 1; n > 0; n--) {
+    let seg = road[n];
+    let segNext = road[n-1];
+
+    // World coordinates
+    let x1 = 0, y1 = seg.y, z1 = seg.z - playerZ;
+    let x2 = 0, y2 = segNext.y, z2 = segNext.z - playerZ;
+
+    // Left/right road edges
+    let left1 = project(-ROAD_WIDTH/2, y1, z1, playerX, CAMERA_HEIGHT, 0);
+    let right1 = project(ROAD_WIDTH/2, y1, z1, playerX, CAMERA_HEIGHT, 0);
+    let left2 = project(-ROAD_WIDTH/2, y2, z2, playerX, CAMERA_HEIGHT, 0);
+    let right2 = project(ROAD_WIDTH/2, y2, z2, playerX, CAMERA_HEIGHT, 0);
+
+    // Draw road
+    ctx.beginPath();
+    ctx.moveTo(left1.x, left1.y);
+    ctx.lineTo(right1.x, right1.y);
+    ctx.lineTo(right2.x, right2.y);
+    ctx.lineTo(left2.x, left2.y);
+    ctx.closePath();
+    ctx.fillStyle = n % 2 === 0 ? "#444" : "#555";
+    ctx.fill();
+
+    // Lane markings
+    if (n % 20 === 0) {
+      ctx.beginPath();
+      ctx.moveTo(W / 2, (left1.y + right1.y) / 2);
+      ctx.lineTo(W / 2, (left2.y + right2.y) / 2);
+      ctx.strokeStyle = "#fff";
+      ctx.lineWidth = 2;
+      ctx.stroke();
+    }
+  }
+
+  // Draw other cars
+  for (let car of cars) {
+    let carZ = car.z - playerZ;
+    if (carZ < 0) continue;
+
+    let carProj = project(car.x, 0, carZ, playerX, CAMERA_HEIGHT, 0);
+    let carW = 80 * carProj.scale, carH = 120 * carProj.scale;
+    ctx.fillStyle = "#ff3333";
+    ctx.fillRect(carProj.x - carW / 2, carProj.y - carH, carW, carH);
+
+    // Mark cars already overtaken
+    if (playerZ > car.z && !car.passed) {
+      car.passed = true;
+    }
+  }
+
+  // Draw player car
+  ctx.fillStyle = "#33ff66";
+  ctx.fillRect(W/2 - 50, H*0.8, 100, 160);
+
+  // UI: show overtaken count
+  let overtaken = cars.filter(c => c.passed).length;
+  ctx.fillStyle = "#fff";
+  ctx.font = "32px sans-serif";
+  ctx.fillText(`Cars overtaken: ${overtaken}/${cars.length}`, 30, 60);
+}
+
+// Game loop
+let lastTime = 0, playerZ = 0;
+function gameLoop(ts) {
+  let dt = (ts - lastTime) / 1000;
+  lastTime = ts;
+  if (isNaN(dt)) dt = 0.016;
+
+  // Move player
+  if (keys.left) playerX -= 600 * dt;
+  if (keys.right) playerX += 600 * dt;
+  playerX = Math.max(-ROAD_WIDTH/2 + 100, Math.min(ROAD_WIDTH/2 - 100, playerX));
+
+  playerZ += playerSpeed * dt;
+
+  // Move cars forward (simulate them moving slower than player)
+  for (let car of cars) {
+    if (car.z < playerZ - 200) {
+      // Respawn car ahead
+      car.z += NUM_SEGMENTS * SEGMENT_LENGTH;
+      car.x = (Math.random() - 0.5) * ROAD_WIDTH * 0.8;
+      car.passed = false;
+    }
+  }
+
+  drawScene(playerZ);
+
+  requestAnimationFrame(gameLoop);
+}
+
+// Controls
+window.addEventListener('keydown', e => {
+  if (e.key === "ArrowLeft") keys.left = true;
+  if (e.key === "ArrowRight") keys.right = true;
+});
+window.addEventListener('keyup', e => {
+  if (e.key === "ArrowLeft") keys.left = false;
+  if (e.key === "ArrowRight") keys.right = false;
+});
+window.addEventListener('resize', () => {
+  W = window.innerWidth; H = window.innerHeight;
+  canvas.width = W; canvas.height = H;
+});
+
+// Start
+spawnCars();
+requestAnimationFrame(gameLoop);
+</script>
+</body>
+</html>
