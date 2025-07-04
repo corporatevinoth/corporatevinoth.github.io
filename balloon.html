@@ -142,6 +142,7 @@
         shootSound.volume = 0.6;
         explosionSound.volume = 0.7;
         congratsSound.volume = 0.8;
+        // Attempt to play and immediately pause to enable audio context
         shootSound.play().catch(()=>{});
         shootSound.pause();
         explosionSound.play().catch(()=>{});
@@ -151,6 +152,7 @@
         soundEnabled = true;
       }
     }
+    // Listen for any user interaction to enable sound
     window.addEventListener('touchstart', enableSoundOnce, { once: true });
     window.addEventListener('mousedown', enableSoundOnce, { once: true });
     window.addEventListener('keydown', enableSoundOnce, { once: true });
@@ -188,12 +190,12 @@
       helicopter.speed = unit * 0.5;
       helicopter.width = unit * 2;
       helicopter.height = unit;
-      bulletSpeed = unit * 1.5; // Corrected: Initialized here
-      bulletSize = unit * 0.2; // Corrected: Initialized here
-      regularBalloonSize = unit * 1.5; // Corrected: Initialized here
-      maxBigBalloonSize = unit * 3.5; // Corrected: Initialized here
-      minBigBalloonSize = unit * 2; // Corrected: Initialized here
-      balloonSpeed = unit * 0.3; // Corrected: Initialized here
+      bulletSpeed = unit * 1.5;
+      bulletSize = unit * 0.2;
+      regularBalloonSize = unit * 1.5;
+      maxBigBalloonSize = unit * 3.5;
+      minBigBalloonSize = unit * 2;
+      balloonSpeed = unit * 0.3;
     }
 
     // Shooting properties
@@ -207,18 +209,21 @@
 
     // Load images
     const balloonImg = new Image();
-    balloonImg.src = 'balloon.gif';
+    balloonImg.src = 'balloon.gif'; // IMPORTANT: Ensure this path is correct
+    balloonImg.onerror = () => console.error("Failed to load balloon.gif");
 
     const explosionImg = new Image();
-    explosionImg.src = 'explosion.gif';
+    explosionImg.src = 'explosion.gif'; // IMPORTANT: Ensure this path is correct
+    explosionImg.onerror = () => console.error("Failed to load explosion.gif");
 
     // Explosions array
     const explosions = [];
     const explosionDuration = 500; // ms
 
     let score = 0;
-    let isTouchingLeft = false;
-    let isTouchingRight = false;
+    // isTouchingLeft and isTouchingRight are not actively used for movement logic
+    // let isTouchingLeft = false;
+    // let isTouchingRight = false;
     const bullets = [];
 
     // For keyboard/gamepad/TV control
@@ -248,25 +253,30 @@
       if (milestone === 25) return 1;
       if (milestone === 50) return 2;
       if (milestone === 100) return 3;
-      return 4; // For milestones > 100
+      if (milestone === 200) return 4;
+      if (milestone === 400) return 0; // Cycle colors
+      if (milestone === 800) return 1;
+      return 2; // Default for very high scores
     }
 
     function getNextCongratsMilestone(current) {
       if (current < 10) return 10;
       if (current < 25) return 25;
       if (current < 50) return 50;
-      if (current < 100) return 100; // Corrected
-      if (current < 200) return 200; // Added for more stages
-      if (current < 400) return 400; // Added
-      if (current < 800) return 800; // Added
+      if (current < 100) return 100;
+      if (current < 200) return 200;
+      if (current < 400) return 400;
+      if (current < 800) return 800;
       return current * 2; // Doubles after 800
     }
 
+    // Simple collision detection for circles/ellipses
     function ellipseCollision(x1, y1, r1x, r1y, x2, y2, r2) {
-      // Approximate ellipse as circle for simplicity with r1x
+      // Approximate ellipse as circle for simplicity with larger radius (r1x)
       const dx = x1 - x2;
       const dy = y1 - y2;
       const distance = Math.sqrt(dx * dx + dy * dy);
+      // Using r1x as the "effective" radius for the helicopter's elliptical body
       return distance < r1x + r2;
     }
 
@@ -289,7 +299,7 @@
         const size = minBigBalloonSize + (maxBigBalloonSize - minBigBalloonSize) * ((which-1)/9);
         const x = Math.random() * (canvas.width - size) + size / 2;
         const y = -size;
-        balloons.push({ x, y, size, type: 'big', score: which, bigIndex: which, color: getBigBalloonColor(which - 1) }); // Added score: which
+        balloons.push({ x, y, size, type: 'big', score: which, bigIndex: which, color: getBigBalloonColor(which - 1) });
       } else { // regular balloon
         const size = regularBalloonSize;
         const x = Math.random() * (canvas.width - size) + size / 2;
@@ -345,7 +355,7 @@
           ctx.textAlign = "center";
           ctx.fillStyle = "#fff";
           ctx.fillText(balloon.bigIndex, balloon.x, balloon.y + balloon.size*0.12);
-        } else if (balloonImg.complete && balloonImg.naturalWidth !== 0 && balloon.type !== 'bonus') { // Added naturalWidth check
+        } else if (balloonImg.complete && balloonImg.naturalWidth !== 0 && balloon.type !== 'bonus') {
           ctx.drawImage(
             balloonImg,
             balloon.x - balloon.size / 2,
@@ -353,7 +363,7 @@
             balloon.size,
             balloon.size
           );
-        } else {
+        } else { // Fallback for images not loading or non-bonus type
           ctx.beginPath();
           ctx.arc(balloon.x, balloon.y, balloon.size / 2, 0, Math.PI * 2);
           ctx.fillStyle = balloon.type === 'bonus' ? "gold" : "red";
@@ -372,7 +382,7 @@
           const dx = bullet.x - balloon.x;
           const dy = bullet.y - balloon.y;
           const distance = Math.sqrt(dx * dx + dy * dy);
-          if (distance < balloon.size / 2) {
+          if (distance < balloon.size / 2) { // Bullet hits balloon
             explosions.push({
               x: balloon.x,
               y: balloon.y,
@@ -380,13 +390,13 @@
               size: balloon.size * 1.2
             });
             playExplosionSound();
-            bullets.splice(i, 1);
-            balloons.splice(j, 1);
-            score += balloon.score;
-            break;
+            bullets.splice(i, 1); // Remove bullet
+            balloons.splice(j, 1); // Remove balloon
+            score += balloon.score; // Update score
+            break; // Stop checking for more collisions with this bullet
           }
         }
-        if (bullet.y < 0) {
+        if (bullet.y < 0) { // Bullet goes off screen
           bullets.splice(i, 1);
         }
       }
@@ -404,7 +414,7 @@
         const alpha = 1 - elapsed / explosionDuration;
         ctx.save();
         ctx.globalAlpha = alpha;
-        if (explosionImg.complete && explosionImg.naturalWidth !== 0) { // Added naturalWidth check
+        if (explosionImg.complete && explosionImg.naturalWidth !== 0) {
           ctx.drawImage(
             explosionImg,
             explosion.x - explosion.size / 2,
@@ -412,7 +422,7 @@
             explosion.size,
             explosion.size
           );
-        } else {
+        } else { // Fallback if image not loaded
           ctx.beginPath();
           ctx.arc(explosion.x, explosion.y, explosion.size / 2, 0, Math.PI * 2);
           ctx.fillStyle = "white";
@@ -434,19 +444,22 @@
     function drawGunShape(x, y, width, height, color, isLeft) {
       ctx.save();
       ctx.translate(x, y);
-      if (isLeft) ctx.scale(-1, 1);
+      if (isLeft) ctx.scale(-1, 1); // Flip horizontally for right gun
       ctx.fillStyle = color;
       ctx.strokeStyle = "#222";
       ctx.lineWidth = 2.2;
+      // Main body (ellipse)
       ctx.beginPath();
       ctx.ellipse(0, 0, width/2, height/2, 0, 0, Math.PI*2);
       ctx.fill();
       ctx.stroke();
+      // Barrel
       ctx.beginPath();
       ctx.rect(-width*0.13, -height*0.8, width*0.26, height*0.8);
       ctx.fillStyle = "#bbb";
       ctx.fill();
       ctx.stroke();
+      // Handle
       ctx.beginPath();
       ctx.moveTo(width*0.2, height*0.15);
       ctx.lineTo(width*0.37, height*0.5);
@@ -459,11 +472,12 @@
     }
 
     function drawHelicopter() {
+      // Main helicopter body
       drawGunShape(helicopter.x, helicopter.y, helicopter.width, helicopter.height, "#2e8cff", false);
       if (doubleGun) {
-        let gap = helicopter.width*0.7;
-        drawGunShape(helicopter.x-gap, helicopter.y, helicopter.width, helicopter.height, "#2e8cff", false);
-        drawGunShape(helicopter.x+gap, helicopter.y, helicopter.width, helicopter.height, "#2e8cff", true);
+        let gap = helicopter.width*0.7; // Gap between guns
+        drawGunShape(helicopter.x - gap, helicopter.y, helicopter.width, helicopter.height, "#2e8cff", false); // Left gun
+        drawGunShape(helicopter.x + gap, helicopter.y, helicopter.width, helicopter.height, "#2e8cff", true); // Right gun (flipped)
       }
     }
 
@@ -493,7 +507,7 @@
           bullets.push({
             x: helicopter.x + gap,
             y: helicopter.y - helicopter.height / 2,
-            vx: 0, // Corrected: was missing
+            vx: 0,
             vy: -bulletSpeed
           });
         } else {
@@ -504,7 +518,7 @@
             vy: -bulletSpeed
           });
         }
-        playShootSound(); // Added: Play sound when firing
+        playShootSound();
         lastFireTime = currentTime;
       }
     }
@@ -512,32 +526,38 @@
     function updateHelicopterMovement() {
       if (isLeftArrowPressed) {
         helicopter.x -= helicopter.speed;
+        // Keep helicopter within bounds
         if (helicopter.x < helicopter.width / 2) helicopter.x = helicopter.width / 2;
       }
       if (isRightArrowPressed) {
         helicopter.x += helicopter.speed;
+        // Keep helicopter within bounds
         if (helicopter.x > canvas.width - helicopter.width / 2) helicopter.x = canvas.width - helicopter.width / 2;
       }
-      if (moveToX !== null && !tvMode) { // ignore moveToX if in TV mode
+      if (moveToX !== null && !tvMode) { // ignore moveToX if in TV mode (keyboard/gamepad takes precedence)
         const dx = moveToX - helicopter.x;
         const absdx = Math.abs(dx);
         if (absdx < helicopter.speed) {
-          helicopter.x = moveToX;
+          helicopter.x = moveToX; // Snap to target if very close
           moveToX = null;
         } else {
-          helicopter.x += helicopter.speed * Math.sign(dx);
+          helicopter.x += helicopter.speed * Math.sign(dx); // Move towards target
         }
-        if (helicopter.x < helicopter.width / 2) helicopter.x = helicopter.width / 2; // Corrected: Was helicopter.width /-gap
+        // Ensure helicopter stays within canvas bounds after moving
+        if (helicopter.x < helicopter.width / 2) helicopter.x = helicopter.width / 2;
         if (helicopter.x > canvas.width - helicopter.width / 2) helicopter.x = canvas.width - helicopter.width / 2;
       }
     }
 
     function checkGunCollisionWithBalloon(balloon) {
+      // Check collision for the main helicopter body
       if (ellipseCollision(helicopter.x, helicopter.y, helicopter.width/2, helicopter.height/2, balloon.x, balloon.y, balloon.size/2)) return true;
       if (doubleGun) {
         let gap = helicopter.width*0.7;
-        if (ellipseCollision(helicopter.x-gap, helicopter.y, helicopter.width/2, helicopter.height/2, balloon.x, balloon.y, balloon.size/2)) return true;
-        if (ellipseCollision(helicopter.x+gap, helicopter.y, helicopter.width/2, helicopter.height/2, balloon.x, balloon.y, balloon.size/2)) return true;
+        // Check collision for the left additional gun
+        if (ellipseCollision(helicopter.x - gap, helicopter.y, helicopter.width/2, helicopter.height/2, balloon.x, balloon.y, balloon.size/2)) return true;
+        // Check collision for the right additional gun
+        if (ellipseCollision(helicopter.x + gap, helicopter.y, helicopter.width/2, helicopter.height/2, balloon.x, balloon.y, balloon.size/2)) return true;
       }
       return false;
     }
@@ -545,7 +565,7 @@
     // Touch and mouse input: IGNORE if TV mode is active!
     canvas.addEventListener('touchstart', (e) => {
       if (tvMode) return;
-      e.preventDefault();
+      e.preventDefault(); // Prevent default touch behavior (e.g., scrolling)
       if (e.touches.length > 0) {
         const touch = e.touches[0];
         moveToX = touch.clientX;
@@ -592,13 +612,13 @@
       resetGame();
     };
     exitBtn.onclick = () => {
-      window.location.href = "https://corporatevinoth.github.io/";
+      window.location.href = "https://corporatevinoth.github.io/"; // Redirect to your portfolio
     };
 
     function finishGame() {
       isGameOver = true;
       bannerScore.textContent = 'Score: ' + score;
-      banner.style.display = "flex";
+      banner.style.display = "flex"; // Show game over banner
     }
 
     function resetGame() {
@@ -611,8 +631,8 @@
       congratsBg.style.display = "none";
       if (congratsTimeoutId) clearTimeout(congratsTimeoutId);
       doubleGun = false;
-      nextCongrats = 10;
-      resizeCanvas();
+      nextCongrats = 10; // Reset milestone
+      resizeCanvas(); // Re-initialize canvas and helicopter position
       helicopter.x = canvas.width / 2;
       helicopter.y = canvas.height * 0.8;
       lastBalloonSpawnTime = Date.now();
@@ -621,8 +641,8 @@
 
     function playShootSound() {
       if (soundEnabled) {
-        shootSound.currentTime = 0; // Corrected: Was incomplete
-        shootSound.play().catch(()=>{});
+        shootSound.currentTime = 0; // Rewind to start
+        shootSound.play().catch(()=>{}); // Play, catch potential errors (e.g., not interacted yet)
       }
     }
     function playCongratsSound() {
@@ -633,54 +653,54 @@
     }
 
     function triggerCongratsAnimation(stage, milestone) {
-      if (congratsAnimationActive) return;
+      if (congratsAnimationActive) return; // Prevent multiple animations overlapping
       congratsAnimationActive = true;
       congratsBg.style.display = "block";
       playCongratsSound();
       startConfetti(stage, milestone);
 
       congratsTimeoutId = setTimeout(() => {
-        congratsBg.style.transition = "opacity 0.7s";
+        congratsBg.style.transition = "opacity 0.7s"; // Smooth fade out
         congratsBg.style.opacity = "0";
         setTimeout(() => {
           congratsBg.style.display = "none";
-          congratsBg.style.opacity = "1";
-          congratsBg.style.transition = "";
+          congratsBg.style.opacity = "1"; // Reset opacity for next time
+          congratsBg.style.transition = ""; // Remove transition
           congratsAnimationActive = false;
-        }, 700);
-      }, 2300);
+        }, 700); // Duration of the fade out
+      }, 2300); // How long the animation displays before fading
     }
 
     function startConfetti(stage, milestone) {
-      congratsBg.innerHTML = "";
+      congratsBg.innerHTML = ""; // Clear previous confetti if any
       const confettiCanvas = document.createElement('canvas');
       confettiCanvas.width = window.innerWidth;
       confettiCanvas.height = window.innerHeight;
       confettiCanvas.style.width = "100vw";
       confettiCanvas.style.height = "100vh";
-      confettiCanvas.style.pointerEvents = "none";
+      confettiCanvas.style.pointerEvents = "none"; // Allow clicks/touches to pass through
       congratsBg.appendChild(confettiCanvas);
       const cctx = confettiCanvas.getContext('2d');
 
       const colorSets = [
-        ["#FFD700", "#FFF700", "#FFD200"],
-        ["#7aef7c", "#0fd6e7", "#b0a8f7"],
-        ["#f96b6b", "#ffe066", "#f6a9f7"],
-        ["#fff", "#e0c3fc", "#8ec5fc"],
-        ["#ff8c00", "#876fff", "#ff6fd8"]
+        ["#FFD700", "#FFF700", "#FFD200"], // Gold/Yellow
+        ["#7aef7c", "#0fd6e7", "#b0a8f7"], // Green, Cyan, Purple
+        ["#f96b6b", "#ffe066", "#f6a9f7"], // Red, Orange, Pink
+        ["#fff", "#e0c3fc", "#8ec5fc"], // White, Light Purple, Light Blue
+        ["#ff8c00", "#876fff", "#ff6fd8"] // Dark Orange, Dark Purple, Dark Pink
       ];
       const colors = colorSets[stage % colorSets.length];
       let text = "Congrats!";
       if (milestone) text = `Congrats! ${milestone} points!`;
 
       const confetti = [];
-      for (let i = 0; i < 80 + 30 * stage; ++i) {
+      for (let i = 0; i < 80 + 30 * stage; ++i) { // More confetti for higher stages
         confetti.push({
           x: Math.random() * confettiCanvas.width,
-          y: Math.random() * -confettiCanvas.height,
+          y: Math.random() * -confettiCanvas.height, // Start above screen
           r: 6 + Math.random() * 8,
           color: colors[Math.floor(Math.random() * colors.length)],
-          speed: 2 + Math.random() * (2 + stage),
+          speed: 2 + Math.random() * (2 + stage), // Faster for higher stages
           tilt: Math.random() * 10,
           tiltAngle: Math.random() * Math.PI
         });
@@ -689,7 +709,7 @@
       let frame = 0;
       function animateConfetti() {
         cctx.clearRect(0, 0, confettiCanvas.width, confettiCanvas.height);
-        if (frame < 50) {
+        if (frame < 50) { // Show text for initial frames
           cctx.save();
           cctx.font = `${50 + 20*stage}px Arial Black, Arial, sans-serif`;
           cctx.textAlign = "center";
@@ -701,44 +721,46 @@
         }
 
         for (let i = 0; i < confetti.length; ++i) {
-          let p = confetti[i];
+          let p = confetti[i]; // Confetti particle
           cctx.save();
           cctx.beginPath();
+          // Draw elliptical confetti pieces, tilting as they fall
           cctx.ellipse(p.x, p.y, p.r, p.r * 0.6, p.tiltAngle, 0, Math.PI * 2);
           cctx.fillStyle = p.color;
           cctx.fill();
           cctx.restore();
 
           p.y += p.speed;
-          p.x += Math.sin(frame/10 + i) * 1.2;
-          p.tiltAngle += 0.1 * Math.sin(i + frame/15);
-          if (p.y > confettiCanvas.height + 20) {
+          p.x += Math.sin(frame/10 + i) * 1.2; // Add some horizontal wobble
+          p.tiltAngle += 0.1 * Math.sin(i + frame/15); // Make them spin
+          if (p.y > confettiCanvas.height + 20) { // Reset confetti if it falls off screen
             p.y = Math.random() * -40;
             p.x = Math.random() * confettiCanvas.width;
           }
         }
         frame++;
-        if (congratsAnimationActive) {
+        if (congratsAnimationActive) { // Continue animation if still active
           requestAnimationFrame(animateConfetti);
         }
       }
-      animateConfetti();
+      animateConfetti(); // Start the confetti animation
     }
 
     resizeCanvas(); // Initial call to set up canvas and units
 
     function gameLoop() {
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-      drawScore();
-      // updateUnits(); // No need to call this every frame, only on resize or game start
+      ctx.clearRect(0, 0, canvas.width, canvas.height); // Clear entire game canvas
+      drawScore(); // Always draw score
 
       if (!isGameOver) {
         const currentTime = Date.now();
+        // Spawn new balloons at interval
         if (currentTime - lastBalloonSpawnTime > balloonSpawnInterval) {
           spawnBalloon();
           lastBalloonSpawnTime = currentTime;
         }
 
+        // Update and draw game elements
         updateHelicopterMovement();
         continuousFire();
         updateBalloons();
@@ -748,13 +770,13 @@
         drawBullets();
         drawHelicopter();
 
-        // Double gun at 50
+        // Unlock double gun at 50 points
         if (!doubleGun && score >= 50) {
           doubleGun = true;
-          triggerCongratsAnimation(2, 50);
+          triggerCongratsAnimation(2, 50); // Stage 2 for 50 points
         }
 
-        // Milestones: 10, 25, 50, 100, 200, 400, 800, ...
+        // Check for score milestones and trigger congrats
         if (score >= nextCongrats) {
           let stage = getCongratsStage(nextCongrats);
           triggerCongratsAnimation(stage, nextCongrats);
@@ -762,10 +784,10 @@
         }
       }
 
-      requestAnimationFrame(gameLoop);
+      requestAnimationFrame(gameLoop); // Loop the game
     }
 
-    gameLoop();
+    gameLoop(); // Start the game loop
   </script>
 </body>
 </html>
