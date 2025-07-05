@@ -243,8 +243,8 @@ document.getElementById('rightBtn').addEventListener('mousedown', moveRight);   
 
 // No changes needed for keyboard events, as they were already correct.
 window.addEventListener('keydown', function(e){
-  if(e.key==='ArrowLeft'||e.key==='a') moveLeft();
-  if(e.key==='ArrowRight'||e.key==='d') moveRight();
+  if(e.key==='ArrowLeft'||e.key==='a') moveRight();
+  if(e.key==='ArrowRight'||e.key==='d') moveLeft();
 });
 
 // Endless recycling
