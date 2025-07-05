@@ -213,18 +213,7 @@ for(let i=0;i<44;i++) {
 }
 
 // Controls
-let lanes = [-4, 0, 4], targetLane=1;
-function moveLeft() { targetLane=Math.max(0,targetLane-1);}
-function moveRight(){ targetLane=Math.min(2,targetLane+1);}
 
-document.getElementById('leftBtn').addEventListener('touchstart', moveLeft);
-document.getElementById('leftBtn').addEventListener('mousedown', moveLeft);
-document.getElementById('rightBtn').addEventListener('touchstart', moveRight);
-document.getElementById('rightBtn').addEventListener('mousedown', moveRight);
-window.addEventListener('keydown', function(e){
-  if(e.key==='ArrowLeft'||e.key==='a') moveLeft();
-  if(e.key==='ArrowRight'||e.key==='d') moveRight();
-});
 
 // Game state
 let speed = 0.62;
@@ -241,6 +230,22 @@ function updateCamera() {
   );
   camera.lookAt(new THREE.Vector3(carPos.x,carPos.y+1,carPos.z+12));
 }
+// car controls
+
+let lanes = [-4, 0, 4], targetLane=1;
+function moveLeft() { targetLane=Math.max(0,targetLane-1);}
+function moveRight(){ targetLane=Math.min(2,targetLane+1);}
+
+document.getElementById('leftBtn').addEventListener('touchstart', moveLeft); // This should be moveLeft for the left button
+document.getElementById('leftBtn').addEventListener('mousedown', moveLeft);   // This should be moveLeft for the left button
+document.getElementById('rightBtn').addEventListener('touchstart', moveRight); // This should be moveRight for the right button
+document.getElementById('rightBtn').addEventListener('mousedown', moveRight);   // This should be moveRight for the right button
+
+// No changes needed for keyboard events, as they were already correct.
+window.addEventListener('keydown', function(e){
+  if(e.key==='ArrowLeft'||e.key==='a') moveLeft();
+  if(e.key==='ArrowRight'||e.key==='d') moveRight();
+});
 
 // Endless recycling
 function recycleObject(obj, range = 300) {
