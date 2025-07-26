@@ -1,0 +1,370 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Balloon Pop Challenge</title>
+  <style>
+    body {
+      margin: 0;
+      overflow: hidden;
+      background: #87CEEB;
+      font-family: 'Arial', sans-serif;
+      touch-action: manipulation;
+      user-select: none;
+    }
+    #gameCanvas {
+      display: block;
+      background: linear-gradient(to bottom, #87CEEB 0%, #E0F7FA 100%);
+    }
+    #ui {
+      position: absolute;
+      top: 20px;
+      left: 20px;
+      color: white;
+      font-size: 24px;
+      text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
+      pointer-events: none;
+    }
+    #gameOver {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      background: rgba(0,0,0,0.8);
+      color: white;
+      padding: 20px;
+      border-radius: 10px;
+      text-align: center;
+      display: none;
+    }
+    #restartBtn {
+      background: #4CAF50;
+      border: none;
+      color: white;
+      padding: 10px 20px;
+      margin-top: 15px;
+      border-radius: 5px;
+      cursor: pointer;
+      font-size: 18px;
+    }
+  </style>
+</head>
+<body>
+  <canvas id="gameCanvas"></canvas>
+  <div id="ui">
+    <div>Score: <span id="score">0</span></div>
+    <div>Lives: <span id="lives">❤️❤️❤️</span></div>
+  </div>
+  <div id="gameOver">
+    <h2>Game Over!</h2>
+    <p>Final Score: <span id="finalScore">0</span></p>
+    <button id="restartBtn">Play Again</button>
+  </div>
+
+  <script>
+    // Game Constants
+    const COLORS = ['#FF5252', '#4FC3F7', '#69F0AE', '#FFD740', '#E040FB'];
+    const BALLOON_RADIUS = 40;
+    const COIN_RADIUS = 10;
+    const INITIAL_SPAWN_RATE = 1000; // ms
+    const MIN_SPAWN_RATE = 300; // ms
+    const SPEED_INCREASE = 0.1;
+
+    // Game State
+    const game = {
+      canvas: null,
+      ctx: null,
+      width: 0,
+      height: 0,
+      score: 0,
+      lives: 3,
+      level: 1,
+      isRunning: true,
+      lastSpawnTime: 0,
+      spawnRate: INITIAL_SPAWN_RATE,
+      objects: {
+        balloons: [],
+        coins: [],
+        particles: []
+      },
+      sounds: {
+        pop: [
+          new Audio('data:audio/wav;base64,UklGRl9vT19XQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YU...'), // Short pop sound
+          new Audio('data:audio/wav;base64,UklGRl9vT19XQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YU...'),
+          new Audio('data:audio/wav;base64,UklGRl9vT19XQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YU...')
+        ],
+        coin: new Audio('data:audio/wav;base64,UklGRl9vT19XQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YU...')
+      }
+    };
+
+    // Initialize Game
+    function init() {
+      game.canvas = document.getElementById('gameCanvas');
+      game.ctx = game.canvas.getContext('2d');
+      resizeCanvas();
+      window.addEventListener('resize', resizeCanvas);
+      
+      // Event Listeners
+      game.canvas.addEventListener('click', handleClick);
+      game.canvas.addEventListener('touchstart', handleTouch, { passive: false });
+      document.getElementById('restartBtn').addEventListener('click', restartGame);
+      
+      // Start game loop
+      requestAnimationFrame(gameLoop);
+    }
+
+    function resizeCanvas() {
+      game.width = game.canvas.width = window.innerWidth;
+      game.height = game.canvas.height = window.innerHeight;
+    }
+
+    // Game Loop
+    function gameLoop(timestamp) {
+      update(timestamp);
+      render();
+      
+      if (game.isRunning) {
+        requestAnimationFrame(gameLoop);
+      }
+    }
+
+    function update(timestamp) {
+      // Spawn new balloons
+      if (timestamp - game.lastSpawnTime > game.spawnRate) {
+        spawnBalloon();
+        game.lastSpawnTime = timestamp;
+      }
+      
+      // Update balloons
+      game.objects.balloons.forEach(balloon => {
+        balloon.y -= balloon.speed;
+        balloon.scale += 0.005;
+        
+        // Check if balloon escaped
+        if (balloon.y + BALLOON_RADIUS * balloon.scale < 0 && balloon.active) {
+          balloon.active = false;
+          loseLife();
+        }
+      });
+      
+      // Update coins
+      game.objects.coins.forEach(coin => {
+        coin.y += coin.vy;
+        coin.x += coin.vx;
+        coin.vy += 0.1; // Gravity
+        
+        // Remove coins that fall off screen
+        if (coin.y > game.height + COIN_RADIUS) {
+          coin.active = false;
+        }
+      });
+      
+      // Update particles
+      game.objects.particles.forEach(particle => {
+        particle.life--;
+      });
+      
+      // Filter out inactive objects
+      game.objects.balloons = game.objects.balloons.filter(b => b.active);
+      game.objects.coins = game.objects.coins.filter(c => c.active);
+      game.objects.particles = game.objects.particles.filter(p => p.life > 0);
+    }
+
+    function render() {
+      // Clear canvas
+      game.ctx.clearRect(0, 0, game.width, game.height);
+      
+      // Draw particles (under everything)
+      game.objects.particles.forEach(particle => {
+        game.ctx.globalAlpha = particle.life / 100;
+        game.ctx.fillStyle = particle.color;
+        game.ctx.fillRect(particle.x, particle.y, particle.size, particle.size);
+      });
+      game.ctx.globalAlpha = 1;
+      
+      // Draw coins
+      game.objects.coins.forEach(coin => {
+        game.ctx.save();
+        game.ctx.translate(coin.x, coin.y);
+        
+        // Gold coin with shine
+        game.ctx.beginPath();
+        game.ctx.arc(0, 0, COIN_RADIUS, 0, Math.PI * 2);
+        game.ctx.fillStyle = '#FFD700';
+        game.ctx.fill();
+        
+        game.ctx.strokeStyle = '#FFECB3';
+        game.ctx.lineWidth = 2;
+        game.ctx.stroke();
+        
+        game.ctx.restore();
+      });
+      
+      // Draw balloons
+      game.objects.balloons.forEach(balloon => {
+        game.ctx.save();
+        game.ctx.translate(balloon.x, balloon.y);
+        game.ctx.scale(balloon.scale, balloon.scale);
+        
+        // Balloon body
+        game.ctx.beginPath();
+        game.ctx.arc(0, 0, BALLOON_RADIUS, 0, Math.PI * 2);
+        game.ctx.fillStyle = balloon.color;
+        game.ctx.fill();
+        
+        // Balloon highlight
+        game.ctx.beginPath();
+        game.ctx.arc(-15, -15, 10, 0, Math.PI * 2);
+        game.ctx.fillStyle = 'rgba(255,255,255,0.3)';
+        game.ctx.fill();
+        
+        // Special balloon effects
+        if (balloon.isSpecial) {
+          game.ctx.strokeStyle = balloon.color === 'gold' ? '#FFF' : '#000';
+          game.ctx.lineWidth = 3;
+          game.ctx.stroke();
+        }
+        
+        game.ctx.restore();
+      });
+      
+      // Update UI
+      document.getElementById('score').textContent = game.score;
+      document.getElementById('lives').textContent = '❤️'.repeat(game.lives);
+    }
+
+    function spawnBalloon() {
+      const isSpecial = Math.random() < 0.1;
+      const color = isSpecial ? 
+        (Math.random() < 0.5 ? 'gold' : 'black') : 
+        COLORS[Math.floor(Math.random() * COLORS.length)];
+      
+      game.objects.balloons.push({
+        x: Math.random() * game.width,
+        y: game.height + BALLOON_RADIUS,
+        speed: 1 + (game.level * SPEED_INCREASE),
+        scale: 0.3,
+        color,
+        isSpecial,
+        active: true
+      });
+      
+      // Increase difficulty
+      if (game.score > 0 && game.score % 500 === 0) {
+        game.level++;
+        game.spawnRate = Math.max(MIN_SPAWN_RATE, INITIAL_SPAWN_RATE - (game.level * 50));
+      }
+    }
+
+    function createExplosion(x, y, color, count = 20) {
+      for (let i = 0; i < count; i++) {
+        game.objects.particles.push({
+          x,
+          y,
+          vx: Math.random() * 6 - 3,
+          vy: Math.random() * 6 - 3,
+          size: Math.random() * 8 + 4,
+          color,
+          life: 30 + Math.random() * 20
+        });
+      }
+    }
+
+    function spawnCoins(x, y, count = 5) {
+      for (let i = 0; i < count; i++) {
+        game.objects.coins.push({
+          x,
+          y,
+          vx: Math.random() * 6 - 3,
+          vy: Math.random() * -8 - 2,
+          active: true
+        });
+      }
+    }
+
+    function handleClick(e) {
+      const rect = game.canvas.getBoundingClientRect();
+      const x = e.clientX - rect.left;
+      const y = e.clientY - rect.top;
+      checkHit(x, y);
+    }
+
+    function handleTouch(e) {
+      e.preventDefault();
+      const touch = e.touches[0];
+      const rect = game.canvas.getBoundingClientRect();
+      const x = touch.clientX - rect.left;
+      const y = touch.clientY - rect.top;
+      checkHit(x, y);
+    }
+
+    function checkHit(x, y) {
+      for (let i = 0; i < game.objects.balloons.length; i++) {
+        const balloon = game.objects.balloons[i];
+        if (!balloon.active) continue;
+        
+        const distance = Math.sqrt(
+          Math.pow(x - balloon.x, 2) + 
+          Math.pow(y - balloon.y, 2)
+        );
+        
+        if (distance < BALLOON_RADIUS * balloon.scale) {
+          // Handle special balloons
+          if (balloon.isSpecial) {
+            if (balloon.color === 'black') {
+              loseLife();
+            } else { // Gold
+              game.score += 50;
+            }
+          } else {
+            game.score += 10;
+          }
+          
+          // Pop effect
+          balloon.active = false;
+          playPopSound();
+          createExplosion(balloon.x, balloon.y, balloon.color);
+          spawnCoins(balloon.x, balloon.y);
+          
+          break;
+        }
+      }
+    }
+
+    function playPopSound() {
+      const sound = game.sounds.pop[Math.floor(Math.random() * game.sounds.pop.length)];
+      sound.currentTime = 0;
+      sound.play().catch(e => console.log("Audio play failed:", e));
+    }
+
+    function loseLife() {
+      game.lives--;
+      
+      if (game.lives <= 0) {
+        gameOver();
+      }
+    }
+
+    function gameOver() {
+      game.isRunning = false;
+      document.getElementById('finalScore').textContent = game.score;
+      document.getElementById('gameOver').style.display = 'block';
+    }
+
+    function restartGame() {
+      game.score = 0;
+      game.lives = 3;
+      game.level = 1;
+      game.spawnRate = INITIAL_SPAWN_RATE;
+      game.objects.balloons = [];
+      game.objects.coins = [];
+      game.objects.particles = [];
+      game.isRunning = true;
+      document.getElementById('gameOver').style.display = 'none';
+      requestAnimationFrame(gameLoop);
+    }
+
+    // Start the game when page loads
+    window.addEventListener('load', init);
+  </script>
+</body>
+</html>
