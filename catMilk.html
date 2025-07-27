@@ -1,0 +1,628 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Cat and Milk Path Game</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            touch-action: none; /* Prevent default touch behaviors */
+        }
+        
+        body {
+            background: linear-gradient(135deg, #6a11cb 0%, #2575fc 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 10px;
+            overflow: hidden;
+        }
+        
+        .game-container {
+            background-color: rgba(255, 255, 255, 0.95);
+            border-radius: 20px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+            width: 100%;
+            max-width: 800px;
+            padding: 15px;
+            text-align: center;
+            position: relative;
+        }
+        
+        h1 {
+            color: #333;
+            margin-bottom: 10px;
+            font-size: 1.8rem;
+            text-shadow: 1px 1px 2px rgba(0,0,0,0.1);
+        }
+        
+        .game-info {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 15px;
+            background: #f0f8ff;
+            padding: 12px;
+            border-radius: 12px;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+            font-size: 1rem;
+        }
+        
+        .level-info, .instructions {
+            color: #444;
+        }
+        
+        .level-info span {
+            font-weight: bold;
+            color: #2575fc;
+        }
+        
+        canvas {
+            background: #e6f7ff;
+            border-radius: 12px;
+            box-shadow: inset 0 0 10px rgba(0,0,0,0.1);
+            cursor: crosshair;
+            display: block;
+            margin: 0 auto;
+            border: 2px solid #4a90e2;
+            touch-action: none;
+        }
+        
+        .controls {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            margin-top: 20px;
+        }
+        
+        button {
+            padding: 12px 20px;
+            font-size: 1rem;
+            border: none;
+            border-radius: 50px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-weight: 600;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+            flex: 1;
+            max-width: 180px;
+        }
+        
+        #undoBtn {
+            background: linear-gradient(to right, #ff9a9e, #fad0c4);
+            color: #333;
+        }
+        
+        #undoBtn:hover, #undoBtn:active {
+            transform: translateY(-3px);
+            box-shadow: 0 6px 12px rgba(0,0,0,0.2);
+        }
+        
+        #resetBtn {
+            background: linear-gradient(to right, #a1c4fd, #c2e9fb);
+            color: #333;
+        }
+        
+        #resetBtn:hover, #resetBtn:active {
+            transform: translateY(-3px);
+            box-shadow: 0 6px 12px rgba(0,0,0,0.2);
+        }
+        
+        .message {
+            margin-top: 15px;
+            font-size: 1.2rem;
+            font-weight: bold;
+            min-height: 30px;
+            color: #2575fc;
+        }
+        
+        .coin-animation {
+            position: absolute;
+            font-size: 2rem;
+            animation: spin 1s linear infinite;
+            z-index: 100;
+            pointer-events: none;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotateY(0); }
+            100% { transform: rotateY(360deg); }
+        }
+        
+        @keyframes celebrate {
+            0% { transform: scale(1); opacity: 1; }
+            50% { transform: scale(1.5); opacity: 0.8; }
+            100% { transform: scale(1); opacity: 1; }
+        }
+        
+        .celebration {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 50;
+        }
+        
+        .coin {
+            position: absolute;
+            font-size: 2.5rem;
+            animation: float 5s ease-out forwards;
+        }
+        
+        @keyframes float {
+            0% { transform: translateY(0) rotate(0deg); opacity: 1; }
+            100% { transform: translateY(-100vh) rotate(720deg); opacity: 0; }
+        }
+        
+        .instructions {
+            margin-top: 15px;
+            font-size: 0.9rem;
+            color: #666;
+            line-height: 1.4;
+            padding: 0 10px;
+        }
+        
+        .instructions strong {
+            color: #2575fc;
+        }
+        
+        @media (max-width: 600px) {
+            h1 {
+                font-size: 1.5rem;
+            }
+            
+            .game-info {
+                flex-direction: column;
+                gap: 8px;
+                font-size: 0.9rem;
+            }
+            
+            button {
+                padding: 10px 15px;
+                font-size: 0.9rem;
+            }
+            
+            .message {
+                font-size: 1rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="game-container">
+        <h1>🐱 Cat & Milk Path 🥛</h1>
+        
+        <div class="game-info">
+            <div class="level-info">Level: <span id="level">1</span></div>
+            <div class="instructions">Draw a path from the cat to the milk without touching obstacles!</div>
+        </div>
+        
+        <canvas id="gameCanvas" width="700" height="500"></canvas>
+        
+        <div class="controls">
+            <button id="undoBtn">Undo Last Line</button>
+            <button id="resetBtn">Reset Level</button>
+        </div>
+        
+        <div class="message" id="message">Draw a path from the cat to the milk!</div>
+        
+        <div class="instructions">
+            <p><strong>How to play:</strong> Tap and hold on the cat, then drag to draw a path to the milk. Avoid all obstacles!</p>
+        </div>
+    </div>
+    
+    <div class="celebration" id="celebration"></div>
+
+    <script>
+        // Game elements
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        const levelDisplay = document.getElementById('level');
+        const messageDisplay = document.getElementById('message');
+        const undoBtn = document.getElementById('undoBtn');
+        const resetBtn = document.getElementById('resetBtn');
+        const celebrationDiv = document.getElementById('celebration');
+        
+        // Game state
+        let level = 1;
+        let isDrawing = false;
+        let path = [];
+        let obstacles = [];
+        let catPos = { x: 50, y: 250 };
+        let milkPos = { x: 650, y: 250 };
+        let pathSegments = [];
+        let scale = 1;
+        
+        // Initialize the game
+        function initGame() {
+            // Adjust canvas size for mobile
+            adjustCanvasSize();
+            
+            levelDisplay.textContent = level;
+            generateObstacles();
+            drawGame();
+        }
+        
+        // Adjust canvas size based on screen dimensions
+        function adjustCanvasSize() {
+            const maxWidth = Math.min(window.innerWidth - 30, 700);
+            const maxHeight = Math.min(window.innerHeight - 250, 500);
+            
+            // Maintain aspect ratio
+            const aspectRatio = 700 / 500;
+            let width = maxWidth;
+            let height = maxWidth / aspectRatio;
+            
+            if (height > maxHeight) {
+                height = maxHeight;
+                width = maxHeight * aspectRatio;
+            }
+            
+            canvas.width = width;
+            canvas.height = height;
+            
+            // Update positions based on new canvas size
+            catPos = { x: 50, y: height / 2 };
+            milkPos = { x: width - 50, y: height / 2 };
+            
+            scale = width / 700;
+        }
+        
+        // Generate obstacles based on level
+        function generateObstacles() {
+            obstacles = [];
+            const obstacleCount = Math.min(3 + level, 10);
+            
+            for (let i = 0; i < obstacleCount; i++) {
+                const radius = (20 + Math.random() * 30) * scale;
+                const x = 150 * scale + Math.random() * (canvas.width - 300 * scale);
+                const y = 50 * scale + Math.random() * (canvas.height - 100 * scale);
+                
+                // Make sure obstacles don't overlap with start/end points
+                if (distance(x, y, catPos.x, catPos.y) < radius + 40 * scale || 
+                    distance(x, y, milkPos.x, milkPos.y) < radius + 40 * scale) {
+                    i--; // Try again
+                    continue;
+                }
+                
+                obstacles.push({
+                    x: x,
+                    y: y,
+                    radius: radius
+                });
+            }
+        }
+        
+        // Draw game elements
+        function drawGame() {
+            // Clear canvas
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
+            // Draw background grid
+            drawGrid();
+            
+            // Draw obstacles
+            obstacles.forEach(obstacle => {
+                ctx.beginPath();
+                ctx.arc(obstacle.x, obstacle.y, obstacle.radius, 0, Math.PI * 2);
+                ctx.fillStyle = '#ff6b6b';
+                ctx.fill();
+                ctx.strokeStyle = '#d63031';
+                ctx.lineWidth = 2;
+                ctx.stroke();
+                
+                // Add some texture to obstacles
+                ctx.beginPath();
+                ctx.arc(obstacle.x - 10 * scale, obstacle.y - 10 * scale, obstacle.radius/3, 0, Math.PI * 2);
+                ctx.fillStyle = 'rgba(255, 255, 255, 0.3)';
+                ctx.fill();
+            });
+            
+            // Draw cat
+            drawCat(catPos.x, catPos.y);
+            
+            // Draw milk
+            drawMilk(milkPos.x, milkPos.y);
+            
+            // Draw path segments
+            pathSegments.forEach(segment => {
+                ctx.beginPath();
+                ctx.moveTo(segment.start.x, segment.start.y);
+                ctx.lineTo(segment.end.x, segment.end.y);
+                ctx.strokeStyle = '#4a90e2';
+                ctx.lineWidth = 4 * scale;
+                ctx.lineCap = 'round';
+                ctx.stroke();
+            });
+            
+            // Draw current path being drawn
+            if (path.length > 1) {
+                ctx.beginPath();
+                ctx.moveTo(path[0].x, path[0].y);
+                for (let i = 1; i < path.length; i++) {
+                    ctx.lineTo(path[i].x, path[i].y);
+                }
+                ctx.strokeStyle = '#4a90e2';
+                ctx.lineWidth = 4 * scale;
+                ctx.lineCap = 'round';
+                ctx.stroke();
+            }
+        }
+        
+        // Draw grid background
+        function drawGrid() {
+            ctx.strokeStyle = 'rgba(173, 216, 230, 0.3)';
+            ctx.lineWidth = 1;
+            
+            // Vertical lines
+            for (let x = 0; x <= canvas.width; x += 40 * scale) {
+                ctx.beginPath();
+                ctx.moveTo(x, 0);
+                ctx.lineTo(x, canvas.height);
+                ctx.stroke();
+            }
+            
+            // Horizontal lines
+            for (let y = 0; y <= canvas.height; y += 40 * scale) {
+                ctx.beginPath();
+                ctx.moveTo(0, y);
+                ctx.lineTo(canvas.width, y);
+                ctx.stroke();
+            }
+        }
+        
+        // Draw cat emoji
+        function drawCat(x, y) {
+            ctx.font = `${50 * scale}px Arial`;
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText('🐱', x, y);
+        }
+        
+        // Draw milk emoji
+        function drawMilk(x, y) {
+            ctx.font = `${50 * scale}px Arial`;
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText('🥛', x, y);
+        }
+        
+        // Calculate distance between two points
+        function distance(x1, y1, x2, y2) {
+            return Math.sqrt(Math.pow(x2 - x1, 2) + Math.pow(y2 - y1, 2));
+        }
+        
+        // Check if path intersects with any obstacle
+        function checkCollision() {
+            for (const segment of pathSegments) {
+                for (const obstacle of obstacles) {
+                    // Check if line segment intersects with circle
+                    if (lineCircleCollision(segment.start, segment.end, obstacle)) {
+                        return true;
+                    }
+                }
+            }
+            
+            // Check current path being drawn
+            if (path.length > 1) {
+                for (let i = 0; i < path.length - 1; i++) {
+                    const start = path[i];
+                    const end = path[i+1];
+                    
+                    for (const obstacle of obstacles) {
+                        if (lineCircleCollision(start, end, obstacle)) {
+                            return true;
+                        }
+                    }
+                }
+            }
+            
+            return false;
+        }
+        
+        // Check if line segment intersects with circle
+        function lineCircleCollision(start, end, circle) {
+            // Vector from start to end
+            const dx = end.x - start.x;
+            const dy = end.y - start.y;
+            
+            // Vector from start to circle center
+            const fx = circle.x - start.x;
+            const fy = circle.y - start.y;
+            
+            // Length of line segment squared
+            const mag = dx * dx + dy * dy;
+            
+            // Dot product of the two vectors
+            const dot = fx * dx + fy * dy;
+            
+            // Parameter for closest point on line segment
+            const t = Math.max(0, Math.min(1, dot / mag));
+            
+            // Closest point on line segment
+            const closestX = start.x + t * dx;
+            const closestY = start.y + t * dy;
+            
+            // Distance from closest point to circle center
+            const distX = circle.x - closestX;
+            const distY = circle.y - closestY;
+            const distance = Math.sqrt(distX * distX + distY * distY);
+            
+            return distance <= circle.radius + 2 * scale; // Add buffer for line width
+        }
+        
+        // Check if path reaches milk
+        function checkWin() {
+            if (path.length === 0) return false;
+            
+            const lastPoint = path[path.length - 1];
+            return distance(lastPoint.x, lastPoint.y, milkPos.x, milkPos.y) < 40 * scale;
+        }
+        
+        // Show celebration animation
+        function showCelebration() {
+            messageDisplay.textContent = "Great job! 🎉";
+            messageDisplay.style.color = "#FFD700";
+            messageDisplay.style.animation = "celebrate 0.5s infinite";
+            
+            // Create coins
+            for (let i = 0; i < 20; i++) {
+                setTimeout(() => {
+                    const coin = document.createElement('div');
+                    coin.className = 'coin';
+                    coin.innerHTML = '🪙';
+                    coin.style.left = Math.random() * 100 + 'vw';
+                    coin.style.top = '100vh';
+                    coin.style.animationDuration = (3 + Math.random() * 2) + 's';
+                    celebrationDiv.appendChild(coin);
+                    
+                    // Remove coin after animation
+                    setTimeout(() => {
+                        coin.remove();
+                    }, 5000);
+                }, i * 200);
+            }
+            
+            // Advance to next level after celebration
+            setTimeout(() => {
+                level++;
+                resetGame();
+                messageDisplay.style.animation = "";
+                messageDisplay.style.color = "#2575fc";
+            }, 5000);
+        }
+        
+        // Reset game for next level
+        function resetGame() {
+            path = [];
+            pathSegments = [];
+            initGame();
+            messageDisplay.textContent = "Draw a path from the cat to the milk!";
+        }
+        
+        // Handle mouse/touch start
+        function handleStart(e) {
+            e.preventDefault();
+            const rect = canvas.getBoundingClientRect();
+            let x, y;
+            
+            if (e.type === 'touchstart') {
+                x = e.touches[0].clientX - rect.left;
+                y = e.touches[0].clientY - rect.top;
+            } else {
+                x = e.clientX - rect.left;
+                y = e.clientY - rect.top;
+            }
+            
+            // Check if click/tap is on cat
+            if (distance(x, y, catPos.x, catPos.y) < 40 * scale) {
+                isDrawing = true;
+                path = [{x: catPos.x, y: catPos.y}];
+                drawGame();
+            }
+        }
+        
+        // Handle mouse/touch move
+        function handleMove(e) {
+            if (!isDrawing) return;
+            e.preventDefault();
+            
+            const rect = canvas.getBoundingClientRect();
+            let x, y;
+            
+            if (e.type === 'touchmove') {
+                x = e.touches[0].clientX - rect.left;
+                y = e.touches[0].clientY - rect.top;
+            } else {
+                x = e.clientX - rect.left;
+                y = e.clientY - rect.top;
+            }
+            
+            // Add point to path
+            path.push({x, y});
+            
+            // Check for collisions
+            if (checkCollision()) {
+                messageDisplay.textContent = "Oops! You hit an obstacle. Try again!";
+                isDrawing = false;
+                path = [];
+                drawGame();
+                return;
+            }
+            
+            // Check for win
+            if (checkWin()) {
+                isDrawing = false;
+                pathSegments.push({
+                    start: path[0],
+                    end: path[path.length - 1]
+                });
+                showCelebration();
+                return;
+            }
+            
+            drawGame();
+        }
+        
+        // Handle mouse/touch end
+        function handleEnd(e) {
+            if (isDrawing) {
+                isDrawing = false;
+                
+                // Add path segment to permanent segments
+                if (path.length > 1) {
+                    pathSegments.push({
+                        start: path[0],
+                        end: path[path.length - 1]
+                    });
+                }
+                
+                path = [];
+                drawGame();
+            }
+        }
+        
+        // Event listeners for mouse
+        canvas.addEventListener('mousedown', handleStart);
+        canvas.addEventListener('mousemove', handleMove);
+        canvas.addEventListener('mouseup', handleEnd);
+        canvas.addEventListener('mouseleave', handleEnd);
+        
+        // Event listeners for touch
+        canvas.addEventListener('touchstart', handleStart);
+        canvas.addEventListener('touchmove', handleMove);
+        canvas.addEventListener('touchend', handleEnd);
+        
+        // Button event listeners
+        undoBtn.addEventListener('click', () => {
+            if (pathSegments.length > 0) {
+                pathSegments.pop();
+                drawGame();
+                messageDisplay.textContent = "Last segment removed. Continue drawing!";
+            } else {
+                messageDisplay.textContent = "No segments to undo!";
+            }
+        });
+        
+        resetBtn.addEventListener('click', () => {
+            resetGame();
+        });
+        
+        // Handle window resize
+        window.addEventListener('resize', () => {
+            initGame();
+        });
+        
+        // Initialize the game
+        window.addEventListener('load', () => {
+            initGame();
+        });
+    </script>
+</body>
+</html>
