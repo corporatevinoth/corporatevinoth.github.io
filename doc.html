@@ -1,0 +1,117 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Browser Word Editor — Read / Edit / Save .docx</title>
+  <style>
+    :root{--bg:#0f1720;--panel:#0b1220;--muted:#9aa0a6;--accent:#4db6ac}
+    html,body{height:100%;margin:0;font-family:Inter,system-ui,Segoe UI,Roboto,Arial;color:#e6eef3;background:linear-gradient(180deg,#081018,#07111a)}
+    header{display:flex;gap:8px;align-items:center;padding:12px}
+    button{padding:8px 10px;border-radius:8px;border:1px solid rgba(255,255,255,0.06);background:transparent;color:inherit;cursor:pointer}
+    #toolbar{margin-left:auto}
+    main{display:flex;flex-direction:column;gap:8px;padding:12px;height:calc(100% - 72px)}
+    #editor{flex:1;overflow:auto;border-radius:10px;background:#fff;color:#000;padding:16px;box-shadow:0 8px 30px rgba(0,0,0,0.6)}
+    #editor[contenteditable]{outline:none}
+    .hint{font-size:13px;color:var(--muted)}
+    footer{padding:8px 12px;font-size:13px;color:var(--muted)}
+    input[type=file]{display:none}
+  </style>
+</head>
+<body>
+  <header>
+    <div style="font-weight:700">Browser Word Editor</div>
+    <div class="hint">Open, edit and save .docx files directly in the browser (best with .docx)</div>
+    <div id="toolbar">
+      <button id="openBtn">Open .docx</button>
+      <button id="saveDocxBtn">Save as .docx</button>
+      <button id="saveHtmlBtn">Save as .html</button>
+      <button id="downloadBtn">Download .docx (fallback)</button>
+    </div>
+    <input id="fileInput" type="file" accept=".docx" />
+  </header>
+
+  <main>
+    <div id="editor" contenteditable="true"><p>Open a .docx to edit it here.</p></div>
+    <div class="hint">Tip: Images embedded in the original .docx will be converted to inline images where possible. Saving back to .docx from HTML may have limitations on complex layout and advanced Word features.</div>
+  </main>
+
+  <footer>
+    <div>Built with Mammoth (read .docx), html-docx-js (HTML → .docx) and FileSaver. Works fully client-side. For best results use modern Chromium-based browsers.</div>
+  </footer>
+
+  <!-- Libraries -->
+  <script src="https://unpkg.com/mammoth/mammoth.browser.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html-docx-js/0.4.1/html-docx.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
+
+  <script>
+    const fileInput = document.getElementById('fileInput');
+    const openBtn = document.getElementById('openBtn');
+    const saveDocxBtn = document.getElementById('saveDocxBtn');
+    const saveHtmlBtn = document.getElementById('saveHtmlBtn');
+    const editor = document.getElementById('editor');
+    const downloadBtn = document.getElementById('downloadBtn');
+
+    let currentFilename = 'untitled.docx';
+
+    openBtn.addEventListener('click', ()=> fileInput.click());
+    fileInput.addEventListener('change', async (e)=>{
+      const f = e.target.files[0];
+      if(!f) return;
+      currentFilename = f.name.replace(/\.docx$/i,'') || 'document';
+      const arrayBuffer = await f.arrayBuffer();
+
+      // Use mammoth to convert .docx to HTML (with images inlined as data URIs)
+      try{
+        const result = await mammoth.convertToHtml({arrayBuffer: arrayBuffer}, {convertImage: mammoth.images.inline(function(element){ return element.read('base64').then(function(imageBuffer){ return {src: "data:"+element.contentType+";base64,"+imageBuffer}; }); })});
+        // result.value is HTML string
+        editor.innerHTML = result.value;
+      }catch(err){
+        alert('Failed to parse .docx file: '+err.message);
+        console.error(err);
+      }
+    });
+
+    // Save HTML as .html file
+    saveHtmlBtn.addEventListener('click', ()=>{
+      const html = `<!doctype html><html><head><meta charset="utf-8"><title>${escapeHtml(currentFilename)}</title></head><body>${editor.innerHTML}</body></html>`;
+      const blob = new Blob([html], {type: 'text/html'});
+      saveAs(blob, currentFilename + '.html');
+    });
+
+    // Convert current editor HTML to .docx and trigger download
+    saveDocxBtn.addEventListener('click', ()=>{
+      // html-docx-js expects a full HTML string
+      const fullHtml = `<!doctype html><html><head><meta charset="utf-8"></head><body>${editor.innerHTML}</body></html>`;
+      try{
+        const converted = htmlDocx.asBlob(fullHtml);
+        saveAs(converted, currentFilename + '.docx');
+      }catch(err){
+        console.error(err);
+        alert('Failed to convert to .docx: ' + err.message);
+      }
+    });
+
+    // Extra: fallback download button that saves same as saveDocxBtn
+    downloadBtn.addEventListener('click', ()=> saveDocxBtn.click());
+
+    function escapeHtml(s){ return s.replace(/[&<>\"]+/g, function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]; }); }
+
+    // Optional: small keyboard shortcuts
+    window.addEventListener('keydown', (e)=>{
+      const mac = navigator.platform.toUpperCase().includes('MAC');
+      const ctrl = mac ? e.metaKey : e.ctrlKey;
+      if(ctrl && e.key.toLowerCase()==='s'){
+        e.preventDefault(); saveDocxBtn.click();
+      }
+      if(ctrl && e.key.toLowerCase()==='o'){
+        e.preventDefault(); openBtn.click();
+      }
+    });
+
+    // Notes for user in console
+    console.log('Browser Word Editor ready — open a .docx to begin.');
+  </script>
+</body>
+</html>
