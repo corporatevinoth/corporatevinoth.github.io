@@ -1,0 +1,329 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Online Notepad++ — single-file</title>
+  <!-- CodeMirror 5 from CDN -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/codemirror.min.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/theme/eclipse.min.css">
+  <style>
+    :root{--bg:#1e1e1e;--panel:#282828;--muted:#9aa0a6;--accent:#4db6ac}
+    html,body{height:100%;margin:0;font-family:Inter, system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial}
+    body{display:flex;flex-direction:column;background:linear-gradient(180deg,#0f1112,#151618);color:#eee}
+    header{display:flex;align-items:center;gap:8px;padding:10px;background:rgba(0,0,0,0.25);backdrop-filter:blur(6px)}
+    header .brand{font-weight:700;font-size:18px;margin-right:12px}
+    button{background:transparent;border:1px solid rgba(255,255,255,0.06);color:inherit;padding:8px 10px;border-radius:6px;cursor:pointer}
+    button:hover{border-color:rgba(255,255,255,0.12)}
+    #tabs{display:flex;gap:6px;align-items:center;overflow:auto;padding:8px}
+    .tab{background:rgba(255,255,255,0.03);padding:6px 10px;border-radius:6px;border:1px solid rgba(0,0,0,0.2);cursor:pointer}
+    .tab.active{outline:2px solid rgba(77,182,172,0.18);}
+    #toolbar{display:flex;gap:8px;align-items:center;margin-left:auto}
+    main{flex:1;display:flex;flex-direction:column;padding:8px}
+    #editorWrap{flex:1;border-radius:8px;overflow:hidden;box-shadow:0 6px 18px rgba(0,0,0,0.6)}
+    .cm-s-default, .CodeMirror{height:100%}
+    footer{padding:8px;font-size:13px;color:var(--muted);background:rgba(0,0,0,0.15);display:flex;justify-content:space-between}
+    .small{font-size:12px;color:#cfd8dc}
+    input[type=file]{display:none}
+    .findbar{display:flex;gap:6px;align-items:center;padding:8px;background:rgba(0,0,0,0.2);border-radius:6px;margin-bottom:8px}
+    .findbar input{padding:6px;border-radius:6px;border:1px solid rgba(255,255,255,0.06);background:transparent;color:inherit}
+  </style>
+</head>
+<body>
+  <header>
+    <div class="brand">Online Notepad++</div>
+    <div id="tabs"></div>
+    <div id="toolbar">
+      <button id="newBtn">New</button>
+      <button id="openBtn">Open</button>
+      <button id="saveBtn">Save</button>
+      <button id="saveAsBtn">Save As</button>
+      <button id="closeBtn">Close Tab</button>
+      <button id="themeBtn">Theme</button>
+      <button id="wrapBtn">Toggle Wrap</button>
+    </div>
+    <input id="hiddenFile" type="file" multiple />
+  </header>
+
+  <main>
+    <div class="findbar" id="findbar">
+      <input id="findInput" placeholder="Find (Enter)" />
+      <input id="replaceInput" placeholder="Replace" />
+      <button id="findPrev">◀</button>
+      <button id="findNext">▶</button>
+      <button id="replaceBtn">Replace</button>
+      <div style="flex:1"></div>
+      <div class="small" id="status">No file</div>
+    </div>
+
+    <div id="editorWrap">
+      <textarea id="editor"></textarea>
+    </div>
+  </main>
+
+  <footer>
+    <div class="small">Supports File System Access API (Chrome/Edge) with direct read/write. Falls back to classic file input & download.</div>
+    <div class="small">Shortcuts: Ctrl/Cmd+S Save • Ctrl/Cmd+O Open • Ctrl/Cmd+W Close Tab</div>
+  </footer>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/codemirror.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/mode/xml/xml.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/mode/javascript/javascript.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/mode/python/python.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/addon/search/searchcursor.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/addon/search/jump-to-line.min.js"></script>
+  <script>
+    // Basic single-file Notepad++-like editor
+    const tabsEl = document.getElementById('tabs');
+    const editorTextarea = document.getElementById('editor');
+    const hiddenFile = document.getElementById('hiddenFile');
+    const statusEl = document.getElementById('status');
+
+    let cm = CodeMirror.fromTextArea(editorTextarea, {
+      lineNumbers: true,
+      mode: 'text/plain',
+      theme: 'eclipse',
+      lineWrapping: false
+    });
+
+    // Tab model: {id, name, content, handle (FileSystemFileHandle or null), dirty}
+    let tabs = [];
+    let active = null;
+
+    function newFile(name = 'untitled.txt', content = '', handle = null){
+      const id = Date.now() + Math.random();
+      const t = {id,name,content,handle,dirty:false};
+      tabs.push(t);
+      setActive(t.id);
+      renderTabs();
+    }
+
+    function renderTabs(){
+      tabsEl.innerHTML='';
+      tabs.forEach(t=>{
+        const d = document.createElement('div');
+        d.className='tab' + (t.id===active?' active':'');
+        d.textContent = (t.dirty? '* ':'') + t.name;
+        d.onclick = ()=> setActive(t.id);
+        tabsEl.appendChild(d);
+      });
+    }
+
+    function setActive(id){
+      const t = tabs.find(x=>x.id===id);
+      if(!t) return;
+      active = t.id;
+      cm.setValue(t.content);
+      cm.setOption('mode', guessModeFromFilename(t.name));
+      t.dirty = false;
+      renderTabs();
+      updateStatus();
+    }
+
+    function guessModeFromFilename(name){
+      const ext = name.split('.').pop().toLowerCase();
+      if(['js','mjs'].includes(ext)) return 'javascript';
+      if(['py'].includes(ext)) return 'python';
+      if(['html','htm','xml'].includes(ext)) return 'xml';
+      return 'text/plain';
+    }
+
+    function updateStatus(){
+      const t = tabs.find(x=>x.id===active);
+      statusEl.textContent = t ? `${t.name}${t.dirty? ' — unsaved':''}` : 'No file';
+    }
+
+    // Hooks
+    document.getElementById('newBtn').addEventListener('click', ()=> newFile());
+
+    // Open
+    document.getElementById('openBtn').addEventListener('click', async ()=>{
+      if(window.showOpenFilePicker){
+        try{
+          const handles = await window.showOpenFilePicker({multiple:true, types:[{description:'Text files',accept:{'text/plain':['.txt','.md','.csv','.log','.json','.js','.py','.html']}}]});
+          for(const h of handles){
+            const f = await h.getFile();
+            const text = await f.text();
+            newFile(f.name, text, h);
+          }
+        }catch(err){console.log(err)}
+      }else{
+        hiddenFile.click();
+      }
+    });
+
+    hiddenFile.addEventListener('change', async (ev)=>{
+      const files = Array.from(ev.target.files);
+      for(const file of files){
+        const text = await file.text();
+        newFile(file.name, text, null);
+      }
+      hiddenFile.value='';
+    });
+
+    // Save & Save As
+    async function saveActive(as=false){
+      const t = tabs.find(x=>x.id===active);
+      if(!t) return alert('No active tab');
+      t.content = cm.getValue();
+      // If we have a handle and not asking Save As, use it
+      if(!as && t.handle && t.handle.createWritable){
+        try{
+          const writable = await t.handle.createWritable();
+          await writable.write(t.content);
+          await writable.close();
+          t.dirty = false;
+          updateStatus();
+          return;
+        }catch(err){console.warn(err)}
+      }
+
+      // Otherwise try showSaveFilePicker (Save As) or fallback to download
+      if(window.showSaveFilePicker){
+        try{
+          const opts = {suggestedName: t.name, types:[{description:'Text',accept:{'text/plain':['.txt']}}]};
+          const handle = await window.showSaveFilePicker(opts);
+          const writable = await handle.createWritable();
+          await writable.write(t.content);
+          await writable.close();
+          t.handle = handle;
+          t.name = handle.name || t.name;
+          t.dirty = false;
+          renderTabs(); updateStatus();
+          return;
+        }catch(err){console.warn(err)}
+      }
+
+      // Fallback: download a blob
+      const blob = new Blob([t.content], {type:'text/plain;charset=utf-8'});
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url; a.download = t.name; document.body.appendChild(a); a.click(); a.remove();
+      URL.revokeObjectURL(url);
+      t.dirty = false; updateStatus();
+    }
+
+    document.getElementById('saveBtn').addEventListener('click', ()=> saveActive(false));
+    document.getElementById('saveAsBtn').addEventListener('click', ()=> saveActive(true));
+
+    // Close Tab
+    document.getElementById('closeBtn').addEventListener('click', ()=>{
+      const idx = tabs.findIndex(x=>x.id===active);
+      if(idx===-1) return;
+      const t = tabs[idx];
+      if(t.dirty && !confirm('Close without saving?')) return;
+      tabs.splice(idx,1);
+      if(tabs.length) setActive(tabs[Math.max(0,idx-1)].id);
+      else { active = null; cm.setValue(''); renderTabs(); updateStatus(); }
+    });
+
+    // Theme & wrap
+    let dark=false;
+    document.getElementById('themeBtn').addEventListener('click', ()=>{
+      dark = !dark;
+      document.body.style.background = dark? 'linear-gradient(180deg,#0b0d0e,#0f1112)' : 'linear-gradient(180deg,#f3f4f6,#e9eef2)';
+      cm.setOption('theme', dark? 'eclipse' : 'eclipse'); // placeholder: CodeMirror5 default themes are limited in this demo
+    });
+
+    let wrap=false;
+    document.getElementById('wrapBtn').addEventListener('click', ()=>{
+      wrap = !wrap; cm.setOption('lineWrapping', wrap);
+    });
+
+    // Track changes
+    cm.on('change', ()=>{
+      const t = tabs.find(x=>x.id===active);
+      if(!t) return;
+      t.content = cm.getValue();
+      t.dirty = true; renderTabs(); updateStatus();
+    });
+
+    // Keyboard shortcuts
+    window.addEventListener('keydown', (e)=>{
+      const mac = navigator.platform.toUpperCase().includes('MAC');
+      const ctrl = mac ? e.metaKey : e.ctrlKey;
+      if(ctrl && e.key.toLowerCase() === 's'){
+        e.preventDefault(); saveActive(false);
+      }
+      if(ctrl && e.key.toLowerCase() === 'o'){
+        e.preventDefault(); document.getElementById('openBtn').click();
+      }
+      if(ctrl && e.key.toLowerCase() === 'w'){
+        e.preventDefault(); document.getElementById('closeBtn').click();
+      }
+    });
+
+    // Find / Replace (simple)
+    const findInput = document.getElementById('findInput');
+    const replaceInput = document.getElementById('replaceInput');
+    let lastQuery = null;
+
+    document.getElementById('findNext').addEventListener('click', ()=> findNext());
+    document.getElementById('findPrev').addEventListener('click', ()=> findPrev());
+    document.getElementById('replaceBtn').addEventListener('click', ()=> replaceOnce());
+
+    findInput.addEventListener('keydown', (e)=>{ if(e.key==='Enter') findNext(); });
+
+    function findNext(){
+      const q = findInput.value; if(!q) return;
+      lastQuery = q;
+      const cursor = cm.getSearchCursor(q, cm.getCursor());
+      if(!cursor.findNext()) cursor.findNext = function(){}; // noop
+      if(cursor.findNext()) cursor.findNext() && cursor.findNext();
+      if(cursor.findNext()) cursor.findNext();
+      cursor.findNext();
+      if(!cursor.findNext()){
+        // fallback: search from start
+        const c2 = cm.getSearchCursor(q, {line:0,ch:0});
+        if(c2.findNext()) cm.setSelection(c2.from(), c2.to());
+      } else {
+        cm.setSelection(cursor.from(), cursor.to());
+      }
+      cm.focus();
+    }
+
+    function findPrev(){
+      const q = findInput.value; if(!q) return;
+      const cursor = cm.getSearchCursor(q, cm.getCursor());
+      if(cursor.findPrevious()) cm.setSelection(cursor.from(), cursor.to());
+      else {
+        const c2 = cm.getSearchCursor(q, {line:cm.lineCount()-1,ch:0});
+        if(c2.findPrevious()) cm.setSelection(c2.from(), c2.to());
+      }
+      cm.focus();
+    }
+
+    function replaceOnce(){
+      const q = findInput.value; const r = replaceInput.value;
+      if(!q) return;
+      const cursor = cm.getSearchCursor(q, cm.getCursor());
+      if(cursor.findNext()){ cm.replaceSelection(r); }
+      else { const c2 = cm.getSearchCursor(q, {line:0,ch:0}); if(c2.findNext()){ cm.replaceRange(r, c2.from(), c2.to()); } }
+    }
+
+    // Initialize with one file
+    newFile();
+
+    // Small improvements: drag & drop files
+    window.addEventListener('drop', async (ev)=>{
+      ev.preventDefault();
+      const items = ev.dataTransfer.items;
+      for(const it of items){
+        if(it.kind==='file'){
+          const f = it.getAsFile();
+          const text = await f.text();
+          newFile(f.name, text, null);
+        }
+      }
+    });
+    window.addEventListener('dragover', e=>e.preventDefault());
+
+    // Warn before close if unsaved
+    window.addEventListener('beforeunload', (e)=>{
+      if(tabs.some(t=>t.dirty)){
+        e.preventDefault(); e.returnValue = '';
+      }
+    });
+  </script>
+</body>
+</html>
