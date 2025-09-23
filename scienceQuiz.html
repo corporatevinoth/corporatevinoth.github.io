@@ -1,0 +1,355 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Science Quiz App with Virtual Rewards</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            color: #333;
+        }
+
+        .quiz-container {
+            background: white;
+            padding: 30px;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+            max-width: 600px;
+            width: 100%;
+            text-align: center;
+        }
+
+        h1 {
+            color: #4a5568;
+            margin-bottom: 20px;
+        }
+
+        .progress {
+            background: #e2e8f0;
+            height: 10px;
+            border-radius: 5px;
+            margin: 20px 0;
+            overflow: hidden;
+        }
+
+        .progress-bar {
+            background: linear-gradient(90deg, #48bb78, #38a169);
+            height: 100%;
+            transition: width 0.5s ease;
+            width: 0%;
+        }
+
+        .question {
+            font-size: 18px;
+            margin-bottom: 20px;
+            font-weight: bold;
+        }
+
+        .options {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        .option {
+            padding: 12px;
+            background: #f7fafc;
+            border: 2px solid #e2e8f0;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .option:hover {
+            background: #edf2f7;
+            border-color: #cbd5e0;
+        }
+
+        .option.correct {
+            background: #c6f6d5;
+            border-color: #38a169;
+            animation: correctAnim 0.5s ease;
+        }
+
+        .option.incorrect {
+            background: #fed7d7;
+            border-color: #e53e3e;
+            animation: incorrectAnim 0.5s ease;
+        }
+
+        @keyframes correctAnim {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+            100% { transform: scale(1); }
+        }
+
+        @keyframes incorrectAnim {
+            0% { transform: scale(1); }
+            50% { transform: scale(0.95); }
+            100% { transform: scale(1); }
+        }
+
+        .score {
+            font-size: 24px;
+            font-weight: bold;
+            margin: 20px 0;
+            color: #2d3748;
+        }
+
+        .reward {
+            margin-top: 20px;
+            opacity: 0;
+            transition: opacity 0.5s ease;
+        }
+
+        .reward.show {
+            opacity: 1;
+        }
+
+        .badge {
+            font-size: 48px;
+            margin: 10px;
+        }
+
+        .confetti {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 1000;
+        }
+
+        .confetti-piece {
+            position: absolute;
+            width: 10px;
+            height: 10px;
+            background: #ff6b6b;
+            animation: confetti-fall 3s linear infinite;
+        }
+
+        @keyframes confetti-fall {
+            0% { transform: translateY(-100vh) rotate(0deg); opacity: 1; }
+            100% { transform: translateY(100vh) rotate(720deg); opacity: 0; }
+        }
+
+        button {
+            padding: 10px 20px;
+            background: #4a5568;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            margin: 10px;
+        }
+
+        button:hover {
+            background: #2d3748;
+        }
+
+        @media (max-width: 600px) {
+            .quiz-container {
+                padding: 15px;
+                margin: 10px;
+            }
+            .question {
+                font-size: 16px;
+            }
+            .options {
+                gap: 8px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="quiz-container">
+        <h1>Science Quiz App</h1>
+        <div class="progress">
+            <div class="progress-bar" id="progressBar"></div>
+        </div>
+        <div class="question" id="question"></div>
+        <div class="options" id="options"></div>
+        <div class="score">Score: <span id="score">0</span> / <span id="total">0</span></div>
+        <button id="nextBtn" style="display: none;">Next Question</button>
+        <button id="restartBtn" style="display: none;">Restart Quiz</button>
+        <div class="reward" id="reward"></div>
+        <div class="confetti" id="confetti"></div>
+    </div>
+
+    <script>
+        const questions = [
+            {
+                question: "What is the largest planet in our solar system?",
+                options: ["Earth", "Jupiter", "Saturn", "Mars"],
+                answer: 1
+            },
+            {
+                question: "How long is the lifespan of a human red blood cell?",
+                options: ["30 days", "120 days", "365 days", "10 years"],
+                answer: 1
+            },
+            {
+                question: "What is the longest type of cell in the body?",
+                options: ["Nerve cell", "Muscle cell", "Skin cell", "Blood cell"],
+                answer: 0
+            },
+            {
+                question: "Where would you find your pinna?",
+                options: ["Ear", "Nose", "Eye", "Mouth"],
+                answer: 0
+            },
+            {
+                question: "The adult human has approximately how many quarts of blood?",
+                options: ["4", "6", "8", "10"],
+                answer: 1
+            },
+            {
+                question: "What is the fastest animal on land?",
+                options: ["Lion", "Cheetah", "Elephant", "Horse"],
+                answer: 1
+            },
+            {
+                question: "What is the science of weights and measures called?",
+                options: ["Meteorology", "Metrology", "Mineralogy", "Morphology"],
+                answer: 1
+            },
+            {
+                question: "What is the definition of 'imaginary circle around the Earth halfway between the North Pole and the South Pole'?",
+                options: ["Equator", "Tropic of Cancer", "Arctic Circle", "Prime Meridian"],
+                answer: 0
+            },
+            {
+                question: "Which planet is known as the Red Planet?",
+                options: ["Venus", "Mars", "Mercury", "Jupiter"],
+                answer: 1
+            },
+            {
+                question: "What is the chemical symbol for gold?",
+                options: ["Au", "Ag", "Fe", "Pb"],
+                answer: 0
+            }
+        ];
+
+        let currentQuestionIndex = 0;
+        let score = 0;
+        let totalQuestions = questions.length;
+
+        const questionEl = document.getElementById('question');
+        const optionsEl = document.getElementById('options');
+        const scoreEl = document.getElementById('score');
+        const totalEl = document.getElementById('total');
+        const nextBtn = document.getElementById('nextBtn');
+        const restartBtn = document.getElementById('restartBtn');
+        const progressBar = document.getElementById('progressBar');
+        const rewardEl = document.getElementById('reward');
+        const confettiEl = document.getElementById('confetti');
+
+        function loadQuestion() {
+            const q = questions[currentQuestionIndex];
+            questionEl.textContent = q.question;
+            optionsEl.innerHTML = '';
+            q.options.forEach((option, index) => {
+                const btn = document.createElement('div');
+                btn.className = 'option';
+                btn.textContent = option;
+                btn.onclick = () => selectAnswer(index, q.answer);
+                optionsEl.appendChild(btn);
+            });
+            scoreEl.textContent = score;
+            totalEl.textContent = totalQuestions;
+            progressBar.style.width = `${((currentQuestionIndex + 1) / totalQuestions) * 100}%`;
+            nextBtn.style.display = 'none';
+            restartBtn.style.display = 'none';
+        }
+
+        function selectAnswer(selectedIndex, correctIndex) {
+            const options = optionsEl.children;
+            for (let i = 0; i < options.length; i++) {
+                options[i].onclick = null;
+                if (i === correctIndex) {
+                    options[i].classList.add('correct');
+                } else if (i === selectedIndex) {
+                    options[i].classList.add('incorrect');
+                }
+            }
+
+            if (selectedIndex === correctIndex) {
+                score++;
+                createConfetti();
+            }
+
+            setTimeout(() => {
+                if (currentQuestionIndex < totalQuestions - 1) {
+                    nextBtn.style.display = 'inline-block';
+                    nextBtn.onclick = nextQuestion;
+                } else {
+                    showReward();
+                    restartBtn.style.display = 'inline-block';
+                    restartBtn.onclick = restartQuiz;
+                }
+            }, 1000);
+        }
+
+        function nextQuestion() {
+            currentQuestionIndex++;
+            loadQuestion();
+        }
+
+        function showReward() {
+            const percentage = (score / totalQuestions) * 100;
+            let badge = '';
+            let message = '';
+            if (percentage >= 100) {
+                badge = '🥇 Gold Star! Perfect Score!';
+                message = 'Congratulations! You\'re a Science Genius!';
+            } else if (percentage >= 80) {
+                badge = '🥈 Silver Medal! Excellent!';
+                message = 'Great job! You know your science!';
+            } else if (percentage >= 60) {
+                badge = '🥉 Bronze Trophy! Good Effort!';
+                message = 'Well done! Keep learning!';
+            } else {
+                badge = '📚 Keep Studying!';
+                message = 'Don\'t give up! Try again!';
+            }
+            rewardEl.innerHTML = `<div class="badge">${badge}</div><p>${message}</p><p>Final Score: ${score}/${totalQuestions}</p>`;
+            rewardEl.classList.add('show');
+        }
+
+        function createConfetti() {
+            for (let i = 0; i < 50; i++) {
+                const piece = document.createElement('div');
+                piece.className = 'confetti-piece';
+                piece.style.left = Math.random() * 100 + 'vw';
+                piece.style.backgroundColor = `hsl(${Math.random() * 360}, 100%, 50%)`;
+                piece.style.animationDelay = Math.random() * 3 + 's';
+                piece.style.animationDuration = (Math.random() * 3 + 2) + 's';
+                confettiEl.appendChild(piece);
+                setTimeout(() => piece.remove(), 5000);
+            }
+        }
+
+        function restartQuiz() {
+            currentQuestionIndex = 0;
+            score = 0;
+            rewardEl.classList.remove('show');
+            confettiEl.innerHTML = '';
+            loadQuestion();
+        }
+
+        // Initialize
+        loadQuestion();
+    </script>
+</body>
+</html>
