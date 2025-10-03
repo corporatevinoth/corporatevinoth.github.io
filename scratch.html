@@ -1,0 +1,564 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Scratch Card Game</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        body {
+            background: linear-gradient(135deg, #6a11cb 0%, #2575fc 100%);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 20px;
+            color: white;
+        }
+        
+        .container {
+            max-width: 500px;
+            width: 100%;
+            text-align: center;
+        }
+        
+        h1 {
+            margin: 20px 0;
+            font-size: 2.5rem;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+        }
+        
+        .stats {
+            display: flex;
+            justify-content: space-between;
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 15px;
+            padding: 15px;
+            margin-bottom: 20px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+        }
+        
+        .stat-item {
+            flex: 1;
+        }
+        
+        .stat-value {
+            font-size: 1.8rem;
+            font-weight: bold;
+        }
+        
+        .scratch-container {
+            position: relative;
+            margin: 20px auto;
+            width: 100%;
+            max-width: 400px;
+            height: 250px;
+            border-radius: 20px;
+            overflow: hidden;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+        }
+        
+        .scratch-card {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            cursor: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 40 40"><circle cx="20" cy="20" r="18" fill="none" stroke="black" stroke-width="2"/></svg>') 20 20, auto;
+        }
+        
+        .scratch-surface {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: repeating-linear-gradient(
+                45deg,
+                #ff9a9e,
+                #ff9a9e 10px,
+                #fad0c4 10px,
+                #fad0c4 20px
+            );
+            z-index: 2;
+        }
+        
+        .card-content {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(135deg, #1a2980 0%, #26d0ce 100%);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+            z-index: 1;
+            opacity: 0;
+            transform: scale(0.8);
+            transition: opacity 0.5s, transform 0.5s;
+        }
+        
+        .card-content.revealed {
+            opacity: 1;
+            transform: scale(1);
+        }
+        
+        .reward-icon {
+            font-size: 3rem;
+            margin-bottom: 10px;
+            animation: bounce 1s infinite alternate;
+        }
+        
+        .reward-text {
+            font-size: 1.5rem;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+        
+        .reward-amount {
+            font-size: 2.5rem;
+            font-weight: bold;
+            margin: 10px 0;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+        }
+        
+        .reward-message {
+            font-size: 1rem;
+            opacity: 0.9;
+        }
+        
+        .controls {
+            display: flex;
+            gap: 15px;
+            margin: 20px 0;
+        }
+        
+        button {
+            flex: 1;
+            padding: 12px 20px;
+            border: none;
+            border-radius: 50px;
+            font-size: 1rem;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+        }
+        
+        .scratch-btn {
+            background: linear-gradient(to right, #FF512F, #F09819);
+            color: white;
+        }
+        
+        .new-card-btn {
+            background: linear-gradient(to right, #00b09b, #96c93d);
+            color: white;
+        }
+        
+        button:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 6px 15px rgba(0, 0, 0, 0.3);
+        }
+        
+        button:active {
+            transform: translateY(1px);
+        }
+        
+        button:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+        
+        .instructions {
+            background: rgba(255, 255, 255, 0.15);
+            border-radius: 15px;
+            padding: 15px;
+            margin-top: 20px;
+            text-align: left;
+        }
+        
+        .instructions h3 {
+            margin-bottom: 10px;
+        }
+        
+        .instructions ul {
+            padding-left: 20px;
+        }
+        
+        .instructions li {
+            margin-bottom: 8px;
+        }
+        
+        .notification {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: rgba(255, 255, 255, 0.9);
+            color: #333;
+            padding: 15px 25px;
+            border-radius: 10px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+            transform: translateX(150%);
+            transition: transform 0.4s ease;
+            z-index: 100;
+        }
+        
+        .notification.show {
+            transform: translateX(0);
+        }
+        
+        .scratch-progress {
+            height: 8px;
+            background: rgba(255, 255, 255, 0.3);
+            border-radius: 4px;
+            margin-top: 10px;
+            overflow: hidden;
+        }
+        
+        .scratch-progress-bar {
+            height: 100%;
+            background: linear-gradient(to right, #FF512F, #F09819);
+            width: 0%;
+            transition: width 0.3s;
+        }
+        
+        @keyframes bounce {
+            from { transform: translateY(0); }
+            to { transform: translateY(-10px); }
+        }
+        
+        @keyframes confetti {
+            0% { transform: translateY(0) rotate(0); opacity: 1; }
+            100% { transform: translateY(100vh) rotate(360deg); opacity: 0; }
+        }
+        
+        .confetti {
+            position: fixed;
+            width: 10px;
+            height: 10px;
+            background: #ff0;
+            top: 0;
+            opacity: 0;
+        }
+        
+        @media (max-width: 500px) {
+            h1 {
+                font-size: 2rem;
+            }
+            
+            .scratch-container {
+                height: 220px;
+            }
+            
+            .controls {
+                flex-direction: column;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Endless Scratch Cards</h1>
+        
+        <div class="stats">
+            <div class="stat-item">
+                <div class="stat-label">Cards Scratched</div>
+                <div class="stat-value" id="cards-scratched">0</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-label">Total Rewards</div>
+                <div class="stat-value" id="total-rewards">$0</div>
+            </div>
+        </div>
+        
+        <div class="scratch-container">
+            <div class="scratch-card" id="scratch-card">
+                <canvas id="scratch-canvas" width="400" height="250"></canvas>
+                <div class="card-content" id="card-content">
+                    <div class="reward-icon">🎁</div>
+                    <div class="reward-text">Congratulations!</div>
+                    <div class="reward-amount" id="reward-amount">$5.00</div>
+                    <div class="reward-message">You won a reward!</div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="scratch-progress">
+            <div class="scratch-progress-bar" id="scratch-progress-bar"></div>
+        </div>
+        
+        <div class="controls">
+            <button class="scratch-btn" id="scratch-btn">Start Scratching</button>
+            <button class="new-card-btn" id="new-card-btn" disabled>New Card</button>
+        </div>
+        
+        <div class="instructions">
+            <h3>How to Play:</h3>
+            <ul>
+                <li>Click "Start Scratching" and move your mouse over the card to reveal the reward</li>
+                <li>Scratch at least 70% of the card to reveal the reward</li>
+                <li>Each card contains a random reward between $1 and $100</li>
+                <li>Try to collect as many rewards as possible!</li>
+            </ul>
+        </div>
+    </div>
+    
+    <div class="notification" id="notification">
+        <strong>Congratulations!</strong> You won <span id="notification-amount">$0</span>!
+    </div>
+
+    <script>
+        // Game state
+        let cardsScratched = 0;
+        let totalRewards = 0;
+        let isScratching = false;
+        let currentReward = 0;
+        let scratchPercentage = 0;
+        let canvas, ctx;
+        
+        // DOM elements
+        const scratchCard = document.getElementById('scratch-card');
+        const cardContent = document.getElementById('card-content');
+        const rewardAmount = document.getElementById('reward-amount');
+        const scratchBtn = document.getElementById('scratch-btn');
+        const newCardBtn = document.getElementById('new-card-btn');
+        const cardsScratchedEl = document.getElementById('cards-scratched');
+        const totalRewardsEl = document.getElementById('total-rewards');
+        const notification = document.getElementById('notification');
+        const notificationAmount = document.getElementById('notification-amount');
+        const scratchProgressBar = document.getElementById('scratch-progress-bar');
+        
+        // Initialize the game
+        function initGame() {
+            canvas = document.getElementById('scratch-canvas');
+            ctx = canvas.getContext('2d');
+            
+            // Set canvas size to match container
+            canvas.width = scratchCard.offsetWidth;
+            canvas.height = scratchCard.offsetHeight;
+            
+            // Draw the scratch surface
+            drawScratchSurface();
+            
+            // Event listeners
+            scratchBtn.addEventListener('click', toggleScratching);
+            newCardBtn.addEventListener('click', generateNewCard);
+            
+            // Scratch card interaction
+            canvas.addEventListener('mousedown', startScratching);
+            canvas.addEventListener('mousemove', scratch);
+            canvas.addEventListener('mouseup', stopScratching);
+            canvas.addEventListener('mouseleave', stopScratching);
+            
+            // Touch events for mobile
+            canvas.addEventListener('touchstart', startScratching);
+            canvas.addEventListener('touchmove', scratch);
+            canvas.addEventListener('touchend', stopScratching);
+            
+            generateNewCard();
+        }
+        
+        // Draw the scratch surface
+        function drawScratchSurface() {
+            // Create a gradient background
+            const gradient = ctx.createLinearGradient(0, 0, canvas.width, canvas.height);
+            gradient.addColorStop(0, '#ff9a9e');
+            gradient.addColorStop(1, '#fad0c4');
+            
+            ctx.fillStyle = gradient;
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            
+            // Add some pattern
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.3)';
+            for (let i = 0; i < canvas.width; i += 20) {
+                for (let j = 0; j < canvas.height; j += 20) {
+                    if ((i + j) % 40 === 0) {
+                        ctx.fillRect(i, j, 10, 10);
+                    }
+                }
+            }
+            
+            // Add text
+            ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
+            ctx.font = 'bold 24px Arial';
+            ctx.textAlign = 'center';
+            ctx.fillText('SCRATCH HERE', canvas.width / 2, canvas.height / 2);
+            
+            ctx.font = '16px Arial';
+            ctx.fillText('Reveal your reward!', canvas.width / 2, canvas.height / 2 + 30);
+        }
+        
+        // Start scratching
+        function startScratching(e) {
+            if (!isScratching) return;
+            scratch(e);
+        }
+        
+        // Scratch the card
+        function scratch(e) {
+            if (!isScratching) return;
+            
+            e.preventDefault();
+            
+            // Get mouse/touch position
+            let clientX, clientY;
+            if (e.type.includes('touch')) {
+                clientX = e.touches[0].clientX;
+                clientY = e.touches[0].clientY;
+            } else {
+                clientX = e.clientX;
+                clientY = e.clientY;
+            }
+            
+            const rect = canvas.getBoundingClientRect();
+            const x = (clientX - rect.left) * (canvas.width / rect.width);
+            const y = (clientY - rect.top) * (canvas.height / rect.height);
+            
+            // Draw a circle to "scratch off" the surface
+            ctx.globalCompositeOperation = 'destination-out';
+            ctx.beginPath();
+            ctx.arc(x, y, 20, 0, Math.PI * 2);
+            ctx.fill();
+            
+            // Calculate scratch percentage
+            calculateScratchPercentage();
+        }
+        
+        // Calculate how much of the card has been scratched
+        function calculateScratchPercentage() {
+            const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+            const pixels = imageData.data;
+            let transparentPixels = 0;
+            
+            // Count transparent pixels (alpha = 0)
+            for (let i = 3; i < pixels.length; i += 4) {
+                if (pixels[i] === 0) {
+                    transparentPixels++;
+                }
+            }
+            
+            // Calculate percentage
+            scratchPercentage = (transparentPixels / (pixels.length / 4)) * 100;
+            scratchProgressBar.style.width = `${scratchPercentage}%`;
+            
+            // Check if enough is scratched to reveal reward
+            if (scratchPercentage >= 70 && !cardContent.classList.contains('revealed')) {
+                revealReward();
+            }
+        }
+        
+        // Toggle scratching mode
+        function toggleScratching() {
+            isScratching = !isScratching;
+            scratchBtn.textContent = isScratching ? 'Scratching...' : 'Start Scratching';
+            
+            if (isScratching) {
+                canvas.style.cursor = 'url(\'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 40 40"><circle cx="20" cy="20" r="18" fill="none" stroke="black" stroke-width="2"/></svg>\') 20 20, auto';
+            } else {
+                canvas.style.cursor = 'default';
+            }
+        }
+        
+        // Stop scratching
+        function stopScratching() {
+            // We don't disable scratching here to allow continuous scratching
+        }
+        
+        // Generate a new scratch card
+        function generateNewCard() {
+            // Reset canvas
+            ctx.globalCompositeOperation = 'source-over';
+            drawScratchSurface();
+            
+            // Reset progress
+            scratchPercentage = 0;
+            scratchProgressBar.style.width = '0%';
+            
+            // Generate random reward
+            currentReward = (Math.random() * 99 + 1).toFixed(2);
+            rewardAmount.textContent = `$${currentReward}`;
+            
+            // Hide reward content
+            cardContent.classList.remove('revealed');
+            
+            // Reset buttons
+            isScratching = false;
+            scratchBtn.textContent = 'Start Scratching';
+            scratchBtn.disabled = false;
+            newCardBtn.disabled = true;
+            
+            // Update stats
+            cardsScratched++;
+            cardsScratchedEl.textContent = cardsScratched;
+        }
+        
+        // Reveal the reward with animation
+        function revealReward() {
+            // Show reward content with animation
+            cardContent.classList.add('revealed');
+            
+            // Add to total rewards
+            totalRewards += parseFloat(currentReward);
+            totalRewardsEl.textContent = `$${totalRewards.toFixed(2)}`;
+            
+            // Show notification
+            notificationAmount.textContent = `$${currentReward}`;
+            notification.classList.add('show');
+            
+            // Create confetti effect
+            createConfetti();
+            
+            // Hide notification after 3 seconds
+            setTimeout(() => {
+                notification.classList.remove('show');
+            }, 3000);
+            
+            // Enable new card button
+            scratchBtn.disabled = true;
+            newCardBtn.disabled = false;
+            
+            // Disable scratching
+            isScratching = false;
+        }
+        
+        // Create confetti animation
+        function createConfetti() {
+            const colors = ['#ff0000', '#00ff00', '#0000ff', '#ffff00', '#ff00ff', '#00ffff'];
+            
+            for (let i = 0; i < 50; i++) {
+                const confetti = document.createElement('div');
+                confetti.className = 'confetti';
+                confetti.style.left = Math.random() * 100 + 'vw';
+                confetti.style.background = colors[Math.floor(Math.random() * colors.length)];
+                confetti.style.animation = `confetti ${Math.random() * 3 + 2}s linear forwards`;
+                document.body.appendChild(confetti);
+                
+                // Remove confetti after animation
+                setTimeout(() => {
+                    confetti.remove();
+                }, 5000);
+            }
+        }
+        
+        // Initialize the game when page loads
+        window.onload = initGame;
+        
+        // Handle window resize
+        window.addEventListener('resize', () => {
+            if (canvas) {
+                canvas.width = scratchCard.offsetWidth;
+                canvas.height = scratchCard.offsetHeight;
+                drawScratchSurface();
+            }
+        });
+    </script>
+</body>
+</html>
