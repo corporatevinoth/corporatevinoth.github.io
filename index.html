@@ -53,12 +53,6 @@
       font-weight: 600;
       text-shadow: 0 2px 8px #00000055;
     }
-    .section-title.apps::before {
-      content: "🛠️ ";
-    }
-    .section-title.games::before {
-      content: "🎮 ";
-    }
     .apps-list, .games-list {
       display: flex;
       flex-wrap: wrap;
@@ -71,7 +65,7 @@
       box-sizing: border-box;
       padding: 0 20px;
     }
-    .app-card, .game-card {
+    .card {
       background: rgba(255,255,255,0.10);
       border-radius: 22px;
       box-shadow: 0 6px 40px rgba(0,0,0,0.25);
@@ -84,27 +78,30 @@
       min-width: 180px;
       max-width: 220px;
       position: relative;
-      border: 2px solid #00c6ff22;
+      border: 2px solid;
       outline: none;
       flex: 1 1 220px;
       box-sizing: border-box;
     }
-    .app-card:hover, .app-card:focus-visible, .app-card:active,
-    .game-card:hover, .game-card:focus-visible, .game-card:active {
+    .card:hover, .card:focus-visible, .card:active {
       transform: translateY(-8px) scale(1.04);
-      box-shadow: 0 12px 48px 0 #00c6ff44, 0 2px 8px 0 #0003;
-      border-color: #00c6ff;
+      box-shadow: 0 12px 48px 0 rgba(0,198,255,0.27), 0 2px 8px 0 #0003;
     }
-    .app-card {
-      border: 2px solid #4db8ff44;
+    .card.app {
+      border-color: #4db8ff44;
     }
-    .app-card:hover, .app-card:focus-visible {
+    .card.app:hover, .card.app:focus-visible {
       border-color: #4db8ff;
       box-shadow: 0 12px 48px 0 #4db8ff44, 0 2px 8px 0 #0003;
     }
-    .game-icon, .game-icon-number, .game-icon-chat, .game-icon-weather, 
-    .game-icon-coin, .game-icon-gun, .game-icon-imgdetect, .game-icon-workout, 
-    .game-icon-balloon3d, .app-icon {
+    .card.game {
+      border-color: #00c6ff22;
+    }
+    .card.game:hover, .card.game:focus-visible {
+      border-color: #00c6ff;
+      box-shadow: 0 12px 48px 0 #00c6ff44, 0 2px 8px 0 #0003;
+    }
+    .card-icon {
       width: 64px;
       height: 64px;
       margin-bottom: 16px;
@@ -118,26 +115,17 @@
       align-items: center;
       justify-content: center;
       animation: iconBounce 1.4s infinite alternate;
+      font-size: 2rem;
     }
     @keyframes iconBounce {
       0%   { transform: translateY(0) scale(1);}
       50%  { transform: translateY(-8px) scale(1.08);}
       100% { transform: translateY(0) scale(1);}
     }
-    .app-card:hover .app-icon,
-    .app-card:focus-visible .app-icon,
-    .game-card:hover .game-icon,
-    .game-card:focus-visible .game-icon {
+    .card:hover .card-icon, .card:focus-visible .card-icon {
       border-color: #00c6ff;
     }
-    .game-icon-number {
-      background: linear-gradient(135deg, #ffe259 0%, #ffa751 100%);
-      font-size: 2.6rem;
-      font-weight: bold;
-      color: #fff;
-      text-shadow: 0 3px 8px #000a;
-    }
-    .game-name, .app-name {
+    .card-name {
       font-size: 1.1rem;
       color: #fff;
       font-weight: 600;
@@ -160,239 +148,80 @@
   <div class="title">💼 Developer Tools & Apps</div>
   <div class="subtitle">Interactive applications and utilities showcasing web development skills</div>
 
-  <!-- APPS SECTION (PRIORITIZED) -->
-  <div class="section-title apps">Developer Tools</div>
-  <div class="apps-list">
-    <!-- JSON Sorter Tool -->
-    <div class="app-card" tabindex="0" onclick="window.location.href='jsonSorter.html'" onkeydown="if(event.key==='Enter'){window.location.href='jsonSorter.html'}" title="Sort and format JSON data">
-      <div class="app-icon" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
-        <svg width="44" height="44" viewBox="0 0 44 44" fill="none">
-          <text x="22" y="28" font-size="24" fill="#fff" text-anchor="middle" font-weight="bold">{}</text>
-        </svg>
-      </div>
-      <div class="app-name">JSON Sorter</div>
-    </div>
+  <!-- APPS SECTION -->
+  <div class="section-title">🛠️ Developer Tools</div>
+  <div class="apps-list" id="appsList"></div>
 
-    <!-- JSON Compare Tool -->
-    <div class="app-card" tabindex="0" onclick="window.location.href='jsonCompare.html'" onkeydown="if(event.key==='Enter'){window.location.href='jsonCompare.html'}" title="Compare JSON files">
-      <div class="app-icon" style="background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);">
-        <svg width="44" height="44" viewBox="0 0 44 44" fill="none">
-          <text x="22" y="28" font-size="20" fill="#fff" text-anchor="middle">⇄</text>
-        </svg>
-      </div>
-      <div class="app-name">JSON Compare</div>
-    </div>
+  <!-- GAMES SECTION -->
+  <div class="section-title">🎮 Interactive Games</div>
+  <div class="games-list" id="gamesList"></div>
 
-    <!-- Postman Collection Manager -->
-    <div class="app-card" tabindex="0" onclick="window.location.href='postman.html'" onkeydown="if(event.key==='Enter'){window.location.href='postman.html'}" title="Manage API collections">
-      <div class="app-icon" style="background: linear-gradient(135deg, #fa709a 0%, #fee140 100%);">
-        <svg width="44" height="44" viewBox="0 0 44 44" fill="none">
-          <text x="22" y="28" font-size="22" fill="#fff" text-anchor="middle">📮</text>
-        </svg>
-      </div>
-      <div class="app-name">Postman Manager</div>
-    </div>
+  <script>
+    const apps = [
+      { name: 'JSON Sorter', url: 'jsonSorter.html', emoji: '{}', gradient: '#667eea, #764ba2', title: 'Sort and format JSON data' },
+      { name: 'JSON Compare', url: 'jsonCompare.html', emoji: '⇄', gradient: '#f093fb, #f5576c', title: 'Compare JSON files' },
+      { name: 'Postman Manager', url: 'postman.html', emoji: '📮', gradient: '#fa709a, #fee140', title: 'Manage API collections' },
+      { name: 'Notepad', url: 'notepad.html', emoji: '📝', gradient: '#e0eafc, #b2feeb', title: 'Quick notepad' },
+      { name: 'Doc Editor', url: 'doc.html', emoji: '📄', gradient: '#f2f6fc, #e0e7ef', title: 'Document editor' },
+      { name: 'Workout Helper', url: 'workoutHelper.html', emoji: '💪', gradient: '#fa709a, #fee140', title: 'Workout tracking tool' },
+      { name: 'Weather', url: 'weather.html', emoji: '🌤️', gradient: '#e0eafc, #a1c4fd', title: 'Weather information' },
+      { name: 'Image Detect', url: 'imgDetect.html', emoji: '🔍', gradient: '#a8edea, #fed6e3', title: 'AI image detection' }
+    ];
 
-    <!-- Notepad Tool -->
-    <div class="app-card" tabindex="0" onclick="window.location.href='notepad.html'" onkeydown="if(event.key==='Enter'){window.location.href='notepad.html'}" title="Quick notepad">
-      <div class="app-icon" style="background: linear-gradient(135deg, #e0eafc 0%, #b2feeb 100%);">
-        <svg width="44" height="44" viewBox="0 0 44 44" fill="none">
-          <text x="22" y="28" font-size="22" fill="#333" text-anchor="middle">📝</text>
-        </svg>
-      </div>
-      <div class="app-name">Notepad</div>
-    </div>
+    const games = [
+      { name: 'Balloon Shooter', url: 'balloon.html', emoji: '🎈', gradient: '#ff9a56, #ff6a88' },
+      { name: 'Math Game', url: 'math.html', emoji: 'π', gradient: '#ffe259, #ffa751' },
+      { name: 'Toss Coin', url: 'toss.html', emoji: '🪙', gradient: '#fffbe7, #f7e38d' },
+      { name: 'Space Shooter', url: 'spaceshooter.html', emoji: '🚀', gradient: '#4facfe, #00f2fe' },
+      { name: 'Balloon 3D', url: 'balloon3D.html', emoji: '🎈', gradient: '#ff6b6b, #ee5a6f' },
+      { name: 'Car Race 3D', url: 'carRace3d.html', emoji: '🏎️', gradient: '#fa709a, #fee140' },
+      { name: 'Card Game', url: 'cardgame.html', emoji: '🃏', gradient: '#667eea, #764ba2' },
+      { name: 'Fruit Ninja', url: 'fruit.html', emoji: '🍉', gradient: '#f093fb, #f5576c' },
+      { name: '3D Shooter', url: 'deepseekshoot3d.html', emoji: '🔫', gradient: '#e0eafc, #bdbdbd' },
+      { name: 'Race', url: 'race.html', emoji: '🏁', gradient: '#a8edea, #fed6e3' },
+      { name: 'Balloon Pop', url: 'ballonpop.html', emoji: '💥', gradient: '#fceabb, #f8b500' },
+      { name: 'Ballon Blast', url: 'ballon3dblast.html', emoji: '🎯', gradient: '#ff9a56, #ff6a88' },
+      { name: 'Cat Milk', url: 'catMilk.html', emoji: '🐱', gradient: '#fceabb, #f8b500' },
+      { name: 'Science Quiz', url: 'scienceQuiz.html', emoji: '🔬', gradient: '#e0eafc, #8fd3f4' },
+      { name: 'Scratch Card', url: 'scratch.html', emoji: '🎟️', gradient: '#fbc2eb, #a6c1ee' }
+    ];
 
-    <!-- Doc Tool -->
-    <div class="app-card" tabindex="0" onclick="window.location.href='doc.html'" onkeydown="if(event.key==='Enter'){window.location.href='doc.html'}" title="Document editor">
-      <div class="app-icon" style="background: linear-gradient(135deg, #f2f6fc 0%, #e0e7ef 100%);">
-        <svg width="44" height="44" viewBox="0 0 44 44" fill="none">
-          <text x="22" y="28" font-size="22" fill="#333" text-anchor="middle">📄</text>
-        </svg>
-      </div>
-      <div class="app-name">Doc Editor</div>
-    </div>
+    function createCard(item, type) {
+      const card = document.createElement('div');
+      card.className = `card ${type}`;
+      card.tabIndex = 0;
+      card.title = item.title || item.name;
+      card.onclick = () => window.location.href = item.url;
+      card.onkeydown = (e) => { if (e.key === 'Enter') window.location.href = item.url; };
 
-    <!-- Workout Helper App -->
-    <div class="app-card" tabindex="0" onclick="window.location.href='workoutHelper.html'" onkeydown="if(event.key==='Enter'){window.location.href='workoutHelper.html'}" title="Workout tracking tool">
-      <div class="app-icon" style="background: linear-gradient(135deg, #fa709a 0%, #fee140 100%);">
-        <svg width="44" height="44" viewBox="0 0 44 44" fill="none">
-          <text x="22" y="28" font-size="22" fill="#fff" text-anchor="middle">💪</text>
-        </svg>
-      </div>
-      <div class="app-name">Workout Helper</div>
-    </div>
+      const icon = document.createElement('div');
+      icon.className = 'card-icon';
+      icon.style.background = `linear-gradient(135deg, ${item.gradient})`;
+      
+      // Check if emoji is text (for special handling like π)
+      if (item.emoji === 'π' || item.emoji === '{}') {
+        icon.style.fontSize = '1.6rem';
+        icon.textContent = item.emoji;
+      } else {
+        icon.textContent = item.emoji;
+      }
 
-    <!-- Weather App -->
-    <div class="app-card" tabindex="0" onclick="window.location.href='weather.html'" onkeydown="if(event.key==='Enter'){window.location.href='weather.html'}" title="Weather information">
-      <div class="app-icon" style="background: linear-gradient(135deg, #e0eafc 0%, #a1c4fd 100%);">
-        <svg width="44" height="44" viewBox="0 0 44 44" fill="none">
-          <text x="22" y="28" font-size="22" fill="#fff" text-anchor="middle">🌤️</text>
-        </svg>
-      </div>
-      <div class="app-name">Weather</div>
-    </div>
+      const name = document.createElement('div');
+      name.className = 'card-name';
+      name.textContent = item.name;
 
-    <!-- Image Detect App -->
-    <div class="app-card" tabindex="0" onclick="window.location.href='imgDetect.html'" onkeydown="if(event.key==='Enter'){window.location.href='imgDetect.html'}" title="AI image detection">
-      <div class="app-icon" style="background: linear-gradient(135deg, #a8edea 0%, #fed6e3 100%);">
-        <svg width="44" height="44" viewBox="0 0 44 44" fill="none">
-          <text x="22" y="28" font-size="22" fill="#fff" text-anchor="middle">🔍</text>
-        </svg>
-      </div>
-      <div class="app-name">Image Detect</div>
-    </div>
-  </div>
+      card.appendChild(icon);
+      card.appendChild(name);
+      return card;
+    }
 
-  <!-- GAMES SECTION (SECONDARY) -->
-  <div class="section-title games">Interactive Games</div>
-  <div class="games-list">
-    <!-- Balloon Shooter Game -->
-    <div class="game-card" tabindex="0" onclick="window.location.href='balloon.html'" onkeydown="if(event.key==='Enter'){window.location.href='balloon.html'}" title="Play Balloon Shooter">
-      <div class="game-icon" style="background: linear-gradient(135deg, #ff9a56 0%, #ff6a88 100%);">
-        <svg width="44" height="44" viewBox="0 0 44 44" fill="none">
-          <text x="22" y="28" font-size="22" fill="#fff" text-anchor="middle">🎈</text>
-        </svg>
-      </div>
-      <div class="game-name">Balloon Shooter</div>
-    </div>
+    // Render apps
+    const appsList = document.getElementById('appsList');
+    apps.forEach(app => appsList.appendChild(createCard(app, 'app')));
 
-    <!-- Math Game -->
-    <div class="game-card" tabindex="0" onclick="window.location.href='math.html'" onkeydown="if(event.key==='Enter'){window.location.href='math.html'}" title="Play Math Game">
-      <div class="game-icon-number">π</div>
-      <div class="game-name">Math Game</div>
-    </div>
-
-    <!-- Toss Coin Game -->
-    <div class="game-card" tabindex="0" onclick="window.location.href='toss.html'" onkeydown="if(event.key==='Enter'){window.location.href='toss.html'}" title="Toss Coin">
-      <div class="game-icon" style="background: linear-gradient(135deg, #fffbe7 0%, #f7e38d 100%);">
-        <svg width="44" height="44" viewBox="0 0 44 44" fill="none">
-          <text x="22" y="28" font-size="24" fill="#333" text-anchor="middle">🪙</text>
-        </svg>
-      </div>
-      <div class="game-name">Toss Coin</div>
-    </div>
-
-    <!-- Space Shooter Game -->
-    <div class="game-card" tabindex="0" onclick="window.location.href='spaceshooter.html'" onkeydown="if(event.key==='Enter'){window.location.href='spaceshooter.html'}" title="Space Shooter">
-      <div class="game-icon" style="background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);">
-        <svg width="44" height="44" viewBox="0 0 44 44" fill="none">
-          <text x="22" y="28" font-size="22" fill="#fff" text-anchor="middle">🚀</text>
-        </svg>
-      </div>
-      <div class="game-name">Space Shooter</div>
-    </div>
-
-    <!-- Balloon 3D Game -->
-    <div class="game-card" tabindex="0" onclick="window.location.href='balloon3D.html'" onkeydown="if(event.key==='Enter'){window.location.href='balloon3D.html'}" title="Balloon 3D">
-      <div class="game-icon-balloon3d" style="background: linear-gradient(135deg, #ff6b6b 0%, #ee5a6f 100%);">
-        <svg width="44" height="44" viewBox="0 0 44 44" fill="none">
-          <text x="22" y="28" font-size="22" fill="#fff" text-anchor="middle">🎈</text>
-        </svg>
-      </div>
-      <div class="game-name">Balloon 3D</div>
-    </div>
-
-    <!-- CarRace3d Game -->
-    <div class="game-card" tabindex="0" onclick="window.location.href='carRace3d.html'" onkeydown="if(event.key==='Enter'){window.location.href='carRace3d.html'}" title="CarRace3d">
-      <div class="game-icon" style="background: linear-gradient(135deg, #fa709a 0%, #fee140 100%);">
-        <svg width="44" height="44" viewBox="0 0 44 44" fill="none">
-          <text x="22" y="28" font-size="22" fill="#fff" text-anchor="middle">🏎️</text>
-        </svg>
-      </div>
-      <div class="game-name">Car Race 3D</div>
-    </div>
-
-    <!-- Card Game -->
-    <div class="game-card" tabindex="0" onclick="window.location.href='cardgame.html'" onkeydown="if(event.key==='Enter'){window.location.href='cardgame.html'}" title="Play Card Game">
-      <div class="game-icon" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
-        <svg width="44" height="44" viewBox="0 0 44 44" fill="none">
-          <text x="22" y="28" font-size="22" fill="#fff" text-anchor="middle">🃏</text>
-        </svg>
-      </div>
-      <div class="game-name">Card Game</div>
-    </div>
-
-    <!-- Fruit Ninja Game -->
-    <div class="game-card" tabindex="0" onclick="window.location.href='fruit.html'" onkeydown="if(event.key==='Enter'){window.location.href='fruit.html'}" title="Play Fruit Ninja">
-      <div class="game-icon" style="background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);">
-        <svg width="44" height="44" viewBox="0 0 44 44" fill="none">
-          <text x="22" y="28" font-size="22" fill="#fff" text-anchor="middle">🍉</text>
-        </svg>
-      </div>
-      <div class="game-name">Fruit Ninja</div>
-    </div>
-
-    <!-- 3D Shooter Game -->
-    <div class="game-card" tabindex="0" onclick="window.location.href='deepseekshoot3d.html'" onkeydown="if(event.key==='Enter'){window.location.href='deepseekshoot3d.html'}" title="Play 3D Shooter">
-      <div class="game-icon" style="background: linear-gradient(135deg, #e0eafc 0%, #bdbdbd 100%);">
-        <svg width="44" height="44" viewBox="0 0 44 44" fill="none">
-          <text x="22" y="28" font-size="22" fill="#fff" text-anchor="middle">🔫</text>
-        </svg>
-      </div>
-      <div class="game-name">3D Shooter</div>
-    </div>
-
-    <!-- Race Game -->
-    <div class="game-card" tabindex="0" onclick="window.location.href='race.html'" onkeydown="if(event.key==='Enter'){window.location.href='race.html'}" title="Race Game">
-      <div class="game-icon" style="background: linear-gradient(135deg, #a8edea 0%, #fed6e3 100%);">
-        <svg width="44" height="44" viewBox="0 0 44 44" fill="none">
-          <text x="22" y="28" font-size="22" fill="#fff" text-anchor="middle">🏁</text>
-        </svg>
-      </div>
-      <div class="game-name">Race</div>
-    </div>
-
-    <!-- Balloon Pop Game -->
-    <div class="game-card" tabindex="0" onclick="window.location.href='ballonpop.html'" onkeydown="if(event.key==='Enter'){window.location.href='ballonpop.html'}" title="Balloon Pop Game">
-      <div class="game-icon" style="background: linear-gradient(135deg, #fceabb 0%, #f8b500 100%);">
-        <svg width="44" height="44" viewBox="0 0 44 44" fill="none">
-          <text x="22" y="28" font-size="22" fill="#fff" text-anchor="middle">💥</text>
-        </svg>
-      </div>
-      <div class="game-name">Balloon Pop</div>
-    </div>
-
-    <!-- Ballon Blast Game -->
-    <div class="game-card" tabindex="0" onclick="window.location.href='ballon3dblast.html'" onkeydown="if(event.key==='Enter'){window.location.href='ballon3dblast.html'}" title="Ballon Blast">
-      <div class="game-icon" style="background: linear-gradient(135deg, #ff9a56 0%, #ff6a88 100%);">
-        <svg width="44" height="44" viewBox="0 0 44 44" fill="none">
-          <text x="22" y="28" font-size="22" fill="#fff" text-anchor="middle">🎯</text>
-        </svg>
-      </div>
-      <div class="game-name">Ballon Blast</div>
-    </div>
-
-    <!-- Cat Milk Game -->
-    <div class="game-card" tabindex="0" onclick="window.location.href='catMilk.html'" onkeydown="if(event.key==='Enter'){window.location.href='catMilk.html'}" title="CatMilk">
-      <div class="game-icon" style="background: linear-gradient(135deg, #fceabb 0%, #f8b500 100%);">
-        <svg width="44" height="44" viewBox="0 0 44 44" fill="none">
-          <text x="22" y="28" font-size="22" fill="#fff" text-anchor="middle">🐱</text>
-        </svg>
-      </div>
-      <div class="game-name">Cat Milk</div>
-    </div>
-
-    <!-- Science Quiz Game -->
-    <div class="game-card" tabindex="0" onclick="window.location.href='scienceQuiz.html'" onkeydown="if(event.key==='Enter'){window.location.href='scienceQuiz.html'}" title="Science Quiz">
-      <div class="game-icon" style="background: linear-gradient(135deg, #e0eafc 0%, #8fd3f4 100%);">
-        <svg width="44" height="44" viewBox="0 0 44 44" fill="none">
-          <text x="22" y="28" font-size="22" fill="#fff" text-anchor="middle">🔬</text>
-        </svg>
-      </div>
-      <div class="game-name">Science Quiz</div>
-    </div>
-
-    <!-- Scratch Card Game -->
-    <div class="game-card" tabindex="0" onclick="window.location.href='scratch.html'" onkeydown="if(event.key==='Enter'){window.location.href='scratch.html'}" title="Scratch Card">
-      <div class="game-icon" style="background: linear-gradient(135deg, #fbc2eb 0%, #a6c1ee 100%);">
-        <svg width="44" height="44" viewBox="0 0 44 44" fill="none">
-          <text x="22" y="28" font-size="22" fill="#fff" text-anchor="middle">🎟️</text>
-        </svg>
-      </div>
-      <div class="game-name">Scratch Card</div>
-    </div>
-  </div>
-
+    // Render games
+    const gamesList = document.getElementById('gamesList');
+    games.forEach(game => gamesList.appendChild(createCard(game, 'game')));
+  </script>
 </body>
 </html>
