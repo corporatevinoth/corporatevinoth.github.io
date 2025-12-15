@@ -1,0 +1,377 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CSV ↔ JSON Converter</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 2em;
+            margin-bottom: 10px;
+        }
+
+        .controls {
+            padding: 20px 30px;
+            background: #f5f5f5;
+            border-bottom: 1px solid #ddd;
+            display: flex;
+            gap: 15px;
+            flex-wrap: wrap;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .toggle-btn {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 1em;
+        }
+
+        .toggle-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(245, 87, 108, 0.4);
+        }
+
+        button {
+            padding: 10px 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: transform 0.2s;
+        }
+
+        button:hover {
+            transform: translateY(-2px);
+        }
+
+        .file-input-wrapper {
+            position: relative;
+            display: inline-block;
+        }
+
+        .file-input-wrapper input[type="file"] {
+            position: absolute;
+            opacity: 0;
+            width: 100%;
+            height: 100%;
+            cursor: pointer;
+        }
+
+        .content {
+            display: flex;
+            height: calc(100vh - 300px);
+            min-height: 500px;
+        }
+
+        .panel {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            border-right: 1px solid #ddd;
+        }
+
+        .panel:last-child {
+            border-right: none;
+        }
+
+        .panel-title {
+            padding: 15px 20px;
+            background: #f9f9f9;
+            font-weight: 600;
+            border-bottom: 1px solid #ddd;
+            color: #333;
+        }
+
+        textarea {
+            flex: 1;
+            padding: 20px;
+            border: none;
+            font-family: 'Courier New', monospace;
+            font-size: 0.9em;
+            resize: none;
+            overflow: auto;
+            outline: none;
+        }
+
+        #inputData {
+            background: #fafafa;
+        }
+
+        #outputData {
+            background: #f0f0f0;
+        }
+
+        .message {
+            padding: 15px 20px;
+            text-align: center;
+            font-weight: 500;
+        }
+
+        .success {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .error {
+            background: #f8d7da;
+            color: #721c24;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.85em;
+        }
+
+        table th,
+        table td {
+            padding: 10px;
+            text-align: left;
+            border: 1px solid #ddd;
+        }
+
+        table th {
+            background: #f9f9f9;
+            font-weight: 600;
+        }
+
+        .table-container {
+            flex: 1;
+            overflow: auto;
+            padding: 20px;
+            background: #fafafa;
+        }
+
+        @media (max-width: 768px) {
+            .content {
+                flex-direction: column;
+                height: auto;
+            }
+
+            .panel {
+                border-right: none;
+                border-bottom: 1px solid #ddd;
+                min-height: 300px;
+            }
+
+            .controls {
+                flex-direction: column;
+            }
+
+            button {
+                width: 100%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🔄 CSV ↔ JSON Converter</h1>
+            <p>Convert between CSV and JSON formats instantly</p>
+        </div>
+
+        <div class="controls">
+            <button class="toggle-btn" onclick="toggleMode('csv')">CSV to JSON</button>
+            <button class="toggle-btn" onclick="toggleMode('json')">JSON to CSV</button>
+            <button class="file-input-wrapper">
+                Upload File
+                <input type="file" id="fileInput" onchange="handleFileUpload(event)">
+            </button>
+            <button onclick="downloadOutput()" style="background: #28a745;">Download</button>
+            <button onclick="clearAll()" style="background: #dc3545;">Clear</button>
+        </div>
+
+        <div id="message"></div>
+
+        <div class="content">
+            <div class="panel">
+                <div class="panel-title" id="inputTitle">CSV Input</div>
+                <textarea id="inputData" placeholder="Paste CSV or JSON here..."></textarea>
+            </div>
+            <div class="panel">
+                <div class="panel-title" id="outputTitle">JSON Output</div>
+                <div id="outputPanel" class="table-container">
+                    <textarea id="outputData" readonly placeholder="Converted data will appear here..."></textarea>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let currentMode = 'csv-to-json';
+        const inputData = document.getElementById('inputData');
+        const outputData = document.getElementById('outputData');
+        const messageDiv = document.getElementById('message');
+        const inputTitle = document.getElementById('inputTitle');
+        const outputTitle = document.getElementById('outputTitle');
+        const fileInput = document.getElementById('fileInput');
+
+        function toggleMode(mode) {
+            currentMode = mode === 'csv' ? 'csv-to-json' : 'json-to-csv';
+            inputData.value = '';
+            outputData.value = '';
+            messageDiv.innerHTML = '';
+
+            if (currentMode === 'csv-to-json') {
+                inputTitle.textContent = 'CSV Input';
+                outputTitle.textContent = 'JSON Output';
+            } else {
+                inputTitle.textContent = 'JSON Input';
+                outputTitle.textContent = 'CSV Output';
+            }
+        }
+
+        function csvToJson(csv) {
+            const lines = csv.trim().split('\n');
+            if (lines.length === 0) throw new Error('Empty input');
+
+            const headers = lines[0].split(',').map(h => h.trim().replace(/^"|"$/g, ''));
+            const result = [];
+
+            for (let i = 1; i < lines.length; i++) {
+                const values = lines[i].split(',').map(v => v.trim().replace(/^"|"$/g, ''));
+                const obj = {};
+                headers.forEach((header, index) => {
+                    obj[header] = values[index] || '';
+                });
+                result.push(obj);
+            }
+
+            return JSON.stringify(result, null, 2);
+        }
+
+        function jsonToCsv(json) {
+            try {
+                const data = typeof json === 'string' ? JSON.parse(json) : json;
+                if (!Array.isArray(data) || data.length === 0) {
+                    throw new Error('JSON must be an array of objects');
+                }
+
+                const headers = Object.keys(data[0]);
+                let csv = headers.map(h => `"${h}"`).join(',') + '\n';
+
+                data.forEach(row => {
+                    csv += headers.map(header => {
+                        const value = row[header];
+                        if (value === null || value === undefined) return '""';
+                        return `"${String(value).replace(/"/g, '""')}"`;
+                    }).join(',') + '\n';
+                });
+
+                return csv;
+            } catch (error) {
+                throw new Error('Invalid JSON: ' + error.message);
+            }
+        }
+
+        function convert() {
+            const input = inputData.value.trim();
+            if (!input) {
+                showMessage('Please enter data', 'error');
+                return;
+            }
+
+            try {
+                let output;
+                if (currentMode === 'csv-to-json') {
+                    output = csvToJson(input);
+                } else {
+                    output = jsonToCsv(input);
+                }
+                outputData.value = output;
+                showMessage('✓ Conversion successful!', 'success');
+            } catch (error) {
+                showMessage('✗ ' + error.message, 'error');
+                outputData.value = '';
+            }
+        }
+
+        function handleFileUpload(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                inputData.value = e.target.result;
+                setTimeout(convert, 100);
+            };
+            reader.readAsText(file);
+        }
+
+        function downloadOutput() {
+            if (!outputData.value) {
+                showMessage('Nothing to download', 'error');
+                return;
+            }
+
+            const element = document.createElement('a');
+            const extension = currentMode === 'csv-to-json' ? 'json' : 'csv';
+            element.setAttribute('href', 'data:text/plain;charset=utf-8,' + encodeURIComponent(outputData.value));
+            element.setAttribute('download', `converted.${extension}`);
+            element.style.display = 'none';
+            document.body.appendChild(element);
+            element.click();
+            document.body.removeChild(element);
+            showMessage('✓ Downloaded!', 'success');
+        }
+
+        function clearAll() {
+            inputData.value = '';
+            outputData.value = '';
+            messageDiv.innerHTML = '';
+            fileInput.value = '';
+        }
+
+        function showMessage(text, type) {
+            messageDiv.innerHTML = `<div class="message ${type}">${text}</div>`;
+            setTimeout(() => {
+                messageDiv.innerHTML = '';
+            }, 3000);
+        }
+
+        // Auto-convert on input
+        inputData.addEventListener('input', () => {
+            clearTimeout(inputData.convertTimeout);
+            inputData.convertTimeout = setTimeout(convert, 500);
+        });
+    </script>
+</body>
+</html>
