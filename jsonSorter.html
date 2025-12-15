@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -44,21 +43,26 @@
             gap: 10px;
         }
 
+        label {
+            font-weight: 600;
+            color: #555;
+        }
+
         textarea {
             width: 100%;
             min-height: 250px;
             padding: 15px;
             border: 1px solid #ddd;
             border-radius: 8px;
-            font-family: 'Roboto Mono', monospace; /* Monospace for code */
+            font-family: 'Roboto Mono', monospace;
             font-size: 0.95em;
             resize: vertical;
             box-sizing: border-box;
             outline: none;
             transition: border-color 0.3s ease;
-            white-space: pre; /* Preserve whitespace in textareas */
-            word-wrap: normal; /* Do not wrap words */
-            overflow-x: auto; /* Enable horizontal scrolling */
+            white-space: pre;
+            word-wrap: normal;
+            overflow-x: auto;
         }
 
         textarea:focus {
@@ -70,6 +74,7 @@
             justify-content: center;
             gap: 15px;
             margin-top: 10px;
+            flex-wrap: wrap;
         }
 
         button {
@@ -100,11 +105,44 @@
             box-shadow: none;
         }
 
+        button.secondary {
+            background-color: #6c757d;
+        }
+
+        button.secondary:hover {
+            background-color: #5a6268;
+        }
+
+        button.success {
+            background-color: #28a745;
+        }
+
+        button.success:hover {
+            background-color: #218838;
+        }
+
         .error-message {
             color: #dc3545;
             font-weight: 600;
             margin-top: 10px;
             text-align: center;
+            display: none;
+        }
+
+        .error-message.show {
+            display: block;
+        }
+
+        .success-message {
+            color: #28a745;
+            font-weight: 600;
+            margin-top: 10px;
+            text-align: center;
+            display: none;
+        }
+
+        .success-message.show {
+            display: block;
         }
 
         .footer {
@@ -112,6 +150,17 @@
             margin-top: 30px;
             font-size: 0.85em;
             color: #777;
+        }
+
+        .copy-btn {
+            background-color: #17a2b8;
+            padding: 8px 15px;
+            font-size: 0.9em;
+            align-self: flex-end;
+        }
+
+        .copy-btn:hover {
+            background-color: #138496;
         }
     </style>
 </head>
@@ -125,18 +174,24 @@
             <div class="buttons">
                 <button id="formatButton">Format JSON</button>
                 <button id="sortButton">Sort & Format JSON</button>
-                <button id="clearButton">Clear</button>
+                <button id="clearButton" class="secondary">Clear</button>
+                <button id="loadSampleButton" class="success">Load Sample</button>
             </div>
             <p id="errorMessage" class="error-message"></p>
         </div>
 
         <div class="output-section">
             <label for="jsonOutput">Result:</label>
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+                <span></span>
+                <button id="copyButton" class="copy-btn">Copy Result</button>
+            </div>
             <textarea id="jsonOutput" readonly></textarea>
+            <p id="successMessage" class="success-message"></p>
         </div>
 
         <div class="footer">
-            Built with HTML, CSS, and JavaScript.
+            Built with HTML, CSS, and JavaScript. Sample JSON included for quick testing.
         </div>
     </div>
 
@@ -146,17 +201,59 @@
         const formatButton = document.getElementById('formatButton');
         const sortButton = document.getElementById('sortButton');
         const clearButton = document.getElementById('clearButton');
+        const loadSampleButton = document.getElementById('loadSampleButton');
+        const copyButton = document.getElementById('copyButton');
         const errorMessage = document.getElementById('errorMessage');
+        const successMessage = document.getElementById('successMessage');
+
+        // Sample JSON data
+        const sampleJson = {
+            "name": "John Doe",
+            "email": "john@example.com",
+            "age": 30,
+            "address": {
+                "zipcode": "12345",
+                "city": "New York",
+                "country": "USA",
+                "street": "123 Main St"
+            },
+            "hobbies": ["reading", "gaming", "coding"],
+            "isActive": true,
+            "metadata": {
+                "lastLogin": "2024-01-15",
+                "createdAt": "2023-01-01",
+                "updatedAt": "2024-01-15"
+            }
+        };
 
         // Function to safely parse JSON
         function parseJson(text) {
             try {
-                errorMessage.textContent = ''; // Clear previous errors
+                hideError();
                 return JSON.parse(text);
             } catch (e) {
-                errorMessage.textContent = 'Invalid JSON: ' + e.message;
+                showError('Invalid JSON: ' + e.message);
                 return null;
             }
+        }
+
+        // Function to show error message
+        function showError(message) {
+            errorMessage.textContent = message;
+            errorMessage.classList.add('show');
+            successMessage.classList.remove('show');
+        }
+
+        // Function to hide error message
+        function hideError() {
+            errorMessage.classList.remove('show');
+            errorMessage.textContent = '';
+        }
+
+        // Function to show success message
+        function showSuccess(message) {
+            successMessage.textContent = message;
+            successMessage.classList.add('show');
         }
 
         // Function to format JSON
@@ -164,15 +261,16 @@
             const inputText = jsonInput.value.trim();
             if (!inputText) {
                 jsonOutput.value = '';
-                errorMessage.textContent = '';
+                hideError();
                 return;
             }
 
             const obj = parseJson(inputText);
             if (obj) {
-                jsonOutput.value = JSON.stringify(obj, null, 4); // 4 spaces for indentation
+                jsonOutput.value = JSON.stringify(obj, null, 4);
+                showSuccess('✓ JSON formatted successfully');
             } else {
-                jsonOutput.value = ''; // Clear output on error
+                jsonOutput.value = '';
             }
         }
 
@@ -199,7 +297,7 @@
             const inputText = jsonInput.value.trim();
             if (!inputText) {
                 jsonOutput.value = '';
-                errorMessage.textContent = '';
+                hideError();
                 return;
             }
 
@@ -207,26 +305,57 @@
             if (obj) {
                 const sortedObj = sortObjectKeys(obj);
                 jsonOutput.value = JSON.stringify(sortedObj, null, 4);
+                showSuccess('✓ JSON sorted and formatted successfully');
             } else {
-                jsonOutput.value = ''; // Clear output on error
+                jsonOutput.value = '';
             }
         }
 
-        // Function to clear both text areas and error message
+        // Function to clear both text areas and messages
         function clearAll() {
             jsonInput.value = '';
             jsonOutput.value = '';
-            errorMessage.textContent = '';
+            hideError();
+            successMessage.classList.remove('show');
+        }
+
+        // Function to load sample JSON
+        function loadSample() {
+            jsonInput.value = JSON.stringify(sampleJson, null, 2);
+            hideError();
+            successMessage.classList.remove('show');
+            // Automatically format the sample JSON
+            setTimeout(() => {
+                formatJson();
+            }, 100);
+        }
+
+        // Function to copy output to clipboard
+        function copyToClipboard() {
+            if (!jsonOutput.value) {
+                showError('No output to copy');
+                return;
+            }
+
+            navigator.clipboard.writeText(jsonOutput.value).then(() => {
+                showSuccess('✓ Copied to clipboard!');
+                setTimeout(() => {
+                    successMessage.classList.remove('show');
+                }, 2000);
+            }).catch(() => {
+                showError('Failed to copy to clipboard');
+            });
         }
 
         // Event Listeners
         formatButton.addEventListener('click', formatJson);
         sortButton.addEventListener('click', sortAndFormatJson);
         clearButton.addEventListener('click', clearAll);
+        loadSampleButton.addEventListener('click', loadSample);
+        copyButton.addEventListener('click', copyToClipboard);
 
-        // Optional: Auto-format/sort on input change (can be resource intensive for large JSON)
-        // jsonInput.addEventListener('input', formatJson); // Uncomment to auto-format
-        // jsonInput.addEventListener('input', sortAndFormatJson); // Uncomment to auto-sort and format
+        // Load sample JSON on page load
+        window.addEventListener('load', loadSample);
 
     </script>
 </body>
