@@ -115,24 +115,67 @@ for(let i=0; i<NUM_LANE_MARKERS; i++) {
   laneMarkers.push(mesh);
 }
 
-// Simple car model
+// Sports car model with better design
 function createCar(color=0x1e88e5, y=0, isPlayer=true) {
   let group = new THREE.Group();
-  let bodyMat = new THREE.MeshPhongMaterial({color});
-  let body = new THREE.Mesh(new THREE.BoxGeometry(1.8,0.6,3.2), bodyMat);
-  body.position.set(0, y+0.45, 0);
+  
+  // Main body - sports car shape
+  let bodyMat = new THREE.MeshPhongMaterial({color, shininess: 100});
+  let body = new THREE.Mesh(new THREE.BoxGeometry(1.6, 0.7, 3.8), bodyMat);
+  body.position.set(0, y+0.5, 0);
+  body.castShadow = true;
   group.add(body);
-  let top = new THREE.Mesh(new THREE.BoxGeometry(1.22,0.55,1.5), new THREE.MeshPhongMaterial({color:0xcfd8dc}));
-  top.position.set(0, y+0.92, 0.1);
-  group.add(top);
-  // Wheels
-  for(let dx of [-0.75,0.75]) for(let dz of [-1.2,1.2]) {
-    let wheel = new THREE.Mesh(new THREE.CylinderGeometry(0.29,0.29,0.22,16), new THREE.MeshPhongMaterial({color:0x111}));
-    wheel.rotation.z = Math.PI/2;
-    wheel.position.set(dx, y+0.18, dz);
-    group.add(wheel);
+  
+  // Roofline - sloped
+  let roofMat = new THREE.MeshPhongMaterial({color: 0xcfd8dc});
+  let roof = new THREE.Mesh(new THREE.BoxGeometry(1.3, 0.5, 2.0), roofMat);
+  roof.position.set(0, y+1.15, -0.3);
+  roof.castShadow = true;
+  group.add(roof);
+  
+  // Front bumper/spoiler
+  let frontSpoiler = new THREE.Mesh(new THREE.BoxGeometry(1.7, 0.3, 0.4), new THREE.MeshPhongMaterial({color: 0x000}));
+  frontSpoiler.position.set(0, y+0.35, 1.95);
+  group.add(frontSpoiler);
+  
+  // Headlights
+  for(let x of [-0.6, 0.6]) {
+    let light = new THREE.Mesh(new THREE.SphereGeometry(0.15, 16, 16), new THREE.MeshPhongMaterial({color: 0xffff00, emissive: 0xffff00}));
+    light.position.set(x, y+0.6, 2.0);
+    group.add(light);
   }
-  group.position.set(0,0,4);
+  
+  // Back spoiler
+  let rearSpoiler = new THREE.Mesh(new THREE.BoxGeometry(1.7, 0.4, 0.35), new THREE.MeshPhongMaterial({color: 0x111}));
+  rearSpoiler.position.set(0, y+0.7, -1.95);
+  group.add(rearSpoiler);
+  
+  // Windows
+  let windowMat = new THREE.MeshPhongMaterial({color: 0x87ceeb, transparent: true, opacity: 0.6});
+  let frontWindow = new THREE.Mesh(new THREE.BoxGeometry(1.1, 0.35, 1.0), windowMat);
+  frontWindow.position.set(0, y+1.0, 0.3);
+  group.add(frontWindow);
+  
+  // Wheels - sport design
+  let wheelMat = new THREE.MeshPhongMaterial({color: 0x222});
+  for(let dx of [-0.8, 0.8]) {
+    for(let dz of [-1.2, 1.2]) {
+      let wheel = new THREE.Mesh(new THREE.CylinderGeometry(0.35, 0.35, 0.25, 32), wheelMat);
+      wheel.rotation.z = Math.PI/2;
+      wheel.position.set(dx, y+0.2, dz);
+      wheel.castShadow = true;
+      group.add(wheel);
+      
+      // Wheel rim
+      let rim = new THREE.Mesh(new THREE.TorusGeometry(0.25, 0.06, 16, 32), new THREE.MeshPhongMaterial({color: 0xaaa}));
+      rim.rotation.y = Math.PI/2;
+      rim.position.set(dx, y+0.2, dz);
+      group.add(rim);
+    }
+  }
+  
+  group.position.set(0, 0, 4);
+  group.userData = {color, isPlayer};
   return group;
 }
 
@@ -213,38 +256,62 @@ for(let i=0;i<44;i++) {
 }
 
 // Controls
-
-
 // Game state
-let speed = 0.62;
+let speed = 0;
 let scoreDiv = document.getElementById("score");
 let boosting = false, boostTime=0, boostDuration=60;
 let distance = 0;
 
-// Camera follows behind car
-function updateCamera() {
-  let carPos = player.position;
-  camera.position.lerp(
-    new THREE.Vector3(carPos.x, carPos.y+4.8, carPos.z-8.5),
-    0.16
-  );
-  camera.lookAt(new THREE.Vector3(carPos.x,carPos.y+1,carPos.z+12));
+// Keyboard state
+let keys = {arrowUp: false, arrowDown: false};
+const MAX_SPEED = 1.2;
+const ACCELERATION = 0.04;
+const DECELERATION = 0.03;
+
+// Sound manager
+let audioContext = null;
+function initAudio() {
+  if(!audioContext) audioContext = new (window.AudioContext || window.webkitAudioContext)();
 }
-// car controls
 
-let lanes = [-4, 0, 4], targetLane=1;
-function moveLeft() { targetLane=Math.max(0,targetLane-1);}
-function moveRight(){ targetLane=Math.min(2,targetLane+1);}
+function playSound(type, duration=0.2) {
+  if(!audioContext) initAudio();
+  let now = audioContext.currentTime;
+  let osc = audioContext.createOscillator();
+  let gain = audioContext.createGain();
+  osc.connect(gain);
+  gain.connect(audioContext.destination);
+  
+  if(type === 'accelerate') {
+    osc.frequency.setValueAtTime(400, now);
+    osc.frequency.linearRampToValueAtTime(600, now+duration);
+  } else if(type === 'brake') {
+    osc.frequency.setValueAtTime(300, now);
+    osc.frequency.linearRampToValueAtTime(100, now+duration);
+  } else if(type === 'collision') {
+    osc.frequency.setValueAtTime(800, now);
+    osc.frequency.exponentialRampToValueAtTime(100, now+duration);
+  } else if(type === 'boost') {
+    osc.frequency.setValueAtTime(1000, now);
+    osc.frequency.linearRampToValueAtTime(1200, now+duration);
+  }
+  
+  gain.gain.setValueAtTime(0.3, now);
+  gain.gain.exponentialRampToValueAtTime(0.01, now+duration);
+  osc.start(now);
+  osc.stop(now+duration);
+}
 
-document.getElementById('leftBtn').addEventListener('touchstart', moveLeft); // This should be moveLeft for the left button
-document.getElementById('leftBtn').addEventListener('mousedown', moveLeft);   // This should be moveLeft for the left button
-document.getElementById('rightBtn').addEventListener('touchstart', moveRight); // This should be moveRight for the right button
-document.getElementById('rightBtn').addEventListener('mousedown', moveRight);   // This should be moveRight for the right button
-
-// No changes needed for keyboard events, as they were already correct.
 window.addEventListener('keydown', function(e){
-  if(e.key==='ArrowLeft'||e.key==='a') moveRight();
-  if(e.key==='ArrowRight'||e.key==='d') moveLeft();
+  if(e.key==='ArrowUp') {keys.arrowUp = true; playSound('accelerate', 0.1);}
+  if(e.key==='ArrowDown') {keys.arrowDown = true; playSound('brake', 0.15);}
+  if(e.key==='ArrowLeft'||e.key==='a') moveRight();
+  if(e.key==='ArrowRight'||e.key==='d') moveLeft();
+});
+
+window.addEventListener('keyup', function(e){
+  if(e.key==='ArrowUp') keys.arrowUp = false;
+  if(e.key==='ArrowDown') keys.arrowDown = false;
 });
 
 // Endless recycling
@@ -275,16 +342,28 @@ function recycleLaneMarkers() {
 
 // Main loop
 function animate() {
-  // Player movement
+  // Player movement and controls
   let tx = lanes[targetLane];
   player.position.x += (tx-player.position.x)*0.18;
-  if(boosting) speed=1.07; else speed=0.62;
+  
+  // Speed control with arrow keys
+  if(keys.arrowUp) {
+    speed = Math.min(MAX_SPEED, speed + ACCELERATION);
+  } else if(keys.arrowDown) {
+    speed = Math.max(0, speed - DECELERATION);
+  } else {
+    speed = Math.max(0, speed - DECELERATION*0.5); // Gradual deceleration
+  }
+  
+  if(boosting) speed = Math.min(1.5, speed * 1.2);
+  
   player.position.z += speed;
   distance = Math.floor(player.position.z);
 
   // AI logic
-  aiCars.forEach((a,i)=>{
+  aiCars.forEach((a, i) => {
     a.obj.position.z += a.speed + Math.sin(Date.now()/1200+i)*0.05;
+    
     // Change lane randomly
     if(Math.random()<0.012){
       let newLane = Math.floor(Math.random()*3);
@@ -292,8 +371,28 @@ function animate() {
     }
     let tx = lanes[a.lane];
     a.obj.position.x += (tx-a.obj.position.x)*0.13;
+    
+    // Collision detection with player
+    let dx = player.position.x - a.obj.position.x;
+    let dz = player.position.z - a.obj.position.z;
+    let dist = Math.sqrt(dx*dx + dz*dz);
+    
+    if(dist < 2.5) {
+      playSound('collision', 0.3);
+      // Push AI car away
+      let angle = Math.atan2(dz, dx);
+      a.obj.position.x -= Math.cos(angle) * 0.3;
+      a.obj.position.z -= Math.sin(angle) * 0.3;
+      // Slow down player slightly
+      speed *= 0.8;
+    }
+    
     // Endless loop AI cars
-    recycleObject(a.obj, 300);
+    if(a.obj.position.z < player.position.z - 20) {
+      a.obj.position.z = player.position.z + 200;
+      a.obj.position.x = [-4, -2, 0, 2, 4][Math.floor(Math.random()*5)];
+      a.speed = 0.42 + Math.random() * 0.16;
+    }
   });
 
   // Boosts
@@ -306,7 +405,9 @@ function animate() {
     ) {
       scene.remove(b);
       boosts.splice(i,1);
-      boosting = true; boostTime=boostDuration;
+      boosting = true; 
+      boostTime=boostDuration;
+      playSound('boost', 0.2);
     }
   }
   if(boosting) {
@@ -319,19 +420,40 @@ function animate() {
   decorations.forEach(obj=>recycleObject(obj, 300));
   buildings.forEach(obj=>recycleObject(obj, 300));
 
-  // --- Recycle Road Segments ---
+  // Recycle Road Segments
   recycleRoadSegments();
 
-  // --- Recycle Lane Markers ---
+  // Recycle Lane Markers
   recycleLaneMarkers();
 
   // Score
-  scoreDiv.innerText = "Distance: " + distance + " m";
+  scoreDiv.innerText = "Distance: " + distance + " m | Speed: " + Math.floor(speed*100) + "%";
 
   updateCamera();
   renderer.render(scene, camera);
   requestAnimationFrame(animate);
 }
+
+// Camera follows behind car
+function updateCamera() {
+  let carPos = player.position;
+  camera.position.lerp(
+    new THREE.Vector3(carPos.x, carPos.y+4.8, carPos.z-8.5),
+    0.16
+  );
+  camera.lookAt(new THREE.Vector3(carPos.x,carPos.y+1,carPos.z+12));
+}
+
+// Car controls
+let lanes = [-4, 0, 4], targetLane=1;
+function moveLeft() { targetLane=Math.max(0,targetLane-1);}
+function moveRight(){ targetLane=Math.min(2,targetLane+1);}
+
+document.getElementById('leftBtn').addEventListener('touchstart', moveLeft);
+document.getElementById('leftBtn').addEventListener('mousedown', moveLeft);
+document.getElementById('rightBtn').addEventListener('touchstart', moveRight);
+document.getElementById('rightBtn').addEventListener('mousedown', moveRight);
+
 animate();
 
 </script>
