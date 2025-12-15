@@ -200,6 +200,74 @@
             color: #777;
         }
 
+        .diff-view {
+            display: flex;
+            gap: 20px;
+            margin-top: 15px;
+            flex-wrap: wrap;
+        }
+
+        .diff-side {
+            flex: 1;
+            min-width: 300px;
+            background: #f9fbfd;
+            border-radius: 8px;
+            padding: 15px;
+        }
+
+        .diff-side h3 {
+            margin: 0 0 10px 0;
+            color: #333;
+            font-size: 1em;
+        }
+
+        .diff-line {
+            padding: 4px 8px;
+            margin: 3px 0;
+            border-radius: 4px;
+            font-family: 'Roboto Mono', monospace;
+            font-size: 0.85em;
+            line-height: 1.4;
+            white-space: pre-wrap;
+            word-break: break-word;
+        }
+
+        .diff-line.added {
+            background-color: #d4edda;
+            color: #155724;
+            border-left: 3px solid #28a745;
+        }
+
+        .diff-line.removed {
+            background-color: #f8d7da;
+            color: #721c24;
+            border-left: 3px solid #dc3545;
+        }
+
+        .diff-line.unchanged {
+            background-color: #fff;
+            color: #666;
+            border-left: 3px solid #ddd;
+        }
+
+        .summary-box {
+            background: #e7f3ff;
+            border-left: 4px solid #0056b3;
+            padding: 15px;
+            border-radius: 4px;
+            margin-bottom: 15px;
+            font-size: 0.95em;
+        }
+
+        .summary-box p {
+            margin: 5px 0;
+        }
+
+        .summary-stat {
+            font-weight: 600;
+            color: #0056b3;
+        }
+
         @media (max-width: 800px) {
             .json-panels {
                 flex-direction: column;
@@ -211,6 +279,9 @@
             }
             #compareButton {
                 width: 100%;
+            }
+            .diff-view {
+                flex-direction: column;
             }
         }
     </style>
@@ -255,9 +326,9 @@
         <h2>Comparison Result:</h2>
         <div id="comparisonOutput">
             <p>Click "Compare JSONs" to see differences highlighted here.</p>
-            <p>Added keys/values: <span class="highlight-added">Green</span></p>
-            <p>Removed keys/values: <span class="highlight-removed">Red</span></p>
-            <p>Changed values: <span class="highlight-changed">Yellow</span></p>
+            <p><span class="highlight-added">Green</span> = Added keys/values in JSON B</p>
+            <p><span class="highlight-removed">Red</span> = Removed keys/values from JSON A</p>
+            <p><span class="highlight-changed">Yellow</span> = Changed values</p>
         </div>
 
         <div class="footer">
@@ -362,6 +433,39 @@
         }
 
         // --- JSON Comparison Logic ---
+        function deepDiff(objA, objB, path = '') {
+            const added = [];
+            const removed = [];
+            const changed = [];
+
+            const allKeys = new Set([...Object.keys(objA || {}), ...Object.keys(objB || {})]);
+
+            for (const key of allKeys) {
+                const newPath = path ? `${path}.${key}` : key;
+                const valueA = objA?.[key];
+                const valueB = objB?.[key];
+
+                if (!(key in (objA || {}))) {
+                    // Key only in B
+                    added.push({ key: newPath, value: valueB });
+                } else if (!(key in (objB || {}))) {
+                    // Key only in A
+                    removed.push({ key: newPath, value: valueA });
+                } else if (typeof valueA === 'object' && typeof valueB === 'object') {
+                    // Both are objects, recurse
+                    const subDiff = deepDiff(valueA, valueB, newPath);
+                    added.push(...subDiff.added);
+                    removed.push(...subDiff.removed);
+                    changed.push(...subDiff.changed);
+                } else if (JSON.stringify(valueA) !== JSON.stringify(valueB)) {
+                    // Values differ
+                    changed.push({ key: newPath, oldValue: valueA, newValue: valueB });
+                }
+            }
+
+            return { added, removed, changed };
+        }
+
         function compareJsons() {
             const jsonAText = jsonInputA.value.trim();
             const jsonBText = jsonInputB.value.trim();
@@ -374,69 +478,55 @@
                 return;
             }
 
-            // For comparison, we will use a simplified object comparison.
-            // For deeply nested, line-by-line diff, a specialized library is needed.
-            // We'll stringify and re-parse to ensure consistency before comparison
-            // and to represent changes within the stringified output.
-            const formattedA = JSON.stringify(sortObjectKeys(objA), null, 2);
-            const formattedB = JSON.stringify(sortObjectKeys(objB), null, 2);
+            const diff = deepDiff(objA, objB);
 
-            if (formattedA === formattedB) {
-                comparisonOutput.innerHTML = '<p style="color: #28a745; font-weight: bold;">The JSONs are identical.</p>';
+            // Check if identical
+            if (diff.added.length === 0 && diff.removed.length === 0 && diff.changed.length === 0) {
+                comparisonOutput.innerHTML = '<p style="color: #28a745; font-weight: bold; font-size: 1.1em;">✓ The JSONs are identical!</p>';
                 return;
             }
 
-            // Basic line-by-line comparison for visual diff
-            const linesA = formattedA.split('\n');
-            const linesB = formattedB.split('\n');
+            // Build output
+            let html = '';
 
-            let outputHtml = '';
+            // Summary
+            html += `<div class="summary-box">
+                <p><span class="summary-stat">Added:</span> ${diff.added.length} | <span class="summary-stat">Removed:</span> ${diff.removed.length} | <span class="summary-stat">Changed:</span> ${diff.changed.length}</p>
+            </div>`;
 
-            // This basic diff will show removed/added lines.
-            // For 'changed' lines, it just indicates a line difference.
-            // A true diff library would compare word-by-word.
-            let i = 0, j = 0;
-            while (i < linesA.length || j < linesB.length) {
-                if (i < linesA.length && j < linesB.length && linesA[i] === linesB[j]) {
-                    outputHtml += `<span>${escapeHtml(linesA[i])}</span><br>`;
-                    i++;
-                    j++;
-                } else {
-                    if (i < linesA.length && (j === linesB.length || linesA[i] !== linesB[j])) {
-                        // Check if line A is removed or changed
-                        let foundMatch = false;
-                        for(let k=j; k<linesB.length; k++){
-                            if(linesA[i] === linesB[k]){ // Found a match later, so it's a removed line from A
-                                foundMatch = true;
-                                break;
-                            }
-                        }
-                        if(foundMatch) { // It's removed from B
-                            outputHtml += `<span class="highlight-removed">-${escapeHtml(linesA[i])}</span><br>`;
-                        } else { // It's changed or unique to A
-                            outputHtml += `<span class="highlight-changed">~${escapeHtml(linesA[i])}</span><br>`;
-                        }
-                        i++;
-                    }
-                    if (j < linesB.length && (i === linesA.length || linesA[i] !== linesB[j])) {
-                        // Check if line B is added or changed
-                        let foundMatch = false;
-                        for(let k=i; k<linesA.length; k++){
-                            if(linesB[j] === linesA[k]){ // Found a match later, so it's an added line to B
-                                foundMatch = true;
-                                break;
-                            }
-                        }
-                        if(foundMatch) { // It's added to B
-                            outputHtml += `<span class="highlight-added">+${escapeHtml(linesB[j])}</span><br>`;
-                        } else { // It's changed or unique to B
-                            outputHtml += `<span class="highlight-changed">~${escapeHtml(linesB[j])}</span><br>`;
-                        }
-                        j++;
-                    }
+            // Removed items
+            if (diff.removed.length > 0) {
+                html += '<h3 style="color: #721c24; margin-top: 20px;">❌ Removed from A:</h3>';
+                for (const item of diff.removed) {
+                    const valueStr = JSON.stringify(item.value, null, 2).substring(0, 100);
+                    html += `<div class="diff-line removed"><strong>${escapeHtml(item.key)}:</strong> ${escapeHtml(valueStr)}${JSON.stringify(item.value).length > 100 ? '...' : ''}</div>`;
                 }
             }
-            comparisonOutput.innerHTML = outputHtml;
+
+            // Added items
+            if (diff.added.length > 0) {
+                html += '<h3 style="color: #155724; margin-top: 20px;">✅ Added to B:</h3>';
+                for (const item of diff.added) {
+                    const valueStr = JSON.stringify(item.value, null, 2).substring(0, 100);
+                    html += `<div class="diff-line added"><strong>${escapeHtml(item.key)}:</strong> ${escapeHtml(valueStr)}${JSON.stringify(item.value).length > 100 ? '...' : ''}</div>`;
+                }
+            }
+
+            // Changed items
+            if (diff.changed.length > 0) {
+                html += '<h3 style="color: #856404; margin-top: 20px;">🔄 Changed Values:</h3>';
+                for (const item of diff.changed) {
+                    const oldStr = JSON.stringify(item.oldValue);
+                    const newStr = JSON.stringify(item.newValue);
+                    html += `<div style="margin: 10px 0; padding: 10px; background: #fffbea; border-radius: 4px; border-left: 3px solid #ffc107;">
+                        <strong>${escapeHtml(item.key)}</strong><br>
+                        <span style="color: #721c24;">❌ Old: ${escapeHtml(oldStr)}</span><br>
+                        <span style="color: #155724;">✅ New: ${escapeHtml(newStr)}</span>
+                    </div>`;
+                }
+            }
+
+            comparisonOutput.innerHTML = html;
         }
 
         // Basic HTML escaping for display
@@ -478,30 +568,42 @@
 
         // Example JSON for quick testing
         jsonInputA.value = `{
-    "name": "Product A",
-    "id": "P001",
-    "details": {
-        "color": "red",
-        "size": "M",
-        "weight": 1.5
+    "id": "USR001",
+    "name": "John Doe",
+    "email": "john@example.com",
+    "age": 28,
+    "department": "Engineering",
+    "salary": 75000,
+    "active": true,
+    "address": {
+        "street": "123 Main St",
+        "city": "New York",
+        "state": "NY",
+        "zip": "10001"
     },
-    "tags": ["electronic", "gadget"],
-    "price": 100.00,
-    "available": true
+    "skills": ["JavaScript", "Python", "React"],
+    "joinDate": "2020-01-15"
 }`;
 
         jsonInputB.value = `{
-    "id": "P001",
-    "name": "Product Alpha",
-    "details": {
-        "size": "M",
-        "color": "blue",
-        "material": "plastic"
+    "id": "USR001",
+    "name": "John Smith",
+    "email": "john.smith@example.com",
+    "age": 29,
+    "department": "Engineering",
+    "salary": 85000,
+    "position": "Senior Engineer",
+    "active": true,
+    "address": {
+        "street": "456 Oak Ave",
+        "city": "San Francisco",
+        "state": "CA",
+        "zip": "94102",
+        "country": "USA"
     },
-    "tags": ["electronic"],
-    "price": 100.00,
-    "stock": 50,
-    "available": true
+    "skills": ["JavaScript", "Python", "React", "TypeScript", "Node.js"],
+    "certifications": ["AWS", "GCP"],
+    "joinDate": "2020-01-15"
 }`;
     </script>
 </body>
