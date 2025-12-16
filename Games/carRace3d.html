@@ -62,6 +62,7 @@
 <div id="score">Distance: 0 m</div>
 <div class="ctrl-btn" id="rightBtn">&#8592;</div>
 <div class="ctrl-btn" id="leftBtn">&#8594;</div>
+<button id="speakerBtn" title="Toggle sound" style="position:fixed;right:12px;top:12px;z-index:999;background:transparent;border:none;font-size:1.6rem;cursor:pointer;">🔊</button>
 <script src="https://cdn.jsdelivr.net/npm/three@0.152.2/build/three.min.js"></script>
 <script>
 let scene = new THREE.Scene();
@@ -270,8 +271,14 @@ const DECELERATION = 0.03;
 
 // Sound manager
 let audioContext = null;
+let masterGain = null;
 function initAudio() {
-  if(!audioContext) audioContext = new (window.AudioContext || window.webkitAudioContext)();
+  if(!audioContext) {
+    audioContext = new (window.AudioContext || window.webkitAudioContext)();
+    masterGain = audioContext.createGain();
+    masterGain.gain.value = 1.0;
+    masterGain.connect(audioContext.destination);
+  }
 }
 
 function playSound(type, duration=0.2) {
@@ -280,7 +287,7 @@ function playSound(type, duration=0.2) {
   let osc = audioContext.createOscillator();
   let gain = audioContext.createGain();
   osc.connect(gain);
-  gain.connect(audioContext.destination);
+  if (masterGain) gain.connect(masterGain); else gain.connect(audioContext.destination);
   
   if(type === 'accelerate') {
     osc.frequency.setValueAtTime(400, now);
@@ -305,8 +312,8 @@ function playSound(type, duration=0.2) {
 window.addEventListener('keydown', function(e){
   if(e.key==='ArrowUp') {keys.arrowUp = true; playSound('accelerate', 0.1);}
   if(e.key==='ArrowDown') {keys.arrowDown = true; playSound('brake', 0.15);}
-  if(e.key==='ArrowLeft'||e.key==='a') moveRight();
-  if(e.key==='ArrowRight'||e.key==='d') moveLeft();
+  if(e.key==='ArrowLeft'||e.key==='a') moveLeft();
+  if(e.key==='ArrowRight'||e.key==='d') moveRight();
 });
 
 window.addEventListener('keyup', function(e){
