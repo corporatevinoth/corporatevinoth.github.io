@@ -61,6 +61,19 @@
       display: block;
       touch-action: none;
     }
+    /* Speaker button */
+    #speakerBtn {
+      position: absolute;
+      right: 16px;
+      top: 16px;
+      z-index: 1000;
+      background: rgba(255,255,255,0.9);
+      border: none;
+      border-radius: 6px;
+      padding: 6px 8px;
+      font-size: 18px;
+      cursor: pointer;
+    }
     @media (max-width: 600px) {
       #score { font-size: 1.25em;}
       .ctrl-btn { font-size: 2em; min-width: 50px;}
@@ -70,6 +83,7 @@
 <body>
   <div id="score">Score: 0</div>
   <canvas id="snow-canvas"></canvas>
+  <button id="speakerBtn" title="Toggle music">🔊</button>
   <div class="ctrl-btn" id="leftBtn">&#8592;</div>
   <div class="ctrl-btn" id="rightBtn">&#8594;</div>
   <script src="https://cdn.jsdelivr.net/npm/three@0.152.2/build/three.min.js"></script>
@@ -249,7 +263,7 @@
       });
       let coin = new THREE.Mesh(geo, mat);
       coin.position.set(x, 1.7, z);
-      coin.rotation.x = Math.PI/2;
+      coin.rotation.x = 0;
       coin.userData.pulse = Math.random();
       scene.add(coin);
       coins.push(coin);
@@ -305,7 +319,6 @@
       mesh.position.set(x, h/2-0.1, z);
       scene.add(mesh);
       decorations.push({mesh, type:'building'});
-      // Windows - more visible, many, glass effect on some
       let numRows = Math.max(3, Math.floor(h/1.5));
       let numCols = Math.max(3, Math.floor(w/0.7));
       for(let row=0; row<numRows; row++) {
@@ -331,14 +344,12 @@
     // DECO ROWS - MORE TREES PER ROW
     let decorations = [];
     function createDecoRow(z) {
-      // Many trees left & right, random positions
       for (let i=0; i<5; i++) {
         let leftX = -7.2 - Math.random()*2.8 - i*1.3;
         let rightX = 7.2 + Math.random()*2.8 + i*1.3;
         createRandomTree(leftX, z + Math.random()*14 - 2);
         createRandomTree(rightX, z + Math.random()*14 - 2);
       }
-      // Two buildings per row
       createBuilding(-13, z);
       createBuilding(13, z);
     }
@@ -354,25 +365,76 @@
     function moveLeft() { targetLane = Math.max(0, targetLane-1); }
     function moveRight() { targetLane = Math.min(2, targetLane+1); }
 
-    // FLIPPED BUTTON LOGIC
+    // FIXED BUTTON LOGIC (left -> left, right -> right)
     function preventMultiTouch(e) {
       if (e.touches && e.touches.length > 1) e.preventDefault();
     }
-    document.getElementById('leftBtn').addEventListener('touchstart', function(e){ preventMultiTouch(e); moveRight(); });
-    document.getElementById('leftBtn').addEventListener('mousedown', function(e){ e.preventDefault(); moveRight(); });
-    document.getElementById('rightBtn').addEventListener('touchstart', function(e){ preventMultiTouch(e); moveLeft(); });
-    document.getElementById('rightBtn').addEventListener('mousedown', function(e){ e.preventDefault(); moveLeft(); });
+    document.getElementById('leftBtn').addEventListener('touchstart', function(e){ preventMultiTouch(e); moveLeft(); });
+    document.getElementById('leftBtn').addEventListener('mousedown', function(e){ e.preventDefault(); moveLeft(); });
+    document.getElementById('rightBtn').addEventListener('touchstart', function(e){ preventMultiTouch(e); moveRight(); });
+    document.getElementById('rightBtn').addEventListener('mousedown', function(e){ e.preventDefault(); moveRight(); });
+    // add pointercancel/leave safety
+    ['pointerup','pointercancel','touchend','touchcancel','mouseup'].forEach(ev => {
+      document.getElementById('leftBtn').addEventListener(ev, ()=>{});
+      document.getElementById('rightBtn').addEventListener(ev, ()=>{});
+    });
 
     window.addEventListener('keydown', function(e){
       if (e.key==='ArrowLeft'||e.key==='a') moveLeft();
       if (e.key==='ArrowRight'||e.key==='d') moveRight();
     });
 
+    // Background music using WebAudio (low-volume ambient)
+    let audioCtx = null, musicGain = null, osc1 = null, osc2 = null, musicPlaying = false;
+    function startMusic() {
+      if (!audioCtx) {
+        audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        musicGain = audioCtx.createGain();
+        musicGain.gain.value = 0.04;
+        musicGain.connect(audioCtx.destination);
+
+        osc1 = audioCtx.createOscillator(); osc1.type = 'sine'; osc1.frequency.value = 110;
+        let g1 = audioCtx.createGain(); g1.gain.value = 0.06; osc1.connect(g1); g1.connect(musicGain);
+
+        osc2 = audioCtx.createOscillator(); osc2.type = 'sawtooth'; osc2.frequency.value = 220;
+        let g2 = audioCtx.createGain(); g2.gain.value = 0.02; osc2.connect(g2); g2.connect(musicGain);
+
+        osc1.start(); osc2.start();
+      }
+      if (audioCtx.state === 'suspended') audioCtx.resume();
+      musicPlaying = true; updateSpeakerUI();
+    }
+    function stopMusic() {
+      if (musicGain) musicGain.gain.value = 0;
+      musicPlaying = false; updateSpeakerUI();
+    }
+    function toggleMusic() {
+      gameSoundEnabled = !gameSoundEnabled;
+      localStorage.setItem('3d-coin-music', gameSoundEnabled);
+      if (gameSoundEnabled) startMusic(); else stopMusic();
+    }
+    function updateSpeakerUI() {
+      const btn = document.getElementById('speakerBtn');
+      btn.textContent = (gameSoundEnabled || musicPlaying) ? '🔊' : '🔈';
+    }
+
+    // initialize music preference
+    let gameSoundEnabled = localStorage.getItem('3d-coin-music');
+    if (gameSoundEnabled === null) gameSoundEnabled = true; else gameSoundEnabled = gameSoundEnabled === 'true';
+    document.getElementById('speakerBtn').addEventListener('click', ()=>{ toggleMusic(); });
+    if (gameSoundEnabled) {
+      try { startMusic(); } catch(e){}
+    } else updateSpeakerUI();
+
     // GAME LOOP
     function animate() {
       player.position.z += speed;
       let tx = lanes[targetLane];
+      // smooth horizontal movement
       player.position.x += (tx-player.position.x)*0.22;
+      // tilt player based on lateral velocity for better feel
+      let lat = (player.position.x - tx);
+      player.rotation.z = (player.position.x - tx) * -0.08;
       player.position.y = 1.3 + Math.sin(Date.now()/120)*0.16;
       let t = Date.now()/220;
       camera.position.lerp(
@@ -394,10 +456,12 @@
       let time = Date.now()*0.002;
       for (let coin of coins) {
         coin.position.y = 1.7 + Math.sin(coin.position.z+coinYAnim)*0.22;
-        coin.rotation.z += 0.08;
+        // vertical rotation simulate: rotate around X to flip vertically
+        coin.rotation.x += 0.12;
         let pulse = 0.32 + Math.sin(time*2 + coin.userData.pulse)*0.22;
         coin.material.emissiveIntensity = 0.32 + pulse;
       }
+
       for (let i=coins.length-1; i>=0; i--) {
         let coin = coins[i];
         if (
