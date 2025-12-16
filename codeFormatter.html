@@ -120,15 +120,20 @@
             resize: none;
             overflow: auto;
             outline: none;
+            white-space: pre; /* preserve spaces */
+            word-wrap: normal;
+            overflow-wrap: normal;
         }
 
         #inputCode {
             background: #fafafa;
+            overflow-x: auto; /* horizontal scroll */
         }
 
         #outputCode {
             background: #f0f0f0;
             color: #333;
+            overflow-x: auto; /* horizontal scroll */
         }
 
         .message {
@@ -195,12 +200,12 @@
 
         <div class="content">
             <div class="panel">
-                <div class="panel-title">Input Code</div>
-                <textarea id="inputCode" placeholder="Paste your code here..."></textarea>
+                    <div class="panel-title">Input Code</div>
+                    <textarea id="inputCode" wrap="off" placeholder="Paste your code here..."></textarea>
             </div>
             <div class="panel">
                 <div class="panel-title">Formatted Code</div>
-                <textarea id="outputCode" readonly placeholder="Formatted code will appear here..."></textarea>
+                    <textarea id="outputCode" wrap="off" readonly placeholder="Formatted code will appear here..."></textarea>
             </div>
         </div>
     </div>
