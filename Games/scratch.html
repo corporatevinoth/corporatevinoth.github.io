@@ -351,6 +351,8 @@
             // Event listeners
             scratchBtn.addEventListener('click', toggleScratching);
             newCardBtn.addEventListener('click', generateNewCard);
+            // resume audio on first user gesture to satisfy autoplay policies
+            document.addEventListener('pointerdown', function onFirst() { ensureAudioStarted(); document.removeEventListener('pointerdown', onFirst); });
             
             // Scratch card interaction
             canvas.addEventListener('mousedown', startScratching);
@@ -550,6 +552,44 @@
         
         // Initialize the game when page loads
         window.onload = initGame;
+
+        // --- Audio: surprise sound on reveal ---
+        let audioCtx = null; let revealGain = null;
+        function initAudioContext() {
+            if (audioCtx) return;
+            try {
+                audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                revealGain = audioCtx.createGain();
+                revealGain.gain.value = 0.12;
+                revealGain.connect(audioCtx.destination);
+            } catch (e) { console.log('Audio init failed', e); }
+        }
+
+        function ensureAudioStarted() {
+            try {
+                initAudioContext();
+                if (audioCtx && audioCtx.state === 'suspended') audioCtx.resume();
+            } catch (e) { console.log('ensureAudioStarted', e); }
+        }
+
+        function playRevealSound() {
+            try {
+                ensureAudioStarted();
+                if (!audioCtx) return;
+                const now = audioCtx.currentTime;
+                // simple 'ta-da' using two oscillators
+                const o1 = audioCtx.createOscillator(); o1.type = 'sine'; o1.frequency.setValueAtTime(660, now);
+                const o2 = audioCtx.createOscillator(); o2.type = 'triangle'; o2.frequency.setValueAtTime(880, now);
+                const g = audioCtx.createGain(); g.gain.setValueAtTime(0.0001, now);
+                g.gain.exponentialRampToValueAtTime(0.16, now + 0.01);
+                g.gain.exponentialRampToValueAtTime(0.0001, now + 1.0);
+                o1.connect(g); o2.connect(g); g.connect(revealGain);
+                o1.start(now); o2.start(now);
+                o1.frequency.exponentialRampToValueAtTime(440, now + 0.6);
+                o2.frequency.exponentialRampToValueAtTime(660, now + 0.6);
+                o1.stop(now + 1.0); o2.stop(now + 1.0);
+            } catch (e) { console.log('playRevealSound failed', e); }
+        }
         
         // Handle window resize
         window.addEventListener('resize', () => {
