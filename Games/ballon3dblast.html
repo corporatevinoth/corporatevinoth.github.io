@@ -46,10 +46,28 @@
       cursor: pointer;
       font-size: 18px;
     }
+    /* Knife cursor on hover (embedded SVG) */
+    canvas:hover {
+      cursor: url("data:image/svg+xml;utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='32' height='32'%3E%3Cpath d='M2 2 L30 16 L20 26 L12 18 Z' fill='%23000' stroke='%23fff' stroke-width='1'/%3E%3C/svg%3E") 16 16, auto;
+    }
+    /* Speaker button */
+    #speakerBtn {
+      position: absolute;
+      right: 16px;
+      top: 16px;
+      z-index: 1000;
+      background: rgba(255,255,255,0.9);
+      border: none;
+      border-radius: 6px;
+      padding: 6px 8px;
+      font-size: 18px;
+      cursor: pointer;
+    }
   </style>
 </head>
 <body>
   <canvas id="gameCanvas"></canvas>
+  <button id="speakerBtn" title="Toggle sound">🔊</button>
   <div id="ui">
     <div>Score: <span id="score">0</span></div>
     <div>Lives: <span id="lives">❤️❤️❤️</span></div>
@@ -107,6 +125,12 @@
       game.canvas.addEventListener('click', handleClick);
       game.canvas.addEventListener('touchstart', handleTouch, { passive: false });
       document.getElementById('restartBtn').addEventListener('click', restartGame);
+        // Sound enabled flag (persisted)
+        game.soundEnabled = localStorage.getItem('balloonSoundEnabled');
+        if (game.soundEnabled === null) game.soundEnabled = true;
+        else game.soundEnabled = game.soundEnabled === 'true';
+        updateSpeakerUI();
+        document.getElementById('speakerBtn').addEventListener('click', toggleSound);
       
       // Start game loop
       requestAnimationFrame(gameLoop);
@@ -331,9 +355,46 @@
     }
 
     function playPopSound() {
+      if (!game.soundEnabled) return;
       const sound = game.sounds.pop[Math.floor(Math.random() * game.sounds.pop.length)];
-      sound.currentTime = 0;
-      sound.play().catch(e => console.log("Audio play failed:", e));
+      try {
+        sound.currentTime = 0;
+        sound.play();
+      } catch (e) {
+        console.log("Audio play failed:", e);
+      }
+      // play coin fall shortly after pop to simulate falling coins
+      setTimeout(() => playCoinSound(), 160);
+    }
+
+    function playCoinSound() {
+      if (!game.soundEnabled) return;
+      try {
+        const c = game.sounds.coin;
+        c.currentTime = 0;
+        c.play();
+      } catch (e) {
+        console.log('Coin audio play failed', e);
+      }
+    }
+
+    function stopAllSounds() {
+      // Pause and reset audio elements
+      game.sounds.pop.forEach(s => { try { s.pause(); s.currentTime = 0; } catch (e){} });
+      try { game.sounds.coin.pause(); game.sounds.coin.currentTime = 0; } catch (e){}
+    }
+
+    function toggleSound() {
+      game.soundEnabled = !game.soundEnabled;
+      localStorage.setItem('balloonSoundEnabled', game.soundEnabled);
+      updateSpeakerUI();
+      if (!game.soundEnabled) stopAllSounds();
+    }
+
+    function updateSpeakerUI() {
+      const btn = document.getElementById('speakerBtn');
+      btn.textContent = game.soundEnabled ? '🔊' : '🔈';
+      btn.title = game.soundEnabled ? 'Sound: On' : 'Sound: Off';
     }
 
     function loseLife() {
