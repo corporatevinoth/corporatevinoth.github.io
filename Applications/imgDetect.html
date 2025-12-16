@@ -42,8 +42,10 @@
     // Set up camera stream
     async function setupCamera() {
       try {
+        // Request a modest resolution to keep inference fast on most devices
         const stream = await navigator.mediaDevices.getUserMedia({
-          video: { facingMode: 'environment' }, audio: false
+          video: { facingMode: 'environment', width: { ideal: 640 }, height: { ideal: 480 } },
+          audio: false
         });
         video.srcObject = stream;
         return new Promise(resolve => {
@@ -55,40 +57,61 @@
       }
     }
 
-    // Run detection loop
-    async function detectFrame() {
+    // Run detection loop with throttling to avoid blocking the main thread.
+    let isDetecting = false;
+    const detectIntervalMs = 250; // run model ~4x per second
+
+    let lastPredictions = [];
+
+    function drawFrame() {
       if (video.readyState === 4) {
         // Resize canvas if needed
         if (canvas.width !== video.videoWidth || canvas.height !== video.videoHeight) {
           canvas.width = video.videoWidth;
           canvas.height = video.videoHeight;
         }
+        // Draw current video frame
         ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-        // Detect
-        if (model) {
-          const predictions = await model.detect(video);
-          predictions.forEach(pred => {
-            // Draw box
+
+        // Draw latest predictions (if any) on top of the video
+        if (lastPredictions && lastPredictions.length) {
+          ctx.lineWidth = 3;
+          ctx.font = "18px Arial";
+          lastPredictions.forEach(pred => {
+            const [x, y, w, h] = pred.bbox;
             ctx.beginPath();
-            ctx.lineWidth = 3;
             ctx.strokeStyle = "#00ff66";
-            ctx.rect(...pred.bbox);
+            ctx.rect(x, y, w, h);
             ctx.stroke();
-            // Draw label background
-            ctx.font = "18px Arial";
+
             const label = pred.class + " " + Math.round(pred.score * 100) + "%";
             const textWidth = ctx.measureText(label).width;
-            const x = pred.bbox[0];
-            const y = pred.bbox[1] > 20 ? pred.bbox[1] - 7 : pred.bbox[1] + 20;
+            const labelX = x;
+            const labelY = y > 20 ? y - 7 : y + 20;
             ctx.fillStyle = "rgba(0,0,0,0.6)";
-            ctx.fillRect(x, y-18, textWidth+12, 22);
-            // Draw label text
+            ctx.fillRect(labelX, labelY - 18, textWidth + 12, 22);
             ctx.fillStyle = "#fff";
-            ctx.fillText(label, x + 6, y);
+            ctx.fillText(label, labelX + 6, labelY);
           });
         }
       }
-      requestAnimationFrame(detectFrame);
+      requestAnimationFrame(drawFrame);
+    }
+
+    async function runDetectionOnce() {
+      if (!model || isDetecting || video.readyState !== 4) return;
+      isDetecting = true;
+      try {
+        const predictions = await model.detect(video);
+        lastPredictions = predictions || [];
+        statusDiv.textContent = `Detected: ${lastPredictions.length} objects`;
+      } catch (err) {
+        console.error('Detection error', err);
+        statusDiv.textContent = 'Detection error: ' + (err.message || err);
+        lastPredictions = [];
+      } finally {
+        isDetecting = false;
+      }
     }
 
     async function main() {
@@ -98,7 +121,11 @@
       statusDiv.textContent = "Loading model...";
       model = await cocoSsd.load();
       statusDiv.textContent = "Model loaded! Point your camera at objects.";
-      detectFrame();
+      // Start continuous rendering of video frames
+      drawFrame();
+
+      // Start periodic detection at a modest rate to avoid blocking
+      setInterval(runDetectionOnce, detectIntervalMs);
     }
 
     main();
