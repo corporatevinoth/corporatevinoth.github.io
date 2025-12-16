@@ -21,6 +21,25 @@ ollama serve
 ```
 The server will run on `http://localhost:11434` (default)
 
+### Remote Ollama Instance
+
+If you have access to an Ollama instance running on another machine or a hosted service, you can point the chatbot at that URL instead of running Ollama locally.
+
+- Open `chatbot.html` and in the configuration panel set the **Ollama URL** field to the base URL of the remote instance (for example `https://ollama.example.com` or `http://192.168.1.5:11434`).
+- The chatbot will call `{OLLAMA_URL}/api/generate` automatically.
+
+Notes & CORS
+- Browsers enforce CORS: the remote Ollama server must return appropriate `Access-Control-Allow-Origin` headers to allow requests from your page origin.
+- If you cannot modify the remote server, run a small proxy (see examples in the repo) on a host you control to add CORS headers and forward requests.
+
+Quick curl test (from machine running browser):
+
+```bash
+curl -v -H "Content-Type: application/json" -d '{"model":"mistral","prompt":"hello","stream":false}' http://REMOTE_OLLAMA_HOST:11434/api/generate
+```
+
+If curl succeeds but the browser shows a CORS error, the remote server needs to allow your page origin or you must use a proxy.
+
 ### Usage
 1. Open `chatbot.html`
 2. Select "Ollama (Local)"

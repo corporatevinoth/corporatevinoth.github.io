@@ -222,21 +222,22 @@
         const messageDiv = document.getElementById('message');
 
         function formatCode() {
-            const code = inputCode.value.trim();
-            if (!code) {
+            const code = inputCode.value;
+            if (!code || code.trim() === '') {
                 showMessage('Please enter code to format', 'error');
                 return;
             }
 
+            const language = languageSelect.value;
+            const indent = Math.max(1, parseInt(indentSize.value) || 2);
+
             try {
-                const language = languageSelect.value;
-                const indent = parseInt(indentSize.value) || 2;
-                let formatted = code;
+                let formatted = '';
 
                 if (language === 'javascript') {
-                    formatted = js_beautify(code, { indent_size: indent, preserve_newlines: true });
+                    formatted = js_beautify(code, { indent_size: indent, preserve_newlines: true, wrap_line_length: 0 });
                 } else if (language === 'html') {
-                    formatted = html_beautify(code, { indent_size: indent });
+                    formatted = html_beautify(code, { indent_size: indent, wrap_attributes: 'auto', wrap_line_length: 0 });
                 } else if (language === 'css') {
                     formatted = css_beautify(code, { indent_size: indent });
                 } else if (language === 'json') {
@@ -244,42 +245,94 @@
                     formatted = JSON.stringify(parsed, null, indent);
                 } else if (language === 'xml') {
                     formatted = formatXML(code, indent);
+                } else {
+                    formatted = code;
                 }
 
                 outputCode.value = formatted;
                 showMessage('✓ Code formatted successfully!', 'success');
-            } catch (error) {
-                showMessage('✗ Error: ' + error.message, 'error');
+            } catch (err) {
                 outputCode.value = '';
+                const msg = (err && err.message) ? err.message : 'Unknown error';
+                showMessage('✗ Error: ' + msg, 'error');
             }
         }
 
-        function formatXML(xml, indent) {
-            let formatted = '';
-            let indentLevel = 0;
-            const indentStr = ' '.repeat(indent);
+        function formatXML(xmlString, indent) {
+            try {
+                const parser = new DOMParser();
+                const xmlDoc = parser.parseFromString(xmlString, 'application/xml');
+                const parseError = xmlDoc.getElementsByTagName('parsererror')[0];
+                if (parseError) {
+                    // Extract readable message if possible
+                    const msg = parseError.textContent || 'Invalid XML';
+                    throw new Error(msg);
+                }
 
-            xml = xml.replace(/>\s+</g, '><');
-            
-            for (let i = 0; i < xml.length; i++) {
-                const char = xml[i];
-                
-                if (char === '<') {
-                    if (xml.substring(i, i + 2) === '</') {
-                        indentLevel--;
-                        formatted += '\n' + indentStr.repeat(indentLevel);
-                    } else {
-                        formatted += '\n' + indentStr.repeat(indentLevel);
-                        if (xml.substring(i, i + 2) === '<?') {
-                        } else {
-                            indentLevel++;
+                function nodeToString(node, level = 0) {
+                    const indentStr = ' '.repeat(indent * level);
+                    let out = '';
+
+                    if (node.nodeType === Node.TEXT_NODE) {
+                        const txt = node.nodeValue.trim();
+                        if (txt) out += indentStr + txt + '\n';
+                        return out;
+                    }
+
+                    if (node.nodeType === Node.CDATA_SECTION_NODE) {
+                        out += indentStr + '<![CDATA[' + node.nodeValue + ']]>\n';
+                        return out;
+                    }
+
+                    if (node.nodeType !== Node.ELEMENT_NODE) return out;
+
+                    out += indentStr + '<' + node.nodeName;
+
+                    if (node.attributes && node.attributes.length > 0) {
+                        for (let i = 0; i < node.attributes.length; i++) {
+                            const a = node.attributes[i];
+                            out += ' ' + a.name + '="' + a.value + '"';
                         }
                     }
-                }
-                formatted += char;
-            }
 
-            return formatted.trim();
+                    const children = Array.from(node.childNodes).filter(n => !(n.nodeType === Node.TEXT_NODE && n.nodeValue.trim() === ''));
+
+                    if (children.length === 0) {
+                        out += ' />\n';
+                        return out;
+                    }
+
+                    out += '>';
+
+                    // single text child -> keep on same line
+                    if (children.length === 1 && children[0].nodeType === Node.TEXT_NODE) {
+                        out += children[0].nodeValue.trim() + '</' + node.nodeName + '>\n';
+                        return out;
+                    }
+
+                    out += '\n';
+                    for (const child of children) {
+                        out += nodeToString(child, level + 1);
+                    }
+
+                    out += indentStr + '</' + node.nodeName + '>\n';
+                    return out;
+                }
+
+                let result = '';
+                const children = Array.from(xmlDoc.childNodes).filter(n => !(n.nodeType === Node.TEXT_NODE && n.nodeValue.trim() === ''));
+                for (const node of children) {
+                    if (node.nodeType === Node.ELEMENT_NODE) {
+                        result += nodeToString(node, 0);
+                    } else if (node.nodeType === Node.PROCESSING_INSTRUCTION_NODE) {
+                        result += '<?' + node.nodeName + ' ' + node.nodeValue + '?>\n';
+                    }
+                }
+
+                return result.trim();
+            } catch (e) {
+                throw e;
+            }
         }
 
         function copyCode() {

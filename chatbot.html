@@ -327,6 +327,7 @@
                 <option value="neural-chat">Neural Chat</option>
             </select>
             <input type="text" id="apiKey" placeholder="HuggingFace API Key (if using HF)" style="display: none;">
+            <input type="text" id="ollamaUrl" placeholder="Ollama URL (e.g. http://localhost:11434)" value="http://localhost:11434" style="min-width:220px;">
             <span id="connectionStatus" style="font-size: 0.85em; color: #666;">Ready</span>
         </div>
 
@@ -378,6 +379,8 @@
             radio.addEventListener('change', (e) => {
                 currentMode = e.target.value;
                 apiKeyInput.style.display = currentMode === 'huggingface' ? 'block' : 'none';
+                // Show ollama URL input only when using Ollama mode
+                document.getElementById('ollamaUrl').style.display = currentMode === 'ollama' ? 'block' : 'none';
                 connectionStatus.textContent = 'Mode changed';
             });
         });
@@ -422,9 +425,12 @@
         // Call Ollama API
         async function callOllama(prompt) {
             const model = modelMap.ollama[modelSelect.value];
+            const rawUrl = (document.getElementById('ollamaUrl') && document.getElementById('ollamaUrl').value) ? document.getElementById('ollamaUrl').value.trim() : 'http://localhost:11434';
+            const baseUrl = rawUrl.replace(/\/$/, '');
+            const endpoint = baseUrl + '/api/generate';
             try {
                 connectionStatus.textContent = 'Connecting to Ollama...';
-                const response = await fetch('http://localhost:11434/api/generate', {
+                const response = await fetch(endpoint, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
@@ -535,8 +541,16 @@
 
             } catch (error) {
                 removeTyping();
-                addMessage(`❌ Error: ${error.message}`, 'bot');
-                connectionStatus.textContent = `Error: ${error.message}`;
+                const msg = (error && error.message) ? error.message : 'Unknown error';
+
+                // Provide actionable guidance for network / CORS failures
+                if (msg.includes('Failed to fetch') || msg.includes('NetworkError') || msg.includes('Network request failed') || msg.includes('Failed to execute')) {
+                    addMessage('❌ Error: Failed to reach the local model server.\n• If using Ollama, ensure the Ollama daemon is running and reachable at http://localhost:11434.\n• Check the browser console for CORS errors (blocked by server).\n• As a quick workaround, switch to "Hugging Face API" mode and provide a valid API key, or run a local proxy that adds CORS headers.', 'bot');
+                    connectionStatus.textContent = 'Error: Failed to reach local server';
+                } else {
+                    addMessage(`❌ Error: ${msg}`, 'bot');
+                    connectionStatus.textContent = `Error: ${msg}`;
+                }
             } finally {
                 sendBtn.disabled = false;
                 messageInput.focus();
