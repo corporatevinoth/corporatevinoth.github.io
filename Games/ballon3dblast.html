@@ -104,15 +104,28 @@
         coins: [],
         particles: []
       },
-      sounds: {
-        pop: [
-          new Audio('data:audio/wav;base64,UklGRl9vT19XQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YU...'), // Short pop sound
-          new Audio('data:audio/wav;base64,UklGRl9vT19XQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YU...'),
-          new Audio('data:audio/wav;base64,UklGRl9vT19XQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YU...')
-        ],
-        coin: new Audio('data:audio/wav;base64,UklGRl9vT19XQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YU...')
-      }
+        sounds: {
+          // kept as placeholders for compatibility; WebAudio is used for playback
+          pop: [],
+          coin: null
+        }
     };
+
+      // WebAudio context & master gain (created on first user gesture)
+      let audioCtx = null;
+      let masterGain = null;
+      function initAudio() {
+        if (audioCtx) return;
+        try {
+          audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+          masterGain = audioCtx.createGain();
+          masterGain.gain.value = 0.18; // default volume
+          masterGain.connect(audioCtx.destination);
+        } catch (e) {
+          console.log('WebAudio init failed', e);
+          audioCtx = null; masterGain = null;
+        }
+      }
 
     // Initialize Game
     function init() {
@@ -356,39 +369,57 @@
 
     function playPopSound() {
       if (!game.soundEnabled) return;
-      const sound = game.sounds.pop[Math.floor(Math.random() * game.sounds.pop.length)];
+      initAudio();
+      if (!audioCtx) return;
       try {
-        sound.currentTime = 0;
-        sound.play();
-      } catch (e) {
-        console.log("Audio play failed:", e);
-      }
-      // play coin fall shortly after pop to simulate falling coins
+        const now = audioCtx.currentTime;
+        const o = audioCtx.createOscillator();
+        const g = audioCtx.createGain();
+        o.type = 'triangle';
+        o.frequency.setValueAtTime(900 + Math.random()*600, now);
+        g.gain.setValueAtTime(0.0001, now);
+        g.gain.exponentialRampToValueAtTime(0.25, now + 0.006);
+        g.gain.exponentialRampToValueAtTime(0.0001, now + 0.15);
+        o.connect(g);
+        g.connect(masterGain);
+        o.start(now);
+        o.stop(now + 0.18);
+      } catch (e) { console.log('pop sound failed', e); }
+      // coin fall sound shortly after
       setTimeout(() => playCoinSound(), 160);
     }
 
     function playCoinSound() {
       if (!game.soundEnabled) return;
+      initAudio();
+      if (!audioCtx) return;
       try {
-        const c = game.sounds.coin;
-        c.currentTime = 0;
-        c.play();
-      } catch (e) {
-        console.log('Coin audio play failed', e);
-      }
+        const now = audioCtx.currentTime;
+        const o = audioCtx.createOscillator();
+        const g = audioCtx.createGain();
+        o.type = 'sine';
+        o.frequency.setValueAtTime(1200, now);
+        o.frequency.exponentialRampToValueAtTime(300, now + 0.45);
+        g.gain.setValueAtTime(0.0001, now);
+        g.gain.exponentialRampToValueAtTime(0.12, now + 0.01);
+        g.gain.exponentialRampToValueAtTime(0.0001, now + 0.5);
+        o.connect(g);
+        g.connect(masterGain);
+        o.start(now);
+        o.stop(now + 0.5);
+      } catch (e) { console.log('coin sound failed', e); }
     }
 
     function stopAllSounds() {
-      // Pause and reset audio elements
-      game.sounds.pop.forEach(s => { try { s.pause(); s.currentTime = 0; } catch (e){} });
-      try { game.sounds.coin.pause(); game.sounds.coin.currentTime = 0; } catch (e){}
+      // Mute master gain
+      try { if (masterGain) masterGain.gain.value = 0; } catch (e){}
     }
 
     function toggleSound() {
       game.soundEnabled = !game.soundEnabled;
       localStorage.setItem('balloonSoundEnabled', game.soundEnabled);
       updateSpeakerUI();
-      if (!game.soundEnabled) stopAllSounds();
+      if (!game.soundEnabled) stopAllSounds(); else if (masterGain) masterGain.gain.value = 0.18;
     }
 
     function updateSpeakerUI() {
