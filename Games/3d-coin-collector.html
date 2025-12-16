@@ -426,6 +426,27 @@
       try { startMusic(); } catch(e){}
     } else updateSpeakerUI();
 
+    // Ensure audio is started/resumed on first user gesture
+    function ensureAudioStarted() {
+      try {
+        if (!audioCtx) {
+          // create but don't auto-start oscillators here; startMusic will create them
+          audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+          // close immediately if user preference is off
+          audioCtx.suspend && audioCtx.suspend();
+        }
+        if (audioCtx && audioCtx.state === 'suspended') {
+          audioCtx.resume && audioCtx.resume();
+        }
+        // If preference enabled, start music now
+        if (gameSoundEnabled) startMusic();
+      } catch (e) {
+        console.log('ensureAudioStarted failed', e);
+      }
+    }
+    // Resume audio on first pointerdown anywhere (gesture)
+    document.addEventListener('pointerdown', function onFirst() { ensureAudioStarted(); document.removeEventListener('pointerdown', onFirst); });
+
     // GAME LOOP
     function animate() {
       player.position.z += speed;
