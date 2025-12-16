@@ -72,7 +72,20 @@
         }
 
         /* Ensure pointer dragging works on mobile */
-        #scratch-canvas { touch-action: none; cursor: crosshair; }
+        #scratch-canvas {
+            touch-action: none;
+            cursor: crosshair;
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 3;
+        }
+
+        /* Card content should not block pointer events until revealed */
+        .card-content { pointer-events: none; z-index: 1; }
+        .card-content.revealed { pointer-events: auto; }
         
         .scratch-surface {
             position: absolute;
@@ -345,8 +358,15 @@
             ctx = canvas.getContext('2d');
             
             // Set canvas size to match container
-            canvas.width = scratchCard.offsetWidth;
-            canvas.height = scratchCard.offsetHeight;
+            // Use layout size for CSS and set drawing buffer to match device pixels
+            const w = scratchCard.offsetWidth;
+            const h = scratchCard.offsetHeight;
+            const dpr = window.devicePixelRatio || 1;
+            canvas.style.width = w + 'px';
+            canvas.style.height = h + 'px';
+            canvas.width = Math.round(w * dpr);
+            canvas.height = Math.round(h * dpr);
+            ctx.scale(dpr, dpr);
             
             // Draw the scratch surface
             drawScratchSurface();
@@ -614,8 +634,14 @@
         // Handle window resize
         window.addEventListener('resize', () => {
             if (canvas) {
-                canvas.width = scratchCard.offsetWidth;
-                canvas.height = scratchCard.offsetHeight;
+                const w2 = scratchCard.offsetWidth;
+                const h2 = scratchCard.offsetHeight;
+                const dpr2 = window.devicePixelRatio || 1;
+                canvas.style.width = w2 + 'px';
+                canvas.style.height = h2 + 'px';
+                canvas.width = Math.round(w2 * dpr2);
+                canvas.height = Math.round(h2 * dpr2);
+                ctx.setTransform(dpr2, 0, 0, dpr2, 0, 0);
                 drawScratchSurface();
             }
         });
