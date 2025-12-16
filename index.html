@@ -158,38 +158,38 @@
 
   <script>
     const apps = [
-      { name: 'AI Chatbot', url: 'chatbot.html', emoji: '🤖', gradient: '#667eea, #764ba2', title: 'Chat with open-source AI models' },
-      { name: 'Postman Manager', url: 'postman.html', emoji: '📮', gradient: '#fa709a, #fee140', title: 'Manage API collections' },
-      { name: 'Notepad', url: 'notepad.html', emoji: '📝', gradient: '#e0eafc, #b2feeb', title: 'Quick notepad' },
-      { name: 'Doc Editor', url: 'doc.html', emoji: '📄', gradient: '#f2f6fc, #e0e7ef', title: 'Document editor' },
-      { name: 'Workout Helper', url: 'workoutHelper.html', emoji: '💪', gradient: '#fa709a, #fee140', title: 'Workout tracking tool' },
-      { name: 'Weather', url: 'weather.html', emoji: '🌤️', gradient: '#e0eafc, #a1c4fd', title: 'Weather information' },
-      { name: 'Image Detect', url: 'imgDetect.html', emoji: '🔍', gradient: '#a8edea, #fed6e3', title: 'AI image detection' },
-      { name: 'Code Formatter', url: 'codeFormatter.html', emoji: '✨', gradient: '#667eea, #764ba2', title: 'Format JS, HTML, CSS & JSON code' },
-      { name: 'CSV ↔ JSON', url: 'csvJsonConverter.html', emoji: '🔄', gradient: '#f093fb, #f5576c', title: 'Convert between CSV and JSON' },
-      { name: 'Password Gen', url: 'passwordGenerator.html', emoji: '🔐', gradient: '#667eea, #764ba2', title: 'Generate & check password strength' },
-      { name: 'QR Code', url: 'qrCodeGenerator.html', emoji: '📱', gradient: '#667eea, #764ba2', title: 'Generate QR codes instantly' },
-      { name: 'Pomodoro Timer', url: 'pomodoroTimer.html', emoji: '🍅', gradient: '#667eea, #764ba2', title: 'Productivity timer with sessions' },
-      { name: 'JSON Sorter', url: 'jsonSorter.html', emoji: '{}', gradient: '#667eea, #764ba2', title: 'Sort and format JSON data' },
-      { name: 'JSON Compare', url: 'jsonCompare.html', emoji: '⇄', gradient: '#f093fb, #f5576c', title: 'Compare JSON files' }
+      { name: 'AI Chatbot', url: 'Applications/chatbot.html', emoji: '🤖', gradient: '#667eea, #764ba2', title: 'Chat with open-source AI models' },
+      { name: 'Postman Manager', url: 'Applications/postman.html', emoji: '📮', gradient: '#fa709a, #fee140', title: 'Manage API collections' },
+      { name: 'Notepad', url: 'Applications/notepad.html', emoji: '📝', gradient: '#e0eafc, #b2feeb', title: 'Quick notepad' },
+      { name: 'Doc Editor', url: 'Applications/doc.html', emoji: '📄', gradient: '#f2f6fc, #e0e7ef', title: 'Document editor' },
+      { name: 'Workout Helper', url: 'Applications/workoutHelper.html', emoji: '💪', gradient: '#fa709a, #fee140', title: 'Workout tracking tool' },
+      { name: 'Weather', url: 'Applications/weather.html', emoji: '🌤️', gradient: '#e0eafc, #a1c4fd', title: 'Weather information' },
+      { name: 'Image Detect', url: 'Applications/imgDetect.html', emoji: '🔍', gradient: '#a8edea, #fed6e3', title: 'AI image detection' },
+      { name: 'Code Formatter', url: 'Applications/codeFormatter.html', emoji: '✨', gradient: '#667eea, #764ba2', title: 'Format JS, HTML, CSS & JSON code' },
+      { name: 'CSV ↔ JSON', url: 'Applications/csvJsonConverter.html', emoji: '🔄', gradient: '#f093fb, #f5576c', title: 'Convert between CSV and JSON' },
+      { name: 'Password Gen', url: 'Applications/passwordGenerator.html', emoji: '🔐', gradient: '#667eea, #764ba2', title: 'Generate & check password strength' },
+      { name: 'QR Code', url: 'Applications/qrCodeGenerator.html', emoji: '📱', gradient: '#667eea, #764ba2', title: 'Generate QR codes instantly' },
+      { name: 'Pomodoro Timer', url: 'Applications/pomodoroTimer.html', emoji: '🍅', gradient: '#667eea, #764ba2', title: 'Productivity timer with sessions' },
+      { name: 'JSON Sorter', url: 'Applications/jsonSorter.html', emoji: '{}', gradient: '#667eea, #764ba2', title: 'Sort and format JSON data' },
+      { name: 'JSON Compare', url: 'Applications/jsonCompare.html', emoji: '⇄', gradient: '#f093fb, #f5576c', title: 'Compare JSON files' }
     ];
 
     const games = [
-      { name: 'Balloon Shooter', url: 'balloon.html', emoji: '🎈', gradient: '#ff9a56, #ff6a88' },
-      { name: 'Math Game', url: 'math.html', emoji: 'π', gradient: '#ffe259, #ffa751' },
-      { name: 'Toss Coin', url: 'toss.html', emoji: '🪙', gradient: '#fffbe7, #f7e38d' },
-      { name: 'Space Shooter', url: 'spaceshooter.html', emoji: '🚀', gradient: '#4facfe, #00f2fe' },
-      { name: 'Balloon 3D', url: 'balloon3D.html', emoji: '🎈', gradient: '#ff6b6b, #ee5a6f' },
-      { name: 'Car Race 3D', url: 'carRace3d.html', emoji: '🏎️', gradient: '#fa709a, #fee140' },
-      { name: 'Card Game', url: 'cardgame.html', emoji: '🃏', gradient: '#667eea, #764ba2' },
-      { name: 'Fruit Ninja', url: 'fruit.html', emoji: '🍉', gradient: '#f093fb, #f5576c' },
-      { name: '3D Shooter', url: 'deepseekshoot3d.html', emoji: '🔫', gradient: '#e0eafc, #bdbdbd' },
-      { name: 'Race', url: 'race.html', emoji: '🏁', gradient: '#a8edea, #fed6e3' },
-      { name: 'Balloon Pop', url: 'ballonpop.html', emoji: '💥', gradient: '#fceabb, #f8b500' },
-      { name: 'Ballon Blast', url: 'ballon3dblast.html', emoji: '🎯', gradient: '#ff9a56, #ff6a88' },
-      { name: 'Cat Milk', url: 'catMilk.html', emoji: '🐱', gradient: '#fceabb, #f8b500' },
-      { name: 'Science Quiz', url: 'scienceQuiz.html', emoji: '🔬', gradient: '#e0eafc, #8fd3f4' },
-      { name: 'Scratch Card', url: 'scratch.html', emoji: '🎟️', gradient: '#fbc2eb, #a6c1ee' }
+      { name: 'Balloon Shooter', url: 'Games/balloon.html', emoji: '🎈', gradient: '#ff9a56, #ff6a88' },
+      { name: 'Math Game', url: 'Games/math.html', emoji: 'π', gradient: '#ffe259, #ffa751' },
+      { name: 'Toss Coin', url: 'Games/toss.html', emoji: '🪙', gradient: '#fffbe7, #f7e38d' },
+      { name: 'Space Shooter', url: 'Games/spaceshooter.html', emoji: '🚀', gradient: '#4facfe, #00f2fe' },
+      { name: 'Balloon 3D', url: 'Games/balloon3D.html', emoji: '🎈', gradient: '#ff6b6b, #ee5a6f' },
+      { name: 'Car Race 3D', url: 'Games/carRace3d.html', emoji: '🏎️', gradient: '#fa709a, #fee140' },
+      { name: 'Card Game', url: 'Games/cardgame.html', emoji: '🃏', gradient: '#667eea, #764ba2' },
+      { name: 'Fruit Ninja', url: 'Games/fruit.html', emoji: '🍉', gradient: '#f093fb, #f5576c' },
+      { name: '3D Shooter', url: 'Games/deepseekshoot3d.html', emoji: '🔫', gradient: '#e0eafc, #bdbdbd' },
+      { name: 'Race', url: 'Games/race.html', emoji: '🏁', gradient: '#a8edea, #fed6e3' },
+      { name: 'Balloon Pop', url: 'Games/ballonpop.html', emoji: '💥', gradient: '#fceabb, #f8b500' },
+      { name: 'Ballon Blast', url: 'Games/ballon3dblast.html', emoji: '🎯', gradient: '#ff9a56, #ff6a88' },
+      { name: 'Cat Milk', url: 'Games/catMilk.html', emoji: '🐱', gradient: '#fceabb, #f8b500' },
+      { name: 'Science Quiz', url: 'Games/scienceQuiz.html', emoji: '🔬', gradient: '#e0eafc, #8fd3f4' },
+      { name: 'Scratch Card', url: 'Games/scratch.html', emoji: '🎟️', gradient: '#fbc2eb, #a6c1ee' }
     ];
 
     function createCard(item, type) {
