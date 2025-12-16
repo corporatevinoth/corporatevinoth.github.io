@@ -21,6 +21,7 @@
 </head>
 <body>
 <canvas id="gameCanvas"></canvas>
+<button id="speakerBtn" title="Toggle music" style="position:fixed;right:12px;top:12px;z-index:999;background:transparent;border:none;font-size:1.6rem;cursor:pointer;">🔈</button>
 <div id="controls">
   <button id="leftBtn">⬅️</button>
   <button id="rightBtn">➡️</button>
@@ -37,7 +38,8 @@ const carImages = [
 const playerCarImage = '../resources/redcar.jpg';
 const carWidth = 60, carHeight = 100;
 let cars = [];
-let player = { x: 0, y: 0, img: null };
+let coins = [];
+let player = { x: 0, y: 0, img: null, vx: 0 };
 let canvas = document.getElementById('gameCanvas');
 let ctx = canvas.getContext('2d');
 let gameRunning = false;
@@ -81,13 +83,52 @@ function drawRoad() {
 }
 
 // Draw cars
+function drawCoins() {
+  // coins rotate vertically: simulate by scaling y of coin ellipse based on angle
+  coins.forEach(c => {
+    c.angle += c.spin;
+    const scale = Math.abs(Math.cos(c.angle)); // 0..1
+    const cx = c.x + c.size/2;
+    const cy = c.y + c.size/2;
+    ctx.save();
+    ctx.translate(cx, cy);
+    ctx.scale(1, 0.5 + 0.5*scale);
+    // coin body
+    ctx.fillStyle = '#ffd700';
+    ctx.beginPath();
+    ctx.arc(0, 0, c.size/2, 0, Math.PI*2);
+    ctx.fill();
+    // coin inner shine
+    ctx.fillStyle = 'rgba(255,255,255,0.35)';
+    ctx.beginPath();
+    ctx.ellipse(-c.size*0.12, -c.size*0.12, c.size*0.18, c.size*0.08, 0, 0, Math.PI*2);
+    ctx.fill();
+    ctx.restore();
+  });
+}
+
 function drawCars() {
   cars.forEach(car => {
     ctx.drawImage(loadedImages[car.imgIdx], car.x, car.y, carWidth, carHeight);
   });
 }
+
 function drawPlayer() {
-  ctx.drawImage(loadedImages.player, player.x, player.y, carWidth, carHeight);
+  // draw shadow
+  ctx.save();
+  ctx.fillStyle = 'rgba(0,0,0,0.35)';
+  ctx.beginPath();
+  ctx.ellipse(player.x + carWidth/2, player.y + carHeight - 6, carWidth*0.6, 10, 0, 0, Math.PI*2);
+  ctx.fill();
+  ctx.restore();
+
+  // tilt based on velocity
+  const tilt = Math.max(-0.25, Math.min(0.25, player.vx / 12));
+  ctx.save();
+  ctx.translate(player.x + carWidth/2, player.y + carHeight/2);
+  ctx.rotate(tilt);
+  ctx.drawImage(loadedImages.player, -carWidth/2, -carHeight/2, carWidth, carHeight);
+  ctx.restore();
 }
 
 // Collision detection
@@ -98,6 +139,11 @@ function isColliding(a, b) {
     a.y + carHeight < b.y ||
     a.y > b.y + carHeight
   );
+}
+
+function isCollidingCoin(a, coin) {
+  // simple AABB vs coin box
+  return !(a.x + carWidth < coin.x || a.x > coin.x + coin.size || a.y + carHeight < coin.y || a.y > coin.y + coin.size);
 }
 
 // Prevent cars from spawning/colliding in the same lane/row
@@ -127,6 +173,24 @@ function gameLoop() {
     }
   });
 
+  // Move coins
+  coins.forEach((c, idx) => {
+    c.y += c.speed;
+    if (c.y > canvas.height) {
+      // recycle
+      c.y = -c.size - Math.random()*200;
+      c.x = canvas.width/4 + Math.floor(Math.random()*3) * ((canvas.width/2 - carWidth)/2) + 10;
+    }
+    // check collection
+    if (isCollidingCoin(player, c)) {
+      score += 10;
+      // remove coin and respawn
+      c.y = -c.size - Math.random()*300;
+      c.x = canvas.width/4 + Math.floor(Math.random()*3) * ((canvas.width/2 - carWidth)/2) + 10;
+    }
+  });
+
+  drawCoins();
   drawCars();
   drawPlayer();
 
@@ -141,20 +205,29 @@ function gameLoop() {
   requestAnimationFrame(gameLoop);
 }
 
-// Controls
-function movePlayer(dir) {
-  const roadLeft = canvas.width/4;
-  const roadRight = canvas.width*3/4 - carWidth;
-  if (dir === 'left') player.x = Math.max(roadLeft, player.x - 30);
-  if (dir === 'right') player.x = Math.min(roadRight, player.x + 30);
-}
+// Controls (continuous)
+const moveSpeed = 8;
+function stopPlayer() { player.vx = 0; }
+function startMoveLeft() { player.vx = -moveSpeed; }
+function startMoveRight() { player.vx = moveSpeed; }
+
 window.addEventListener('keydown', e => {
   if (!gameRunning) return;
-  if (e.key === 'ArrowLeft') movePlayer('left');
-  if (e.key === 'ArrowRight') movePlayer('right');
+  if (e.key === 'ArrowLeft' || e.key === 'Left' || e.keyCode === 37) startMoveLeft();
+  if (e.key === 'ArrowRight' || e.key === 'Right' || e.keyCode === 39) startMoveRight();
 });
-document.getElementById('leftBtn').addEventListener('click', () => { if(gameRunning) movePlayer('left'); });
-document.getElementById('rightBtn').addEventListener('click', () => { if(gameRunning) movePlayer('right'); });
+window.addEventListener('keyup', e => {
+  if (e.key === 'ArrowLeft' || e.keyCode === 37) stopPlayer();
+  if (e.key === 'ArrowRight' || e.keyCode === 39) stopPlayer();
+});
+
+// Touch buttons: press & hold
+const leftBtn = document.getElementById('leftBtn');
+const rightBtn = document.getElementById('rightBtn');
+leftBtn.addEventListener('pointerdown', () => { if (gameRunning) startMoveLeft(); });
+leftBtn.addEventListener('pointerup', () => { if (gameRunning) stopPlayer(); });
+rightBtn.addEventListener('pointerdown', () => { if (gameRunning) startMoveRight(); });
+rightBtn.addEventListener('pointerup', () => { if (gameRunning) stopPlayer(); });
 
 // Handle score
 function startScore() {
@@ -188,6 +261,7 @@ function exitGame() {
 function init() {
   resize();
   cars = [];
+  coins = [];
   let lanes = [0, 1, 2];
   for (let i = 0; i < 5; ++i) {
     // Assign random lane and y position, ensure no overlap at spawn
@@ -206,6 +280,13 @@ function init() {
     } while (isCarOverlap(car, cars) && tries < 10);
     cars.push(car);
   }
+  // spawn some coins
+  for (let i = 0; i < 6; ++i) {
+    const lane = Math.floor(Math.random()*3);
+    const x = canvas.width/4 + lane*(canvas.width/2- carWidth)/2 + 10;
+    const y = 50 + i*180 + Math.random()*120;
+    coins.push({ x: x, y: y, size: 28, speed: 3 + Math.random()*2, angle: Math.random()*Math.PI*2, spin: 0.15 + Math.random()*0.2 });
+  }
   player.x = canvas.width/2 - carWidth/2;
   player.y = canvas.height - carHeight - 30;
   player.img = loadedImages.player;
@@ -213,6 +294,49 @@ function init() {
   startScore();
   gameLoop();
 }
+// Simple background music using WebAudio (starts on user gesture)
+let audioCtx = null;
+let musicGain = null;
+let musicOsc1 = null;
+let musicOsc2 = null;
+let musicPlaying = false;
+
+function startMusic() {
+  if (!audioCtx) {
+    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    musicGain = audioCtx.createGain();
+    musicGain.gain.value = 0.06; // low volume
+    musicGain.connect(audioCtx.destination);
+
+    musicOsc1 = audioCtx.createOscillator();
+    musicOsc1.type = 'sine';
+    musicOsc1.frequency.value = 110;
+    musicOsc1.connect(musicGain);
+
+    musicOsc2 = audioCtx.createOscillator();
+    musicOsc2.type = 'sawtooth';
+    musicOsc2.frequency.value = 220;
+    const g2 = audioCtx.createGain(); g2.gain.value = 0.02; g2.connect(musicGain);
+    musicOsc2.connect(g2);
+
+    musicOsc1.start();
+    musicOsc2.start();
+  }
+  if (audioCtx.state === 'suspended') audioCtx.resume();
+  musicPlaying = true;
+  document.getElementById('speakerBtn').textContent = '🔊';
+}
+
+function stopMusic() {
+  if (musicGain) musicGain.gain.value = 0;
+  musicPlaying = false;
+  document.getElementById('speakerBtn').textContent = '🔈';
+}
+
+document.getElementById('speakerBtn').addEventListener('click', () => {
+  if (!musicPlaying) startMusic(); else stopMusic();
+});
+
 window.onload = init;
 </script>
 </body>
