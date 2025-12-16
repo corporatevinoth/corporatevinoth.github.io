@@ -272,6 +272,7 @@ const DECELERATION = 0.03;
 // Sound manager
 let audioContext = null;
 let masterGain = null;
+let soundEnabled = true;
 function initAudio() {
   if(!audioContext) {
     audioContext = new (window.AudioContext || window.webkitAudioContext)();
@@ -282,6 +283,7 @@ function initAudio() {
 }
 
 function playSound(type, duration=0.2) {
+  if(typeof soundEnabled !== 'undefined' && !soundEnabled) return;
   if(!audioContext) initAudio();
   let now = audioContext.currentTime;
   let osc = audioContext.createOscillator();
@@ -308,6 +310,47 @@ function playSound(type, duration=0.2) {
   osc.start(now);
   osc.stop(now+duration);
 }
+
+// Speaker button and audio resume/persistence
+const speakerBtn = document.getElementById('speakerBtn');
+function updateSpeakerIcon() {
+  if(!speakerBtn) return;
+  speakerBtn.textContent = soundEnabled ? '🔊' : '🔇';
+}
+function setSoundEnabled(enabled) {
+  soundEnabled = !!enabled;
+  if(!audioContext) {
+    try { initAudio(); } catch(e) {}
+  }
+  if(masterGain) masterGain.gain.value = soundEnabled ? 1.0 : 0.0;
+  try { localStorage.setItem('carRace3d_sound', soundEnabled ? '1' : '0'); } catch(e) {}
+  updateSpeakerIcon();
+}
+
+// Load persisted preference
+try {
+  const stored = localStorage.getItem('carRace3d_sound');
+  if(stored !== null) soundEnabled = stored !== '0';
+} catch(e) {}
+updateSpeakerIcon();
+
+if(speakerBtn) {
+  speakerBtn.addEventListener('click', (e)=>{
+    e.stopPropagation();
+    // Ensure audio context exists and is resumed on user gesture
+    if(!audioContext) initAudio();
+    if(audioContext && audioContext.state === 'suspended') audioContext.resume();
+    setSoundEnabled(!soundEnabled);
+  });
+}
+
+// One-time resume on first user gesture to unlock audio
+function resumeOnFirstGesture() {
+  if(!audioContext) initAudio();
+  if(audioContext && audioContext.state === 'suspended') audioContext.resume();
+  document.removeEventListener('pointerdown', resumeOnFirstGesture);
+}
+document.addEventListener('pointerdown', resumeOnFirstGesture, {passive:true});
 
 window.addEventListener('keydown', function(e){
   if(e.key==='ArrowUp') {keys.arrowUp = true; playSound('accelerate', 0.1);}
