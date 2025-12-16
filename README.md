@@ -43,7 +43,7 @@ Built with **Three.js 3D rendering** and **Web Audio API** for immersive gamepla
 | 🎈 **Balloon Shooter** | Click-based balloon destruction |
 | 🎈 **3D Balloon Game** | 3D environment with physics |
 | 🚀 **Space Shooter** | Asteroid dodging and enemy combat |
-| 🔫 **3D Shooter** | Full 3D combat with collision detection |
+| 🪙 **3D Coin Collector** | 3D runner collecting coins with tilt and vertical coin rotation |
 | 🏎️ **Car Race 3D** | Realistic driving physics, collision detection, endless spawning |
 | 🃏 **Card Game** | Memory and matching challenges |
 | 🍉 **Fruit Ninja** | Swipe-based fruit slicing |
@@ -191,7 +191,7 @@ corporatevinoth.github.io/
     ├── balloon.html             # Balloon shooter
     ├── balloon3D.html           # 3D balloon game
     ├── spaceshooter.html        # Space shooter
-    ├── deepseekshoot3d.html     # 3D shooter
+    ├── 3d-coin-collector.html   # 3D coin collector
     ├── carRace3d.html           # 3D racing
     ├── cardgame.html            # Card game
     ├── fruit.html               # Fruit ninja
