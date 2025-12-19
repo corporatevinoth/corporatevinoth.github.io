@@ -320,6 +320,10 @@
                     <input type="radio" name="mode" value="huggingface">
                     Hugging Face API
                 </label>
+                <label>
+                    <input type="radio" name="mode" value="pollinations">
+                    Pollinations.ai
+                </label>
             </div>
             <select id="modelSelect">
                 <option value="mistral">Mistral 7B</option>
@@ -371,6 +375,11 @@
                 'mistral': 'mistralai/Mistral-7B-Instruct-v0.1',
                 'llama2': 'meta-llama/Llama-2-7b-chat-hf',
                 'neural-chat': 'Intel/neural-chat-7b-v3-1'
+            },
+            pollinations: {
+                'mistral': 'openai',
+                'llama2': 'openai',
+                'neural-chat': 'openai'
             }
         };
 
@@ -381,6 +390,8 @@
                 apiKeyInput.style.display = currentMode === 'huggingface' ? 'block' : 'none';
                 // Show ollama URL input only when using Ollama mode
                 document.getElementById('ollamaUrl').style.display = currentMode === 'ollama' ? 'block' : 'none';
+                // Hide model selector for Pollinations.ai
+                modelSelect.style.display = currentMode === 'pollinations' ? 'none' : 'block';
                 connectionStatus.textContent = 'Mode changed';
             });
         });
@@ -498,6 +509,33 @@
             }
         }
 
+        // Call Pollinations.ai API
+        async function callPollinations(messages) {
+            try {
+                connectionStatus.textContent = 'Connecting to Pollinations.ai...';
+                const response = await fetch('https://text.pollinations.ai/', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        messages: messages,
+                        model: 'openai', // Pollinations uses high-quality open-source backends
+                        seed: 42
+                    })
+                });
+
+                if (!response.ok) {
+                    throw new Error(`Pollinations.ai error: ${response.statusText}`);
+                }
+
+                const aiText = await response.text();
+                connectionStatus.textContent = 'Connected to Pollinations.ai ✓';
+                return aiText || 'No response received';
+            } catch (error) {
+                connectionStatus.textContent = 'Pollinations.ai connection failed ✗';
+                throw error;
+            }
+        }
+
         // Send message
         async function sendMessage() {
             const text = messageInput.value.trim();
@@ -514,25 +552,40 @@
 
             try {
                 // Build context from message history
-                let contextPrompt = '';
+                let messages = [];
                 const lastMessages = messageHistory.slice(-5); // Keep last 5 messages for context
-                for (let msg of lastMessages.slice(0, -1)) {
-                    contextPrompt += `${msg.role === 'user' ? 'User' : 'Assistant'}: ${msg.content}\n`;
+                
+                // For Pollinations.ai, use message format
+                if (currentMode === 'pollinations') {
+                    messages = lastMessages.map(msg => ({
+                        role: msg.role,
+                        content: msg.content
+                    }));
+                } else {
+                    // For Ollama and HuggingFace, build text prompt
+                    let contextPrompt = '';
+                    for (let msg of lastMessages.slice(0, -1)) {
+                        contextPrompt += `${msg.role === 'user' ? 'User' : 'Assistant'}: ${msg.content}\n`;
+                    }
+                    contextPrompt += `User: ${text}\nAssistant:`;
                 }
-                contextPrompt += `User: ${text}\nAssistant:`;
 
                 // Call appropriate API
                 let response;
                 if (currentMode === 'ollama') {
                     response = await callOllama(contextPrompt);
-                } else {
+                } else if (currentMode === 'huggingface') {
                     response = await callHuggingFace(contextPrompt);
+                } else if (currentMode === 'pollinations') {
+                    response = await callPollinations(messages);
                 }
 
-                // Clean up response
-                response = response.replace(contextPrompt, '').trim();
-                if (response.startsWith('Assistant:')) {
-                    response = response.substring('Assistant:'.length).trim();
+                // Clean up response for non-Pollinations modes
+                if (currentMode !== 'pollinations') {
+                    response = response.replace(contextPrompt, '').trim();
+                    if (response.startsWith('Assistant:')) {
+                        response = response.substring('Assistant:'.length).trim();
+                    }
                 }
 
                 removeTyping();
@@ -579,7 +632,7 @@
 
         // Welcome message
         window.addEventListener('load', () => {
-            addMessage('👋 Welcome! I\'m an AI assistant powered by open-source models.\n\nChoose a mode:\n• Ollama: Run locally on your computer\n• Hugging Face: Cloud-based with API key\n\nThen start chatting!', 'bot');
+            addMessage('👋 Welcome! I\'m an AI assistant powered by open-source models.\n\nChoose a mode:\n• Ollama: Run locally on your computer\n• Hugging Face: Cloud-based with API key\n• Pollinations.ai: Free cloud-based AI service\n\nThen start chatting!', 'bot');
         });
     </script>
 </body>

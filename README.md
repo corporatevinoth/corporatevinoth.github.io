@@ -9,9 +9,10 @@ A comprehensive collection of **15+ production-ready web applications** and **15
 ## 🌟 Featured Applications
 
 ### 🤖 **AI Chatbot**
-Chat with open-source LLM models in real-time with dual backend support:
+Chat with open-source LLM models in real-time with triple backend support:
 - Local Ollama instances (run privately on your machine)
 - Hugging Face Cloud API (no setup required)
+- Pollinations.ai (free cloud-based AI service)
 - Remote instance connectivity via configurable URL
 - Context-aware conversations (remembers last 5 messages)
 
@@ -74,7 +75,7 @@ Built with **Three.js 3D rendering** and **Web Audio API** for immersive gamepla
 ### API Integrations
 - **Ollama** - Local LLM inference (mistral, llama2, neural-chat)
 - **Hugging Face Inference API** - Cloud-based model serving
-- **Pollinations.ai** - AI-powered text generation for log analysis
+- **Pollinations.ai** - AI-powered text generation for chat and log analysis
 - **Weather APIs** - Real-time atmospheric data
 - **Geolocation API** - Location-based services
 - **File APIs** - Image detection and file processing
