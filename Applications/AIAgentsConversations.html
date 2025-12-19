@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Endless Pollinations AI Chat</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #f4f6f8;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+    }
+
+    .chat-container {
+      width: 450px;
+      height: 600px;
+      background: white;
+      border-radius: 12px;
+      box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    .chat-header {
+      background: #4f46e5;
+      color: white;
+      padding: 14px;
+      text-align: center;
+      font-weight: bold;
+    }
+
+    .chat-window {
+      flex: 1;
+      padding: 12px;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .message {
+      margin-bottom: 10px;
+      padding: 10px;
+      border-radius: 8px;
+      max-width: 80%;
+      font-size: 14px;
+      line-height: 1.4;
+    }
+
+    .agent-a {
+      background: #e0e7ff;
+      align-self: flex-start;
+    }
+
+    .agent-b {
+      background: #dcfce7;
+      align-self: flex-end;
+    }
+
+    .controls {
+      padding: 10px;
+      border-top: 1px solid #ddd;
+      display: flex;
+      justify-content: space-between;
+    }
+
+    button {
+      padding: 8px 14px;
+      font-size: 14px;
+      border-radius: 6px;
+      border: none;
+      background: #4f46e5;
+      color: white;
+      cursor: pointer;
+    }
+
+    button.stop {
+      background: #dc2626;
+    }
+  </style>
+</head>
+<body>
+
+<div class="chat-container">
+  <div class="chat-header">🤖 Endless AI Conversation</div>
+  <div class="chat-window" id="chat"></div>
+  <div class="controls">
+    <button onclick="startChat()">Start</button>
+    <button class="stop" onclick="stopChat()">Stop</button>
+  </div>
+</div>
+
+<script>
+  const chatWindow = document.getElementById("chat");
+  let running = false;
+  let lastMessage = "";
+
+  function addMessage(text, agentClass) {
+    const msg = document.createElement("div");
+    msg.className = `message ${agentClass}`;
+    msg.textContent = text;
+    chatWindow.appendChild(msg);
+    chatWindow.scrollTop = chatWindow.scrollHeight;
+  }
+
+  async function askPollinations(prompt) {
+    const url = "https://text.pollinations.ai/" + encodeURIComponent(prompt);
+    const response = await fetch(url);
+    return (await response.text()).trim();
+  }
+
+  async function conversationLoop() {
+    while (running) {
+
+      // Agent A
+      const promptA = lastMessage
+        ? `You are Agent A. Respond thoughtfully to this message and ask a follow-up question:\n\n"${lastMessage}"`
+        : "You are Agent A. Start an interesting conversation about technology in one short paragraph.";
+
+      const messageA = await askPollinations(promptA);
+      addMessage("Agent A: " + messageA, "agent-a");
+      lastMessage = messageA;
+
+      if (!running) break;
+      await delay(2000);
+
+      // Agent B
+      const promptB =
+        `You are Agent B. Reply clearly and add a new insight to the following message:\n\n"${lastMessage}"`;
+
+      const messageB = await askPollinations(promptB);
+      addMessage("Agent B: " + messageB, "agent-b");
+      lastMessage = messageB;
+
+      await delay(2000);
+    }
+  }
+
+  function startChat() {
+    if (running) return;
+    running = true;
+    chatWindow.innerHTML = "";
+    lastMessage = "";
+    conversationLoop();
+  }
+
+  function stopChat() {
+    running = false;
+  }
+
+  function delay(ms) {
+    return new Promise(resolve => setTimeout(resolve, ms));
+  }
+</script>
+
+</body>
+</html>
