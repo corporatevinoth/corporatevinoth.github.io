@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Speak & Count – AI Voice Game</title>
+    <title>Speak & Count – Random AI Challenge</title>
     <link href="https://fonts.googleapis.com/css2?family=Fredoka+One&family=Quicksand:wght@700&display=swap" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
     <style>
@@ -29,7 +29,7 @@
         #game-card {
             background: white; padding: 2rem; border-radius: 50px;
             box-shadow: 0 15px 30px rgba(0,0,0,0.1); text-align: center;
-            width: 85%; max-width: 400px; transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            width: 85%; max-width: 400px;
         }
 
         #number-display {
@@ -42,180 +42,117 @@
             background: var(--primary); color: white; font-size: 4rem;
             cursor: pointer; box-shadow: 0 10px 0 #5444c4; margin-bottom: 20px;
             display: flex; align-items: center; justify-content: center;
-            transition: all 0.1s;
         }
 
-        .mic-btn:active { transform: translateY(5px); box-shadow: 0 5px 0 #5444c4; }
-
         .mic-btn.listening {
-            animation: pulse 1.2s infinite;
+            animation: pulse 1s infinite;
             background: #FD79A8;
             box-shadow: 0 10px 0 #e84393;
         }
 
-        @keyframes pulse {
-            0% { transform: scale(1); }
-            50% { transform: scale(1.1); box-shadow: 0 0 30px rgba(253, 121, 168, 0.5); }
-            100% { transform: scale(1); }
-        }
-
+        @keyframes pulse { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.1); } }
         .shake { animation: shake 0.4s ease-in-out; }
         @keyframes shake { 0%, 100% { transform: translateX(0); } 25% { transform: translateX(-15px); } 75% { transform: translateX(15px); } }
 
         #msg { font-weight: bold; font-size: 1.3rem; min-height: 3em; color: #2d3436; padding: 0 10px; }
-
         .hidden { display: none !important; }
-
-        #parent-modal {
-            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(0,0,0,0.85); display: flex; align-items: center; justify-content: center; z-index: 100;
-        }
-
-        .modal-content { background: white; padding: 2rem; border-radius: 30px; width: 85%; max-width: 400px; text-align: left; }
-        .btn-info { background: white; border: 2px solid var(--primary); border-radius: 50%; width: 45px; height: 45px; color: var(--primary); cursor: pointer; font-size: 1.2rem; }
-        .close-btn { background: var(--primary); color: white; border: none; padding: 12px 24px; border-radius: 15px; width: 100%; font-size: 1.1rem; margin-top: 20px; font-family: 'Fredoka One'; cursor: pointer; }
     </style>
 </head>
 <body>
 
     <div id="top-bar">
-        <div>⭐ <span id="star-count">0</span></div>
-        <button class="btn-info" id="info-btn">i</button>
+        <div>⭐ Stars: <span id="star-count">0</span></div>
+        <div style="font-size: 0.8rem">Numbers Left: <span id="left-count">100</span></div>
     </div>
 
     <main id="game-card">
-        <div id="number-display">1</div>
+        <div id="number-display">?</div>
         <button id="mic-btn" class="mic-btn">🎤</button>
         <div id="msg">Tap the mic and say the number!</div>
     </main>
 
-    <div id="parent-modal" class="hidden">
-        <div class="modal-content">
-            <h2 style="font-family: 'Fredoka One'; color: var(--primary);">🛡️ Privacy & Safety</h2>
-            <p><strong>100% Kid Safe:</strong></p>
-            <ul style="line-height: 1.6;">
-                <li><strong>No Recordings:</strong> Audio is turned into text locally inside the browser. No voice data is saved.</li>
-                <li><strong>No Accounts:</strong> Progress is saved on this device only using LocalStorage.</li>
-                <li><strong>Secure AI:</strong> Pollinations.AI only receives text to check if the answer is correct.</li>
-            </ul>
-            <button class="close-btn" id="close-modal">Back to Game</button>
-        </div>
-    </div>
-
     <script>
-        /**
-         * SPEAK & COUNT: AI Game Engine Logic
-         * Local Speech Recognition -> Text Prompt -> Pollinations.AI Semantic Match -> UI Feedback
-         */
-
         const state = {
-            target: parseInt(localStorage.getItem('sc_num')) || 1,
-            stars: parseInt(localStorage.getItem('sc_stars')) || 0,
-            attempts: 0,
-            isListening: false,
-            streak: 0
+            target: 0,
+            stars: parseInt(localStorage.getItem('sc_stars_v2')) || 0,
+            completed: JSON.parse(localStorage.getItem('sc_completed')) || [],
+            isListening: false
         };
 
-        // --- BROWSER API SETUP ---
         const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
         const synth = window.speechSynthesis;
         const recognition = SpeechRecognition ? new SpeechRecognition() : null;
 
-        if (recognition) {
-            recognition.lang = 'en-US';
-            recognition.continuous = false;
-            recognition.interimResults = false;
+        function pickNewNumber() {
+            if (state.completed.length >= 100) {
+                state.completed = []; // Reset if all 100 done
+            }
+            
+            let next;
+            do {
+                next = Math.floor(Math.random() * 100) + 1;
+            } while (state.completed.includes(next));
+            
+            state.target = next;
+            updateUI("Say the number you see!");
         }
 
-        // --- AI VALIDATION ---
         async function validateWithAI(spokenText) {
-            // Adaptive prompt: asks AI to be lenient for child pronunciation
-            const context = "You are an encouraging preschool teacher.";
-            const query = `The child sees the number ${state.target}. They said "${spokenText}". Is this correct? Reply ONLY with 'YES' or 'NO'.`;
+            // Strict Prompting to fix the "always successful" bug
+            const prompt = `You are a strict validator. The target number is ${state.target}. The user said: "${spokenText}". If they said the correct number, reply YES. If they said any other number or word, reply NO. Do not be helpful, just reply YES or NO.`;
             
             try {
-                // Fetch from Pollinations.AI text endpoint
-                const response = await fetch(`https://text.pollinations.ai/${encodeURIComponent(context + " " + query)}`);
+                const response = await fetch(`https://text.pollinations.ai/${encodeURIComponent(prompt)}`);
                 const result = await response.text();
-                return result.toUpperCase().includes("YES");
+                const normalized = result.trim().toUpperCase();
+                
+                // Double check: AI must say YES AND the transcript shouldn't be empty
+                return normalized.includes("YES") && spokenText.length > 0;
             } catch (error) {
-                // Robust Fallback: check if the number itself is in the string
-                return spokenText.includes(state.target.toString());
+                // Manual fallback check
+                const words = spokenText.split(' ');
+                return words.includes(state.target.toString());
             }
-        }
-
-        // --- GAME ACTIONS ---
-        function speakFeedback(text) {
-            const utter = new SpeechSynthesisUtterance(text);
-            utter.pitch = 1.4; // High pitch for kid-friendly voice
-            utter.rate = 1.0;
-            synth.speak(utter);
         }
 
         function handleSuccess() {
             state.stars++;
-            state.streak++;
-            state.attempts = 0;
-            saveProgress();
+            state.completed.push(state.target);
+            localStorage.setItem('sc_stars_v2', state.stars);
+            localStorage.setItem('sc_completed', JSON.stringify(state.completed));
             
-            // Visual & Audio Feedback
-            confetti({ particleCount: 100, spread: 70, origin: { y: 0.6 }, colors: ['#6C5CE7', '#00B894', '#FFD700'] });
-            updateUI("🌟 Amazing! 🌟", true);
-            speakFeedback("Great job!");
+            confetti({ particleCount: 100, spread: 70, origin: { y: 0.6 } });
+            updateUI("🌟 Correct! 🌟", true);
+            
+            const utter = new SpeechSynthesisUtterance("Correct!");
+            utter.pitch = 1.5;
+            synth.speak(utter);
 
-            // Adaptive: Speed up if child is on a streak
-            const delay = state.streak >= 3 ? 1000 : 2000;
-            
-            setTimeout(() => {
-                state.target++;
-                if(state.target > 100) state.target = 1;
-                updateUI("Ready for the next one?");
-            }, delay);
+            setTimeout(pickNewNumber, 2000);
         }
 
-        function handleFailure() {
-            state.attempts++;
-            state.streak = 0;
-            
+        function handleFailure(heard) {
             document.getElementById('game-card').classList.add('shake');
             setTimeout(() => document.getElementById('game-card').classList.remove('shake'), 400);
-
-            if (state.attempts >= 2) {
-                updateUI(`Try again! Say "${state.target}"`, false);
-                speakFeedback(`Try saying ${state.target}`);
-            } else {
-                updateUI("Nice try! Let's try again.", false);
-            }
+            
+            updateUI(`I heard "${heard}". Try again!`, false);
+            const utter = new SpeechSynthesisUtterance("Not quite, try again!");
+            utter.pitch = 1.2;
+            synth.speak(utter);
         }
 
-        // --- UI & STATE ---
         function updateUI(msg, isSuccess = null) {
             document.getElementById('number-display').innerText = state.target;
             document.getElementById('star-count').innerText = state.stars;
+            document.getElementById('left-count').innerText = 100 - state.completed.length;
             const msgEl = document.getElementById('msg');
             msgEl.innerText = msg;
-            
-            if (isSuccess === true) msgEl.style.color = 'var(--success)';
-            else if (isSuccess === false) msgEl.style.color = 'var(--error)';
-            else msgEl.style.color = '#2d3436';
+            msgEl.style.color = isSuccess === true ? "#00B894" : (isSuccess === false ? "#FF7675" : "#2d3436");
         }
 
-        function saveProgress() {
-            localStorage.setItem('sc_num', state.target);
-            localStorage.setItem('sc_stars', state.stars);
-        }
-
-        // --- EVENT LISTENERS ---
         const micBtn = document.getElementById('mic-btn');
-        
         micBtn.onclick = () => {
-            if (!recognition) {
-                alert("Voice recognition is not supported on this browser. Please try Chrome!");
-                return;
-            }
-            if (!state.isListening) {
-                recognition.start();
-            }
+            if (recognition && !state.isListening) recognition.start();
         };
 
         if (recognition) {
@@ -224,26 +161,18 @@
                 micBtn.classList.add('listening');
                 updateUI("Listening...");
             };
-
             recognition.onend = () => {
                 state.isListening = false;
                 micBtn.classList.remove('listening');
             };
-
             recognition.onresult = async (event) => {
                 const transcript = event.results[0][0].transcript.toLowerCase();
                 const isCorrect = await validateWithAI(transcript);
-                isCorrect ? handleSuccess() : handleFailure();
+                isCorrect ? handleSuccess() : handleFailure(transcript);
             };
         }
 
-        // Modal Management
-        const modal = document.getElementById('parent-modal');
-        document.getElementById('info-btn').onclick = () => modal.classList.remove('hidden');
-        document.getElementById('close-modal').onclick = () => modal.classList.add('hidden');
-
-        // Initial UI Load
-        updateUI("Tap the mic to start!");
+        pickNewNumber();
     </script>
 </body>
 </html>
