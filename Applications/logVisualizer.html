@@ -50,18 +50,108 @@
 
     <script>
         function loadSample() {
-            document.getElementById('logInput').value = `2025-12-19 10:00:01 INFO Authentication request received
-2025-12-19 10:00:02 INFO Validating credentials via LDAP
-2025-12-19 10:00:05 WARN Latency detected in LDAP node
-2025-12-19 10:00:06 INFO User 'admin' authorized
-2025-12-19 10:00:07 INFO Initializing Database Session
-2025-12-19 10:00:08 ERROR DB_CONN_FAIL: Refused connection at 192.168.1.5
-2025-12-19 10:00:09 INFO Retrying Database Connection (1/3)
-2025-12-19 10:00:10 INFO Database Connected
-2025-12-19 10:00:12 INFO Fetching user preferences
-2025-12-19 10:00:15 EXCEPTION NullPointerException in PrefsLoader
-2025-12-19 10:00:16 INFO Falling back to Default Profile
-2025-12-19 10:00:20 INFO Session established successfully`;
+            document.getElementById('logInput').value = `2025-12-19 11:00:01 INFO [Gateway] Initializing transaction request ID: TXN-99812
+2025-12-19 11:00:02 INFO [Auth] Validating API Key for Merchant: 'Shopify_Global'
+2025-12-19 11:00:03 INFO [Auth] API Key verified successfully
+2025-12-19 11:00:04 INFO [Security] Running fraud detection algorithm v4.2
+2025-12-19 11:00:05 INFO [Security] IP Address 192.168.4.12 checked against blacklist
+2025-12-19 11:00:06 INFO [Security] Fraud score: 0.12 (Low Risk)
+2025-12-19 11:00:07 INFO [Order] Parsing JSON payload for items
+2025-12-19 11:00:08 INFO [Order] Items validated: [Item_ID: 44, Item_ID: 92]
+2025-12-19 11:00:09 INFO [Inventory] Checking stock for Item_ID: 44
+2025-12-19 11:00:10 INFO [Inventory] Checking stock for Item_ID: 92
+2025-12-19 11:00:11 INFO [Inventory] Stock confirmed for all items
+2025-12-19 11:00:12 INFO [Payment] Initiating handshake with Bank_API_Primary
+2025-12-19 11:00:13 WARN [Payment] Latency detected on Primary Bank API (800ms)
+2025-12-19 11:00:14 INFO [Payment] Encrypting credit card data (AES-256)
+2025-12-19 11:00:15 INFO [Payment] Sending authorization request...
+2025-12-19 11:00:18 INFO [Payment] Authorization SUCCESS from Bank_API_Primary
+2025-12-19 11:00:19 INFO [Ledger] Recording temporary transaction record
+2025-12-19 11:00:20 INFO [Notification] Sending web-hook to Merchant URL
+2025-12-19 11:00:22 INFO [Cleanup] Closing temporary session TXN-99812
+2025-12-19 11:05:01 INFO [Gateway] Initializing transaction request ID: TXN-99813
+2025-12-19 11:05:02 INFO [Auth] API Key verified successfully
+2025-12-19 11:05:03 INFO [Security] Fraud score: 0.05 (Low Risk)
+2025-12-19 11:05:04 INFO [Inventory] Stock confirmed
+2025-12-19 11:05:05 INFO [Payment] Initiating handshake with Bank_API_Primary
+2025-12-19 11:05:10 WARN [Payment] Bank_API_Primary timeout. Switching to Bank_API_Secondary
+2025-12-19 11:05:12 INFO [Payment] Handshake SUCCESS with Bank_API_Secondary
+2025-12-19 11:05:15 INFO [Payment] Authorization SUCCESS
+2025-12-19 11:05:18 INFO [Gateway] Transaction TXN-99813 COMPLETED
+2025-12-19 11:10:01 INFO [Gateway] Initializing transaction request ID: TXN-99814
+2025-12-19 11:10:02 INFO [Auth] API Key verified successfully
+2025-12-19 11:10:03 INFO [Security] Fraud score: 0.95 (HIGH RISK)
+2025-12-19 11:10:04 WARN [Security] Flagging transaction for manual review
+2025-12-19 11:10:05 INFO [Payment] REJECTED: Fraud risk too high
+2025-12-19 11:10:06 INFO [Gateway] Transaction TXN-99814 DENIED
+2025-12-19 11:15:00 INFO [Gateway] Initializing transaction request ID: TXN-99815
+2025-12-19 11:15:01 INFO [Auth] API Key verified
+2025-12-19 11:15:02 INFO [Order] Parsing JSON payload
+2025-12-19 11:15:03 INFO [Inventory] Checking stock...
+2025-12-19 11:15:04 INFO [Inventory] Stock confirmed
+2025-12-19 11:15:05 INFO [Payment] Handshake with Bank_API_Primary...
+2025-12-19 11:15:06 ERROR [Payment] SSL_CERTIFICATE_EXPIRED: Could not establish secure link
+2025-12-19 11:15:07 INFO [Payment] Retrying with secondary connection...
+2025-12-19 11:15:08 ERROR [Payment] SSL_CERTIFICATE_EXPIRED: Secondary node also failing
+2025-12-19 11:15:09 EXCEPTION [Gateway] Fatal Error: System.Security.AuthenticationException
+2025-12-19 11:15:10 INFO [Cleanup] Dumping stack trace to crash_logs_99815.txt
+2025-12-19 11:20:01 INFO [System] Automated health check starting...
+2025-12-19 11:20:02 INFO [Health] CPU Load: 15%
+2025-12-19 11:20:03 INFO [Health] Memory Usage: 450MB
+2025-12-19 11:20:04 INFO [Health] Database Latency: 5ms
+2025-12-19 11:20:05 INFO [Health] Storage: 82% Free
+2025-12-19 11:25:01 INFO [Gateway] Initializing transaction request ID: TXN-99816
+2025-12-19 11:25:02 INFO [Auth] API Key verified successfully
+2025-12-19 11:25:03 INFO [Security] Fraud score: 0.08
+2025-12-19 11:25:04 INFO [Order] Parsing JSON payload
+2025-12-19 11:25:05 INFO [Inventory] Stock confirmed
+2025-12-19 11:25:06 INFO [Payment] Handshake SUCCESS
+2025-12-19 11:25:10 INFO [Payment] Authorization SUCCESS
+2025-12-19 11:25:12 INFO [Gateway] Transaction TXN-99816 COMPLETED
+2025-12-19 11:30:01 INFO [Gateway] Initializing transaction request ID: TXN-99817
+2025-12-19 11:30:02 INFO [Auth] API Key verified
+2025-12-19 11:30:03 INFO [Security] Fraud score: 0.11
+2025-12-19 11:30:04 INFO [Order] Parsing JSON payload
+2025-12-19 11:30:05 INFO [Inventory] Stock confirmed
+2025-12-19 11:30:06 INFO [Payment] Handshake SUCCESS
+2025-12-19 11:30:10 INFO [Payment] Authorization SUCCESS
+2025-12-19 11:30:12 INFO [Gateway] Transaction TXN-99817 COMPLETED
+2025-12-19 11:35:01 INFO [Gateway] Initializing transaction request ID: TXN-99818
+2025-12-19 11:35:02 INFO [Auth] API Key verified
+2025-12-19 11:35:03 INFO [Security] Fraud score: 0.15
+2025-12-19 11:35:04 INFO [Order] Parsing JSON payload
+2025-12-19 11:35:05 INFO [Inventory] Stock confirmed
+2025-12-19 11:35:06 INFO [Payment] Handshake SUCCESS
+2025-12-19 11:35:10 INFO [Payment] Authorization SUCCESS
+2025-12-19 11:35:12 INFO [Gateway] Transaction TXN-99818 COMPLETED
+2025-12-19 11:40:01 INFO [Gateway] Initializing transaction request ID: TXN-99819
+2025-12-19 11:40:02 INFO [Auth] API Key verified
+2025-12-19 11:40:03 INFO [Security] Fraud score: 0.02
+2025-12-19 11:40:04 INFO [Order] Parsing JSON payload
+2025-12-19 11:40:05 INFO [Inventory] Stock confirmed
+2025-12-19 11:40:06 INFO [Payment] Handshake SUCCESS
+2025-12-19 11:40:10 INFO [Payment] Authorization SUCCESS
+2025-12-19 11:40:12 INFO [Gateway] Transaction TXN-99819 COMPLETED
+2025-12-19 11:45:01 INFO [Gateway] Initializing transaction request ID: TXN-99820
+2025-12-19 11:45:02 INFO [Auth] API Key verified
+2025-12-19 11:45:03 INFO [Security] Fraud score: 0.05
+2025-12-19 11:45:04 INFO [Order] Parsing JSON payload
+2025-12-19 11:45:05 INFO [Inventory] Stock confirmed
+2025-12-19 11:45:06 INFO [Payment] Handshake SUCCESS
+2025-12-19 11:45:10 INFO [Payment] Authorization SUCCESS
+2025-12-19 11:45:12 INFO [Gateway] Transaction TXN-99820 COMPLETED
+2025-12-19 11:50:01 INFO [Gateway] Initializing transaction request ID: TXN-99821
+2025-12-19 11:50:02 INFO [Auth] API Key verified
+2025-12-19 11:50:03 INFO [Security] Fraud score: 0.01
+2025-12-19 11:50:04 INFO [Order] Parsing JSON payload
+2025-12-19 11:50:05 INFO [Inventory] Stock confirmed
+2025-12-19 11:50:06 INFO [Payment] Handshake SUCCESS
+2025-12-19 11:50:10 INFO [Payment] Authorization SUCCESS
+2025-12-19 11:50:12 INFO [Gateway] Transaction TXN-99821 COMPLETED
+2025-12-19 11:55:00 INFO [System] Maintenance window starting...
+2025-12-19 11:55:05 INFO [Backup] Uploading database snapshot to S3
+2025-12-19 11:55:10 INFO [Backup] Backup SUCCESS
+2025-12-19 11:55:15 INFO [System] Gateway status: SLEEP`;
         }
 
         async function analyzeLogs() {
