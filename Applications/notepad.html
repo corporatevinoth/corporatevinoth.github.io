@@ -11,7 +11,9 @@
     :root{--bg:#1e1e1e;--panel:#282828;--muted:#9aa0a6;--accent:#4db6ac}
     html,body{height:100%;margin:0;font-family:Inter, system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial}
     body{display:flex;flex-direction:column;background:linear-gradient(180deg,#0f1112,#151618);color:#eee}
-    header{display:flex;align-items:center;gap:8px;padding:10px;background:rgba(0,0,0,0.25);backdrop-filter:blur(6px)}
+    header{display:flex;align-items:center;gap:8px;padding:10px;background:rgba(0,0,0,0.25);backdrop-filter:blur(6px);position:relative}
+    .home-btn{position:absolute;top:10px;right:10px;background:rgba(255,255,255,0.1);color:#eee;border:1px solid rgba(255,255,255,0.06);border-radius:6px;padding:6px 10px;text-decoration:none;font-size:0.9em}
+    .home-btn:hover{background:rgba(255,255,255,0.2)}
     header .brand{font-weight:700;font-size:18px;margin-right:12px}
     button{background:transparent;border:1px solid rgba(255,255,255,0.06);color:inherit;padding:8px 10px;border-radius:6px;cursor:pointer}
     button:hover{border-color:rgba(255,255,255,0.12)}
@@ -43,6 +45,7 @@
       <button id="wrapBtn">Toggle Wrap</button>
     </div>
     <input id="hiddenFile" type="file" multiple />
+    <a href="../index.html" class="home-btn" title="Back to Home">🏠 Home</a>
   </header>
 
   <main>

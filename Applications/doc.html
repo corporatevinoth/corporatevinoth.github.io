@@ -7,7 +7,9 @@
   <style>
     :root{--bg:#0f1720;--panel:#0b1220;--muted:#9aa0a6;--accent:#4db6ac}
     html,body{height:100%;margin:0;font-family:Inter,system-ui,Segoe UI,Roboto,Arial;color:#e6eef3;background:linear-gradient(180deg,#081018,#07111a)}
-    header{display:flex;gap:8px;align-items:center;padding:12px}
+    header{display:flex;gap:8px;align-items:center;padding:12px;position:relative}
+    .home-btn{position:absolute;top:10px;right:10px;background:rgba(255,255,255,0.1);color:#e6eef3;border:1px solid rgba(255,255,255,0.06);border-radius:8px;padding:6px 10px;text-decoration:none;font-size:0.9em}
+    .home-btn:hover{background:rgba(255,255,255,0.2)}
     button{padding:8px 10px;border-radius:8px;border:1px solid rgba(255,255,255,0.06);background:transparent;color:inherit;cursor:pointer}
     #toolbar{margin-left:auto}
     main{display:flex;flex-direction:column;gap:8px;padding:12px;height:calc(100% - 72px)}
@@ -29,6 +31,7 @@
       <button id="downloadBtn">Download .docx (fallback)</button>
     </div>
     <input id="fileInput" type="file" accept=".docx" />
+    <a href="../index.html" class="home-btn" title="Back to Home">🏠 Home</a>
   </header>
 
   <main>
