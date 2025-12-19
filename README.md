@@ -1,6 +1,6 @@
 # 💼 Developer Tools & Applications Portfolio
 
-A comprehensive collection of **14+ production-ready web applications** and **15+ interactive games** showcasing modern web development expertise, UI/UX design mastery, and full-stack JavaScript capabilities.
+A comprehensive collection of **15+ production-ready web applications** and **15+ interactive games** showcasing modern web development expertise, UI/UX design mastery, and full-stack JavaScript capabilities.
 
 **[Live Demo](https://corporatevinoth.github.io)** | **[GitHub](https://github.com/corporatevinoth/corporatevinoth.github.io)**
 
@@ -16,6 +16,7 @@ Chat with open-source LLM models in real-time with dual backend support:
 - Context-aware conversations (remembers last 5 messages)
 
 ### 💻 **Developer Tools** (Enterprise-grade utilities)
+- **📊 Log Visualizer** - AI-powered log analysis and flowchart generation using external AI services
 - **✨ Code Formatter** - Format & beautify JavaScript, HTML, CSS, JSON, XML with custom indentation
 - **🔄 CSV ↔ JSON Converter** - Bi-directional conversion with file upload/download
 - **🔐 Password Generator** - Secure password generation with strength checker
@@ -145,7 +146,7 @@ ollama serve
 
 ## 📊 Project Metrics
 
-- **14+ Applications** - Production-ready tools
+- **15+ Applications** - Production-ready tools
 - **15+ Games** - Entertainment and learning
 - **3000+ Lines** - Well-organized JavaScript
 - **100% Client-side** - No backend required
@@ -173,6 +174,7 @@ corporatevinoth.github.io/
 │
 ├── Applications/
 │   ├── chatbot.html             # AI chatbot with Ollama/HuggingFace
+│   ├── logVisualizer.html       # AI-powered log analysis and flowchart
 │   ├── codeFormatter.html       # Multi-language code formatter
 │   ├── csvJsonConverter.html    # Data conversion tool
 │   ├── passwordGenerator.html   # Password generation & strength check

@@ -33,6 +33,12 @@
             <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-200 flex flex-col">
                 <div class="flex justify-between items-center mb-4">
                     <label class="font-semibold text-slate-700">Generated Flowchart</label>
+                    <div class="flex items-center gap-2">
+                        <button onclick="zoomOut()" class="text-sm px-2 py-1 bg-gray-200 hover:bg-gray-300 rounded">-</button>
+                        <span id="zoomLevel" class="text-sm">100%</span>
+                        <button onclick="zoomIn()" class="text-sm px-2 py-1 bg-gray-200 hover:bg-gray-300 rounded">+</button>
+                        <button onclick="toggleFullscreen()" class="text-sm px-2 py-1 bg-blue-500 text-white hover:bg-blue-600 rounded">⛶</button>
+                    </div>
                     <div id="status" class="text-sm text-slate-500">Ready</div>
                 </div>
                 <div id="outputContainer" class="flex-grow bg-slate-50 rounded-lg overflow-auto border border-dashed border-slate-300 min-h-[400px] flex items-center justify-center">
@@ -110,8 +116,50 @@
             try {
                 const { svg } = await window.mermaid.render('graphDiv', code);
                 output.innerHTML = svg;
+                // Reset zoom on new render
+                currentZoom = 1;
+                updateZoom();
             } catch (e) {
                 output.innerHTML = `<div class="p-4 text-red-500 bg-red-50 rounded">AI returned invalid Mermaid syntax. Try clicking again.<br><pre class="text-[10px] mt-2">${code}</pre></div>`;
+            }
+        }
+
+        let currentZoom = 1;
+        const zoomStep = 0.1;
+        const minZoom = 0.5;
+        const maxZoom = 3;
+
+        function updateZoom() {
+            const svg = document.querySelector('#mermaidOutput svg');
+            if (svg) {
+                svg.style.transform = `scale(${currentZoom})`;
+                svg.style.transformOrigin = 'top left';
+                document.getElementById('zoomLevel').textContent = Math.round(currentZoom * 100) + '%';
+            }
+        }
+
+        function zoomIn() {
+            if (currentZoom < maxZoom) {
+                currentZoom += zoomStep;
+                updateZoom();
+            }
+        }
+
+        function zoomOut() {
+            if (currentZoom > minZoom) {
+                currentZoom -= zoomStep;
+                updateZoom();
+            }
+        }
+
+        function toggleFullscreen() {
+            const container = document.getElementById('outputContainer');
+            if (!document.fullscreenElement) {
+                container.requestFullscreen().catch(err => {
+                    alert(`Error attempting to enable full-screen mode: ${err.message}`);
+                });
+            } else {
+                document.exitFullscreen();
             }
         }
     </script>
