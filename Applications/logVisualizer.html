@@ -168,6 +168,7 @@
             const systemPrompt = `You are a Log Architect. Analyze the provided logs and generate a Mermaid.js 'graph TD' flowchart.
             - Focus strictly on the MANDATORY FLOW and sequence.
             - Group repetitive minor steps into single nodes to keep the flow clean (max 15 nodes total).
+            - Use simple text labels without special characters like arrows (→), symbols, or quotes.
             - CRITICAL: If a log contains 'ERROR', 'FAIL', or 'EXCEPTION', name the node 'ERROR_Description' and apply this style: 'style ERROR_Description fill:#fee2e2,stroke:#ef4444,stroke-width:2px'.
             - Return ONLY the Mermaid code block starting with 'graph TD'. No other text.`;
 

@@ -67,12 +67,14 @@ Built with **Three.js 3D rendering** and **Web Audio API** for immersive gamepla
 
 ### Libraries & Frameworks
 - **Three.js** (v0.152.2) - 3D graphics, game rendering, physics simulation
+- **Mermaid.js** - Interactive diagram and flowchart generation
 - **js-beautify** - Advanced code formatting with configurable options
 - **Web Audio API** - Real-time sound synthesis and effects
 
 ### API Integrations
 - **Ollama** - Local LLM inference (mistral, llama2, neural-chat)
 - **Hugging Face Inference API** - Cloud-based model serving
+- **Pollinations.ai** - AI-powered text generation for log analysis
 - **Weather APIs** - Real-time atmospheric data
 - **Geolocation API** - Location-based services
 - **File APIs** - Image detection and file processing
