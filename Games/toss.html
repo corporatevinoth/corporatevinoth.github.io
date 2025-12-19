@@ -127,11 +127,28 @@
       .result-label { font-size: 1.5rem; }
       .btn-flip { font-size: 1.1rem; padding: 0.7em 1.6em;}
     }
+    .home-btn {
+      position: fixed;
+      top: 10px;
+      right: 10px;
+      background: rgba(0,0,0,0.7);
+      color: white;
+      border: 1px solid rgba(255,255,255,0.3);
+      border-radius: 6px;
+      padding: 8px 12px;
+      text-decoration: none;
+      font-size: 0.9em;
+      z-index: 11;
+    }
+    .home-btn:hover {
+      background: rgba(0,0,0,0.9);
+    }
   </style>
 </head>
 <body>
   <div class="toss-container">
     <h2 style="text-align:center; color:#1976d2; letter-spacing:2px; margin-bottom:0;">Toss a Coin</h2>
+    <a href="../index.html" class="home-btn" title="Back to Home">🏠 Home</a>
     <div class="coin-area">
       <div id="coin" class="coin show-head">
         <!-- SVG Coin (Front: Head, Back: Tail) -->

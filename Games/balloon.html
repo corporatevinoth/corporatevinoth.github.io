@@ -36,6 +36,23 @@
       flex-direction: column;
       font-family: Arial, sans-serif;
     }
+    .home-btn {
+      position: fixed;
+      top: 10px;
+      right: 10px;
+      background: rgba(0,0,0,0.7);
+      color: #fff;
+      border: 1px solid rgba(255,255,255,0.3);
+      border-radius: 6px;
+      padding: 8px 12px;
+      text-decoration: none;
+      font-size: 0.9em;
+      z-index: 11;
+      font-family: Arial, sans-serif;
+    }
+    .home-btn:hover {
+      background: rgba(0,0,0,0.9);
+    }
     #gameOverBanner .score {
       font-size: 2.5em;
       margin-bottom: 20px;
@@ -65,6 +82,7 @@
   </style>
 </head>
 <body>
+  <a href="../index.html" class="home-btn" title="Back to Home">🏠 Home</a>
   <canvas id="snow-canvas"></canvas>
   <canvas id="gameCanvas"></canvas>
   <div id="congrats-bg"></div>

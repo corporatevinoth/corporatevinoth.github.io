@@ -45,6 +45,22 @@
       #mute-btn svg { width:20px; height:20px; }
     }
     canvas { display:block; }
+    .home-btn {
+      position: fixed;
+      top: 10px;
+      right: 80px;
+      background: rgba(0,0,0,0.7);
+      color: white;
+      border: 1px solid rgba(255,255,255,0.3);
+      border-radius: 6px;
+      padding: 8px 12px;
+      text-decoration: none;
+      font-size: 0.9em;
+      z-index: 11;
+    }
+    .home-btn:hover {
+      background: rgba(0,0,0,0.9);
+    }
   </style>
 </head>
 <body>
@@ -54,6 +70,7 @@
     <svg id="sound-on" viewBox="0 0 24 24" fill="none"><path d="M5 9v6h4l5 5V4l-5 5H5z" fill="#fff"/><path d="M16.5 12c0-77-.77-3.29-2-4.29v8.58c1.23-1 2-2.52 2-4.29z" fill="#fff"/></svg>
     <svg id="sound-off" viewBox="0 0 24 24" fill="none" style="display:none"><path d="M16.5 12c0-1.77-.77-3.29-2-4.29v8.58c1.23-1 2-2.52 2-4.29z" fill="#fff"/><path d="M5 9v6h4l5 5V4l-5 5H5z" fill="#fff"/><line x1="19" y1="5" x2="5" y2="19" stroke="#fff" stroke-width="2"/></svg>
   </button>
+  <a href="../index.html" class="home-btn" title="Back to Home">🏠 Home</a>
   <!-- Hit sound -->
   <audio id="hit-sound" src="https://cdn.pixabay.com/audio/2022/10/16/audio_12d9e2e5b8.mp3"></audio>
   <script src="https://unpkg.com/three@0.155.0/build/three.min.js"></script>

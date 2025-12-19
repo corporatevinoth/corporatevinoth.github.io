@@ -56,6 +56,22 @@
       #score { font-size: 1.25em;}
       .ctrl-btn { font-size: 2em; min-width: 50px;}
     }
+    .home-btn {
+      position: fixed;
+      top: 10px;
+      right: 70px;
+      background: rgba(0,0,0,0.7);
+      color: white;
+      border: 1px solid rgba(255,255,255,0.3);
+      border-radius: 6px;
+      padding: 8px 12px;
+      text-decoration: none;
+      font-size: 0.9em;
+      z-index: 11;
+    }
+    .home-btn:hover {
+      background: rgba(0,0,0,0.9);
+    }
   </style>
 </head>
 <body>
@@ -63,6 +79,7 @@
 <div class="ctrl-btn" id="rightBtn">&#8592;</div>
 <div class="ctrl-btn" id="leftBtn">&#8594;</div>
 <button id="speakerBtn" title="Toggle sound" style="position:fixed;right:12px;top:12px;z-index:999;background:transparent;border:none;font-size:1.6rem;cursor:pointer;">🔊</button>
+<a href="../index.html" class="home-btn" title="Back to Home">🏠 Home</a>
 <script src="https://cdn.jsdelivr.net/npm/three@0.152.2/build/three.min.js"></script>
 <script>
 let scene = new THREE.Scene();

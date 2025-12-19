@@ -54,6 +54,22 @@
       background: #FFD600;
       color: #1a237e;
     }
+    .home-btn {
+      position: fixed;
+      top: 10px;
+      right: 10px;
+      background: rgba(0,0,0,0.7);
+      color: white;
+      border: 1px solid rgba(255,255,255,0.3);
+      border-radius: 6px;
+      padding: 8px 12px;
+      text-decoration: none;
+      font-size: 0.9em;
+      z-index: 11;
+    }
+    .home-btn:hover {
+      background: rgba(0,0,0,0.9);
+    }
     #threejs-canvas {
       position: fixed;
       top: 0; left: 0; width: 100vw; height: 100vh;
@@ -82,6 +98,7 @@
 </head>
 <body>
   <div id="score">Score: 0</div>
+  <a href="../index.html" class="home-btn" title="Back to Home">🏠 Home</a>
   <canvas id="snow-canvas"></canvas>
   <button id="speakerBtn" title="Toggle music">🔊</button>
   <div class="ctrl-btn" id="leftBtn">&#8592;</div>

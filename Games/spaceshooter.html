@@ -19,6 +19,25 @@
         .container {
             max-width: 800px;
             margin: 0 auto;
+            position: relative;
+        }
+
+        .home-btn {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: #333;
+            color: white;
+            border: 1px solid #555;
+            border-radius: 6px;
+            padding: 8px 12px;
+            text-decoration: none;
+            font-size: 0.9em;
+            z-index: 10;
+        }
+
+        .home-btn:hover {
+            background: #555;
         }
 
         .game-area {
@@ -63,6 +82,7 @@
 </head>
 <body>
     <div class="container">
+        <a href="../index.html" class="home-btn" title="Back to Home">🏠 Home</a>
         <h1>👽 Gesture Space Shooter</h1>
         <p>Move your index finger to dodge asteroids!</p>
         

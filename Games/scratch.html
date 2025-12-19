@@ -278,11 +278,28 @@
                 flex-direction: column;
             }
         }
+        .home-btn {
+            position: fixed;
+            top: 10px;
+            right: 10px;
+            background: rgba(0,0,0,0.7);
+            color: white;
+            border: 1px solid rgba(255,255,255,0.3);
+            border-radius: 6px;
+            padding: 8px 12px;
+            text-decoration: none;
+            font-size: 0.9em;
+            z-index: 11;
+        }
+        .home-btn:hover {
+            background: rgba(0,0,0,0.9);
+        }
     </style>
 </head>
 <body>
     <div class="container">
         <h1>Endless Scratch Cards</h1>
+        <a href="../index.html" class="home-btn" title="Back to Home">🏠 Home</a>
         
         <div class="stats">
             <div class="stat-item">
