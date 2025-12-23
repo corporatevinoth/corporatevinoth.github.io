@@ -1,0 +1,631 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Web Diagram Editor (Visio-like)</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .app-container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            overflow: hidden;
+            height: 95vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .app-header {
+            background: #2d3748;
+            color: white;
+            padding: 16px 24px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 3px solid #4a5568;
+        }
+
+        .app-title {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .app-title h1 {
+            font-size: 24px;
+            font-weight: 600;
+        }
+
+        .logo {
+            font-size: 28px;
+        }
+
+        .main-content {
+            display: flex;
+            flex: 1;
+            overflow: hidden;
+        }
+
+        /* Left Sidebar - Tools */
+        .toolbar {
+            width: 180px;
+            background: #f7fafc;
+            padding: 16px;
+            border-right: 1px solid #e2e8f0;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .tool-section {
+            margin-bottom: 20px;
+        }
+
+        .tool-section h3 {
+            font-size: 14px;
+            color: #4a5568;
+            margin-bottom: 10px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .tool-btn {
+            width: 100%;
+            padding: 10px;
+            background: white;
+            border: 2px solid #e2e8f0;
+            border-radius: 6px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 8px;
+            transition: all 0.2s;
+            font-size: 14px;
+            color: #2d3748;
+        }
+
+        .tool-btn:hover {
+            border-color: #667eea;
+            background: #f0f4ff;
+        }
+
+        .tool-btn.active {
+            border-color: #667eea;
+            background: #e6f0ff;
+            color: #667eea;
+            font-weight: 500;
+        }
+
+        .tool-icon {
+            font-size: 18px;
+        }
+
+        /* Shape Library */
+        .shapes-panel {
+            width: 180px;
+            background: #f7fafc;
+            padding: 16px;
+            border-right: 1px solid #e2e8f0;
+            overflow-y: auto;
+        }
+
+        .shape-item {
+            padding: 12px;
+            margin: 8px 0;
+            background: white;
+            border: 2px solid #e2e8f0;
+            border-radius: 6px;
+            cursor: grab;
+            text-align: center;
+            transition: all 0.2s;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .shape-item:hover {
+            border-color: #667eea;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.2);
+        }
+
+        .shape-preview {
+            width: 40px;
+            height: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+        }
+
+        .shape-name {
+            font-size: 12px;
+            color: #4a5568;
+        }
+
+        /* Canvas Area */
+        .canvas-container {
+            flex: 1;
+            position: relative;
+            background: #f8f9fa;
+            overflow: hidden;
+        }
+
+        #diagramCanvas {
+            display: block;
+            background: white;
+            cursor: crosshair;
+        }
+
+        .grid-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            background-image: 
+                linear-gradient(rgba(0, 0, 0, 0.1) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(0, 0, 0, 0.1) 1px, transparent 1px);
+            background-size: 20px 20px;
+            opacity: 0.3;
+        }
+
+        /* Properties Panel */
+        .properties-panel {
+            width: 280px;
+            background: white;
+            padding: 20px;
+            border-left: 1px solid #e2e8f0;
+            overflow-y: auto;
+        }
+
+        .properties-panel h3 {
+            font-size: 16px;
+            color: #2d3748;
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #667eea;
+        }
+
+        .property-group {
+            margin-bottom: 24px;
+        }
+
+        .property-group h4 {
+            font-size: 14px;
+            color: #4a5568;
+            margin-bottom: 12px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .property-item {
+            margin-bottom: 16px;
+        }
+
+        .property-item label {
+            display: block;
+            font-size: 12px;
+            color: #718096;
+            margin-bottom: 6px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .property-item input[type="color"],
+        .property-item input[type="text"],
+        .property-item select {
+            width: 100%;
+            padding: 8px 12px;
+            border: 2px solid #e2e8f0;
+            border-radius: 6px;
+            font-size: 14px;
+            transition: border-color 0.2s;
+        }
+
+        .property-item input[type="color"] {
+            height: 40px;
+            padding: 4px;
+        }
+
+        .property-item input[type="text"]:focus,
+        .property-item select:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .property-item input[type="range"] {
+            width: 100%;
+            height: 6px;
+            border-radius: 3px;
+            background: #e2e8f0;
+            outline: none;
+        }
+
+        .slider-value {
+            display: inline-block;
+            margin-left: 10px;
+            font-size: 12px;
+            color: #667eea;
+            font-weight: 600;
+        }
+
+        /* Action Buttons */
+        .action-buttons {
+            display: flex;
+            gap: 10px;
+            margin-top: 20px;
+        }
+
+        .action-btn {
+            flex: 1;
+            padding: 10px;
+            border: none;
+            border-radius: 6px;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .btn-primary {
+            background: #667eea;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #5a67d8;
+            transform: translateY(-1px);
+        }
+
+        .btn-secondary {
+            background: #e2e8f0;
+            color: #4a5568;
+        }
+
+        .btn-secondary:hover {
+            background: #cbd5e0;
+        }
+
+        /* Status Bar */
+        .status-bar {
+            background: #2d3748;
+            color: white;
+            padding: 8px 16px;
+            font-size: 12px;
+            display: flex;
+            justify-content: space-between;
+            border-top: 1px solid #4a5568;
+        }
+
+        .cursor-position {
+            color: #a0aec0;
+        }
+
+        /* Shape Styles */
+        .rectangle {
+            background: #4299e1;
+            border: 2px solid #2b6cb0;
+        }
+
+        .circle {
+            background: #48bb78;
+            border: 2px solid #2f855a;
+            border-radius: 50%;
+        }
+
+        .triangle {
+            width: 0;
+            height: 0;
+            border-left: 20px solid transparent;
+            border-right: 20px solid transparent;
+            border-bottom: 40px solid #ed8936;
+        }
+
+        .diamond {
+            width: 40px;
+            height: 40px;
+            background: #9f7aea;
+            transform: rotate(45deg);
+            border: 2px solid #6b46c1;
+        }
+
+        .arrow-right {
+            width: 0;
+            height: 0;
+            border-top: 20px solid transparent;
+            border-bottom: 20px solid transparent;
+            border-left: 40px solid #f56565;
+        }
+
+        /* Responsive */
+        @media (max-width: 1200px) {
+            .toolbar, .shapes-panel {
+                width: 160px;
+            }
+            .properties-panel {
+                width: 240px;
+            }
+        }
+
+        @media (max-width: 1024px) {
+            .toolbar, .shapes-panel {
+                width: 140px;
+            }
+            .properties-panel {
+                width: 200px;
+            }
+        }
+
+        /* Selection Outline */
+        .selection-outline {
+            position: absolute;
+            border: 2px dashed #667eea;
+            pointer-events: none;
+            background: rgba(102, 126, 234, 0.1);
+        }
+
+        /* Resize Handles */
+        .resize-handle {
+            position: absolute;
+            width: 8px;
+            height: 8px;
+            background: white;
+            border: 2px solid #667eea;
+            border-radius: 50%;
+            pointer-events: all;
+            cursor: nwse-resize;
+        }
+
+        .resize-handle.nw { cursor: nw-resize; }
+        .resize-handle.ne { cursor: ne-resize; }
+        .resize-handle.sw { cursor: sw-resize; }
+        .resize-handle.se { cursor: se-resize; }
+        .resize-handle.n { cursor: n-resize; }
+        .resize-handle.s { cursor: s-resize; }
+        .resize-handle.w { cursor: w-resize; }
+        .resize-handle.e { cursor: e-resize; }
+    </style>
+</head>
+<body>
+    <div class="app-container">
+        <!-- Header -->
+        <div class="app-header">
+            <div class="app-title">
+                <span class="logo">📐</span>
+                <h1>Web Diagram Editor</h1>
+            </div>
+            <div class="header-actions">
+                <button class="action-btn btn-secondary" id="saveBtn">💾 Save</button>
+                <button class="action-btn btn-primary" id="exportBtn">📤 Export PNG</button>
+            </div>
+        </div>
+
+        <!-- Main Content -->
+        <div class="main-content">
+            <!-- Left Toolbar -->
+            <div class="toolbar">
+                <div class="tool-section">
+                    <h3>Tools</h3>
+                    <button class="tool-btn active" data-tool="select">
+                        <span class="tool-icon">↖️</span> Select
+                    </button>
+                    <button class="tool-btn" data-tool="rectangle">
+                        <span class="tool-icon">⬜</span> Rectangle
+                    </button>
+                    <button class="tool-btn" data-tool="circle">
+                        <span class="tool-icon">⭕</span> Circle
+                    </button>
+                    <button class="tool-btn" data-tool="line">
+                        <span class="tool-icon">➖</span> Line
+                    </button>
+                    <button class="tool-btn" data-tool="arrow">
+                        <span class="tool-icon">➡️</span> Arrow
+                    </button>
+                    <button class="tool-btn" data-tool="text">
+                        <span class="tool-icon">A</span> Text
+                    </button>
+                </div>
+
+                <div class="tool-section">
+                    <h3>Actions</h3>
+                    <button class="tool-btn" id="undoBtn">
+                        <span class="tool-icon">↶</span> Undo
+                    </button>
+                    <button class="tool-btn" id="redoBtn">
+                        <span class="tool-icon">↷</span> Redo
+                    </button>
+                    <button class="tool-btn" id="deleteBtn">
+                        <span class="tool-icon">🗑️</span> Delete
+                    </button>
+                    <button class="tool-btn" id="clearBtn">
+                        <span class="tool-icon">🧹</span> Clear All
+                    </button>
+                </div>
+            </div>
+
+            <!-- Shape Library -->
+            <div class="shapes-panel">
+                <h3>Shapes</h3>
+                <div class="shape-item" data-type="process" draggable="true">
+                    <div class="shape-preview rectangle"></div>
+                    <span class="shape-name">Process</span>
+                </div>
+                <div class="shape-item" data-type="decision" draggable="true">
+                    <div class="shape-preview diamond"></div>
+                    <span class="shape-name">Decision</span>
+                </div>
+                <div class="shape-item" data-type="terminal" draggable="true">
+                    <div class="shape-preview rectangle"></div>
+                    <span class="shape-name">Terminal</span>
+                </div>
+                <div class="shape-item" data-type="data" draggable="true">
+                    <div class="shape-preview rectangle"></div>
+                    <span class="shape-name">Data</span>
+                </div>
+                <div class="shape-item" data-type="document" draggable="true">
+                    <div class="shape-preview rectangle"></div>
+                    <span class="shape-name">Document</span>
+                </div>
+                <div class="shape-item" data-type="database" draggable="true">
+                    <div class="shape-preview rectangle"></div>
+                    <span class="shape-name">Database</span>
+                </div>
+                <div class="shape-item" data-type="cloud" draggable="true">
+                    <div class="shape-preview circle"></div>
+                    <span class="shape-name">Cloud</span>
+                </div>
+            </div>
+
+            <!-- Canvas Area -->
+            <div class="canvas-container">
+                <canvas id="diagramCanvas" width="1200" height="800"></canvas>
+                <div class="grid-overlay"></div>
+                <div class="selection-outline" id="selectionOutline" style="display: none;"></div>
+            </div>
+
+            <!-- Properties Panel -->
+            <div class="properties-panel">
+                <h3>Properties</h3>
+                <div id="shapeProperties" style="display: none;">
+                    <div class="property-group">
+                        <h4>📐 Shape Properties</h4>
+                        <div class="property-item">
+                            <label>Text Content</label>
+                            <input type="text" id="shapeText" placeholder="Enter text...">
+                        </div>
+                        <div class="property-item">
+                            <label>Font Size</label>
+                            <input type="range" id="fontSize" min="8" max="48" value="14">
+                            <span class="slider-value" id="fontSizeValue">14</span>
+                        </div>
+                    </div>
+
+                    <div class="property-group">
+                        <h4>🎨 Fill & Border</h4>
+                        <div class="property-item">
+                            <label>Fill Color</label>
+                            <input type="color" id="fillColor" value="#4299e1">
+                        </div>
+                        <div class="property-item">
+                            <label>Border Color</label>
+                            <input type="color" id="borderColor" value="#2b6cb0">
+                        </div>
+                        <div class="property-item">
+                            <label>Border Width</label>
+                            <input type="range" id="borderWidth" min="1" max="10" value="2">
+                            <span class="slider-value" id="borderWidthValue">2</span>
+                        </div>
+                    </div>
+
+                    <div class="property-group">
+                        <h4>📏 Position & Size</h4>
+                        <div class="property-item">
+                            <label>X Position</label>
+                            <input type="number" id="posX" value="100">
+                        </div>
+                        <div class="property-item">
+                            <label>Y Position</label>
+                            <input type="number" id="posY" value="100">
+                        </div>
+                        <div class="property-item">
+                            <label>Width</label>
+                            <input type="number" id="shapeWidth" value="100">
+                        </div>
+                        <div class="property-item">
+                            <label>Height</label>
+                            <input type="number" id="shapeHeight" value="60">
+                        </div>
+                    </div>
+
+                    <div class="action-buttons">
+                        <button class="action-btn btn-secondary" id="copyBtn">📋 Copy</button>
+                        <button class="action-btn btn-primary" id="applyBtn">Apply</button>
+                    </div>
+                </div>
+
+                <div id="noSelection" style="text-align: center; padding: 40px 20px; color: #718096;">
+                    <div style="font-size: 48px; margin-bottom: 20px;">👈</div>
+                    <p>Select a shape to edit its properties</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Status Bar -->
+        <div class="status-bar">
+            <div class="status-info">
+                Shapes: <span id="shapeCount">0</span> | 
+                Selected: <span id="selectedCount">0</span>
+            </div>
+            <div class="cursor-position">
+                X: <span id="cursorX">0</span>, Y: <span id="cursorY">0</span>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        class DiagramEditor {
+            constructor() {
+                this.canvas = document.getElementById('diagramCanvas');
+                this.ctx = this.canvas.getContext('2d');
+                this.selectedTool = 'select';
+                this.shapes = [];
+                this.connections = [];
+                this.selectedShapes = new Set();
+                this.currentDrawing = null;
+                this.isDrawing = false;
+                this.startX = 0;
+                this.startY = 0;
+                this.offsetX = 0;
+                this.offsetY = 0;
+                this.scale = 1;
+                this.history = [];
+                this.historyIndex = -1;
+                this.isDragging = false;
+                this.dragStartX = 0;
+                this.dragStartY = 0;
+                this.isResizing = false;
+                this.resizeHandle = null;
+                
+                this.init();
+            }
+
+            init() {
+                this.setupEventListeners();
+                this.setupUI();
+                this.draw();
+                this.saveToHistory();
+            }
+
+            setupEventListeners() {
+                // Tool selection
+                document.querySelectorAll('.tool-btn[data-tool]').forEach(btn => {
+                    btn.addEventListener('click', (e) => {
+                        this.setTool(e.currentTarget.dataset.tool);
+                    });
+                });
+
+                // Shape library drag and drop
+                document.querySelectorAll('.shape-item').forEach(item => {
+                    item.addEventListener('dragstart', (e) => {
+                        e.dataTransfer.setData('text/plain', e.currentTarget.dataset.type);
+  
