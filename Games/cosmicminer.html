@@ -1,0 +1,2155 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cosmic Miner - Space Mining Adventure</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Arial', sans-serif;
+            background: #0a0a1a;
+            color: white;
+            overflow: hidden;
+            height: 100vh;
+            background-image: 
+                radial-gradient(circle at 20% 50%, rgba(41, 196, 255, 0.1) 0%, transparent 50%),
+                radial-gradient(circle at 80% 20%, rgba(255, 20, 147, 0.1) 0%, transparent 50%);
+        }
+
+        #gameContainer {
+            width: 100vw;
+            height: 100vh;
+            position: relative;
+        }
+
+        canvas {
+            outline: none;
+        }
+
+        /* Loading Screen */
+        #loadingScreen {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: #0a0a1a;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+
+        .loader {
+            width: 80px;
+            height: 80px;
+            border: 5px solid rgba(41, 196, 255, 0.3);
+            border-top: 5px solid #29c4ff;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-bottom: 20px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        #loadingText {
+            font-size: 1.2em;
+            color: #29c4ff;
+            text-align: center;
+        }
+
+        /* Start Screen */
+        #startScreen {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(135deg, #0a0a1a 0%, #1a1a2e 100%);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 999;
+            padding: 20px;
+        }
+
+        .game-title {
+            font-size: 3.5em;
+            background: linear-gradient(45deg, #29c4ff, #ff1493);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+            margin-bottom: 10px;
+            text-shadow: 0 0 30px rgba(41, 196, 255, 0.5);
+            text-align: center;
+        }
+
+        .game-subtitle {
+            font-size: 1.2em;
+            color: #8a8ac4;
+            margin-bottom: 40px;
+            text-align: center;
+        }
+
+        .start-button {
+            background: linear-gradient(45deg, #29c4ff, #ff1493);
+            color: white;
+            border: none;
+            padding: 20px 50px;
+            font-size: 1.5em;
+            border-radius: 50px;
+            cursor: pointer;
+            margin: 20px 0;
+            transition: transform 0.3s, box-shadow 0.3s;
+            box-shadow: 0 10px 30px rgba(41, 196, 255, 0.3);
+        }
+
+        .start-button:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 15px 40px rgba(41, 196, 255, 0.4);
+        }
+
+        .controls-info {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 20px;
+            border-radius: 15px;
+            margin: 20px;
+            max-width: 600px;
+            text-align: center;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        /* Game UI */
+        #gameUI {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 100;
+        }
+
+        /* Top Bar */
+        .top-bar {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            right: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: rgba(0, 0, 0, 0.7);
+            padding: 15px 25px;
+            border-radius: 15px;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .resource {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .resource-icon {
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.2em;
+        }
+
+        .energy-icon { background: linear-gradient(45deg, #29c4ff, #0066ff); }
+        .mineral-icon { background: linear-gradient(45deg, #ff1493, #ff0066); }
+        .credits-icon { background: linear-gradient(45deg, #ffd700, #ff8c00); }
+
+        .resource-value {
+            font-size: 1.2em;
+            font-weight: bold;
+            color: white;
+        }
+
+        .resource-label {
+            font-size: 0.9em;
+            color: #8a8ac4;
+            margin-left: 5px;
+        }
+
+        .health-bar {
+            width: 200px;
+            height: 20px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .health-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #00ff00, #00cc00);
+            border-radius: 10px;
+            transition: width 0.3s;
+            box-shadow: 0 0 10px rgba(0, 255, 0, 0.5);
+        }
+
+        /* Center HUD */
+        .center-hud {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 20px;
+        }
+
+        .crosshair {
+            width: 40px;
+            height: 40px;
+            position: relative;
+        }
+
+        .crosshair-dot {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 8px;
+            height: 8px;
+            background: rgba(41, 196, 255, 0.8);
+            border-radius: 50%;
+            box-shadow: 0 0 15px rgba(41, 196, 255, 0.8);
+        }
+
+        .crosshair-line {
+            position: absolute;
+            background: rgba(41, 196, 255, 0.8);
+        }
+
+        .crosshair-line.horizontal {
+            width: 20px;
+            height: 2px;
+            top: 50%;
+            transform: translateY(-50%);
+        }
+
+        .crosshair-line.horizontal.left {
+            right: 50%;
+            margin-right: 10px;
+        }
+
+        .crosshair-line.horizontal.right {
+            left: 50%;
+            margin-left: 10px;
+        }
+
+        .crosshair-line.vertical {
+            width: 2px;
+            height: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+        }
+
+        .crosshair-line.vertical.top {
+            bottom: 50%;
+            margin-bottom: 10px;
+        }
+
+        .crosshair-line.vertical.bottom {
+            top: 50%;
+            margin-top: 10px;
+        }
+
+        .mining-indicator {
+            width: 200px;
+            height: 10px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 5px;
+            overflow: hidden;
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+
+        .mining-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #ff1493, #ff0066);
+            border-radius: 5px;
+            transition: width 0.1s;
+            box-shadow: 0 0 10px rgba(255, 20, 147, 0.5);
+        }
+
+        /* Bottom Bar */
+        .bottom-bar {
+            position: absolute;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            gap: 15px;
+            background: rgba(0, 0, 0, 0.7);
+            padding: 15px 25px;
+            border-radius: 15px;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .action-button {
+            width: 60px;
+            height: 60px;
+            border-radius: 15px;
+            border: 2px solid rgba(41, 196, 255, 0.3);
+            background: rgba(41, 196, 255, 0.1);
+            color: white;
+            font-size: 1.5em;
+            cursor: pointer;
+            pointer-events: all;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .action-button:hover {
+            background: rgba(41, 196, 255, 0.3);
+            transform: translateY(-5px);
+            box-shadow: 0 10px 20px rgba(41, 196, 255, 0.3);
+        }
+
+        .action-button.active {
+            background: rgba(41, 196, 255, 0.5);
+            border-color: #29c4ff;
+            box-shadow: 0 0 20px rgba(41, 196, 255, 0.5);
+        }
+
+        .action-label {
+            position: absolute;
+            bottom: -25px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 0.8em;
+            color: #8a8ac4;
+            white-space: nowrap;
+        }
+
+        /* Side Panels */
+        .side-panel {
+            position: absolute;
+            top: 100px;
+            width: 300px;
+            background: rgba(0, 0, 0, 0.8);
+            border-radius: 15px;
+            padding: 20px;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            transition: transform 0.3s;
+            pointer-events: all;
+        }
+
+        .inventory-panel {
+            left: 20px;
+            transform: translateX(-100%);
+        }
+
+        .inventory-panel.show {
+            transform: translateX(0);
+        }
+
+        .upgrade-panel {
+            right: 20px;
+            transform: translateX(100%);
+        }
+
+        .upgrade-panel.show {
+            transform: translateX(0);
+        }
+
+        .panel-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .close-panel {
+            background: none;
+            border: none;
+            color: #8a8ac4;
+            font-size: 1.5em;
+            cursor: pointer;
+            padding: 5px;
+        }
+
+        .inventory-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 10px;
+        }
+
+        .inventory-slot {
+            aspect-ratio: 1;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 10px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            transition: all 0.3s;
+        }
+
+        .inventory-slot:hover {
+            background: rgba(41, 196, 255, 0.1);
+            border-color: rgba(41, 196, 255, 0.5);
+        }
+
+        .mineral-item {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            margin-bottom: 5px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5em;
+        }
+
+        .mineral-common { background: linear-gradient(45deg, #6666ff, #9999ff); }
+        .mineral-rare { background: linear-gradient(45deg, #ff66ff, #ff99ff); }
+        .mineral-epic { background: linear-gradient(45deg, #ffcc00, #ff9900); }
+        .mineral-legendary { background: linear-gradient(45deg, #00ffcc, #00cc99); }
+
+        .upgrade-item {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 10px;
+            padding: 15px;
+            margin-bottom: 10px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .upgrade-item:hover {
+            background: rgba(41, 196, 255, 0.1);
+            border-color: rgba(41, 196, 255, 0.5);
+            transform: translateY(-5px);
+        }
+
+        .upgrade-cost {
+            color: #ffd700;
+            font-weight: bold;
+            margin-top: 10px;
+        }
+
+        /* Mission Log */
+        .mission-log {
+            position: absolute;
+            bottom: 100px;
+            right: 20px;
+            background: rgba(0, 0, 0, 0.8);
+            border-radius: 15px;
+            padding: 15px;
+            max-width: 300px;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            pointer-events: all;
+        }
+
+        .mission-item {
+            background: rgba(41, 196, 255, 0.1);
+            border-radius: 10px;
+            padding: 10px;
+            margin: 5px 0;
+            border-left: 3px solid #29c4ff;
+        }
+
+        /* Mining Laser Effect */
+        .mining-laser {
+            position: fixed;
+            pointer-events: none;
+            z-index: 50;
+            opacity: 0;
+        }
+
+        /* Notification System */
+        .notification {
+            position: fixed;
+            top: 100px;
+            right: 20px;
+            background: rgba(0, 0, 0, 0.9);
+            border-radius: 10px;
+            padding: 15px 20px;
+            border-left: 5px solid #29c4ff;
+            transform: translateX(100%);
+            transition: transform 0.3s;
+            max-width: 300px;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .notification.show {
+            transform: translateX(0);
+        }
+
+        .notification.success { border-color: #00ff00; }
+        .notification.warning { border-color: #ffcc00; }
+        .notification.error { border-color: #ff0000; }
+
+        /* Pause Menu */
+        #pauseMenu {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.9);
+            display: none;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+
+        #pauseMenu.show {
+            display: flex;
+        }
+
+        /* Game Over Screen */
+        #gameOverScreen {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.95);
+            display: none;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+
+        #gameOverScreen.show {
+            display: flex;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 20px;
+            margin: 30px 0;
+        }
+
+        .stat-item {
+            text-align: center;
+            padding: 20px;
+            background: rgba(41, 196, 255, 0.1);
+            border-radius: 10px;
+            border: 1px solid rgba(41, 196, 255, 0.3);
+        }
+
+        .stat-value {
+            font-size: 2em;
+            font-weight: bold;
+            color: #29c4ff;
+            margin-bottom: 5px;
+        }
+
+        /* Animations */
+        @keyframes float {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-20px); }
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        .floating {
+            animation: float 3s ease-in-out infinite;
+        }
+
+        .pulsing {
+            animation: pulse 2s ease-in-out infinite;
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .top-bar {
+                flex-direction: column;
+                gap: 10px;
+                align-items: flex-start;
+            }
+
+            .side-panel {
+                width: 90%;
+                left: 5%;
+                right: 5%;
+            }
+
+            .bottom-bar {
+                width: 90%;
+                justify-content: center;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Loading Screen -->
+    <div id="loadingScreen">
+        <div class="loader"></div>
+        <div id="loadingText">Initializing Cosmic Engine...</div>
+    </div>
+
+    <!-- Start Screen -->
+    <div id="startScreen">
+        <h1 class="game-title">COSMIC MINER</h1>
+        <p class="game-subtitle">Mine asteroids. Upgrade your ship. Survive the cosmos.</p>
+        
+        <div class="controls-info">
+            <h3>🚀 CONTROLS</h3>
+            <p><strong>WASD</strong> - Move your spaceship</p>
+            <p><strong>Mouse</strong> - Look around</p>
+            <p><strong>Left Click</strong> - Mine asteroids</p>
+            <p><strong>E</strong> - Inventory</p>
+            <p><strong>U</strong> - Upgrades</p>
+            <p><strong>ESC</strong> - Pause</p>
+        </div>
+
+        <button class="start-button" id="startButton">LAUNCH MINING EXPEDITION</button>
+        
+        <div style="color: #8a8ac4; margin-top: 20px; text-align: center;">
+            Collect rare minerals. Avoid space hazards. Become the ultimate cosmic miner.
+        </div>
+    </div>
+
+    <!-- Game Container -->
+    <div id="gameContainer"></div>
+
+    <!-- Game UI -->
+    <div id="gameUI">
+        <!-- Top Bar -->
+        <div class="top-bar">
+            <div class="resource">
+                <div class="resource-icon energy-icon">⚡</div>
+                <div class="resource-value" id="energyValue">100</div>
+                <div class="resource-label">Energy</div>
+            </div>
+            
+            <div class="resource">
+                <div class="resource-icon mineral-icon">💎</div>
+                <div class="resource-value" id="mineralValue">0</div>
+                <div class="resource-label">Minerals</div>
+            </div>
+            
+            <div class="resource">
+                <div class="resource-icon credits-icon">💰</div>
+                <div class="resource-value" id="creditsValue">500</div>
+                <div class="resource-label">Credits</div>
+            </div>
+            
+            <div style="display: flex; align-items: center; gap: 15px;">
+                <div>Shield:</div>
+                <div class="health-bar">
+                    <div class="health-fill" id="healthFill" style="width: 100%"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Center HUD -->
+        <div class="center-hud">
+            <div class="crosshair">
+                <div class="crosshair-dot"></div>
+                <div class="crosshair-line horizontal left"></div>
+                <div class="crosshair-line horizontal right"></div>
+                <div class="crosshair-line vertical top"></div>
+                <div class="crosshair-line vertical bottom"></div>
+            </div>
+            
+            <div class="mining-indicator" id="miningIndicator">
+                <div class="mining-fill" id="miningFill"></div>
+            </div>
+        </div>
+
+        <!-- Bottom Bar -->
+        <div class="bottom-bar">
+            <button class="action-button" id="miningLaserBtn" title="Mining Laser">
+                ⚡
+                <div class="action-label">Laser</div>
+            </button>
+            
+            <button class="action-button" id="shieldBtn" title="Activate Shield">
+                🛡️
+                <div class="action-label">Shield</div>
+            </button>
+            
+            <button class="action-button" id="boostBtn" title="Boost Engines">
+                🚀
+                <div class="action-label">Boost</div>
+            </button>
+            
+            <button class="action-button" id="radarBtn" title="Scan Area">
+                📡
+                <div class="action-label">Scan</div>
+            </button>
+        </div>
+
+        <!-- Inventory Panel -->
+        <div class="side-panel inventory-panel" id="inventoryPanel">
+            <div class="panel-header">
+                <h3>📦 INVENTORY</h3>
+                <button class="close-panel" onclick="toggleInventory()">✕</button>
+            </div>
+            <div class="inventory-grid" id="inventoryGrid">
+                <!-- Inventory slots will be generated here -->
+            </div>
+        </div>
+
+        <!-- Upgrade Panel -->
+        <div class="side-panel upgrade-panel" id="upgradePanel">
+            <div class="panel-header">
+                <h3>⚙️ UPGRADES</h3>
+                <button class="close-panel" onclick="toggleUpgrades()">✕</button>
+            </div>
+            <div id="upgradesList">
+                <!-- Upgrades will be generated here -->
+            </div>
+        </div>
+
+        <!-- Mission Log -->
+        <div class="mission-log" id="missionLog">
+            <h4>📋 MISSIONS</h4>
+            <div id="missionsList">
+                <div class="mission-item">🎯 Mine 5 asteroids (0/5)</div>
+                <div class="mission-item">💎 Collect 100 minerals (0/100)</div>
+                <div class="mission-item">🚀 Upgrade your ship (0/1)</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Pause Menu -->
+    <div id="pauseMenu">
+        <h1 style="font-size: 3em; margin-bottom: 30px; color: #29c4ff;">GAME PAUSED</h1>
+        <button class="start-button" onclick="resumeGame()" style="margin: 10px;">RESUME</button>
+        <button class="start-button" onclick="showStartScreen()" style="margin: 10px;">MAIN MENU</button>
+    </div>
+
+    <!-- Game Over Screen -->
+    <div id="gameOverScreen">
+        <h1 style="font-size: 3em; margin-bottom: 10px; color: #ff1493;">MISSION FAILED</h1>
+        <p style="color: #8a8ac4; margin-bottom: 30px;">Your ship was destroyed by cosmic hazards</p>
+        
+        <div class="stats-grid">
+            <div class="stat-item">
+                <div class="stat-value" id="finalMinerals">0</div>
+                <div>Minerals Collected</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-value" id="finalCredits">0</div>
+                <div>Credits Earned</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-value" id="finalAsteroids">0</div>
+                <div>Asteroids Mined</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-value" id="finalTime">0:00</div>
+                <div>Survival Time</div>
+            </div>
+        </div>
+        
+        <button class="start-button" onclick="restartGame()" style="margin: 30px;">TRY AGAIN</button>
+        <button class="start-button" onclick="showStartScreen()">MAIN MENU</button>
+    </div>
+
+    <!-- Audio Elements -->
+    <audio id="laserSound" src="https://assets.mixkit.co/sfx/preview/mixkit-sci-fi-laser-shot-1678.mp3" preload="auto"></audio>
+    <audio id="miningSound" src="https://assets.mixkit.co/sfx/preview/mixkit-sci-fi-laser-blast-1697.mp3" preload="auto"></audio>
+    <audio id="explosionSound" src="https://assets.mixkit.co/sfx/preview/mixkit-bomb-explosion-in-battle-2800.mp3" preload="auto"></audio>
+    <audio id="collectSound" src="https://assets.mixkit.co/sfx/preview/mixkit-winning-chimes-2015.mp3" preload="auto"></audio>
+    <audio id="upgradeSound" src="https://assets.mixkit.co/sfx/preview/mixkit-unlock-game-notification-253.mp3" preload="auto"></audio>
+    <audio id="backgroundMusic" loop preload="auto"></audio>
+
+    <!-- Babylon.js -->
+    <script src="https://cdn.babylonjs.com/babylon.js"></script>
+    <script src="https://cdn.babylonjs.com/loaders/babylonjs.loaders.min.js"></script>
+    <script src="https://cdn.babylonjs.com/materialsLibrary/babylonjs.materials.min.js"></script>
+    <script src="https://cdn.babylonjs.com/proceduralTexturesLibrary/babylonjs.proceduralTextures.min.js"></script>
+    <script src="https://cdn.babylonjs.com/postProcessesLibrary/babylonjs.postProcess.min.js"></script>
+    <script src="https://cdn.babylonjs.com/gui/babylon.gui.min.js"></script>
+    
+    <script>
+        // Game State
+        let gameState = {
+            energy: 100,
+            maxEnergy: 100,
+            minerals: 0,
+            credits: 500,
+            health: 100,
+            maxHealth: 100,
+            miningPower: 1,
+            miningSpeed: 1,
+            shieldActive: false,
+            boostActive: false,
+            radarActive: false,
+            inventory: [],
+            upgrades: [],
+            missions: {
+                asteroidsMined: 0,
+                mineralsCollected: 0,
+                upgradesBought: 0
+            },
+            gameTime: 0,
+            gameActive: false
+        };
+
+        // Babylon.js Variables
+        let canvas, engine, scene, camera, ship, miningLaser;
+        let asteroids = [];
+        let minerals = [];
+        let hazards = [];
+        let spaceParticles = [];
+        let starfield;
+        
+        // UI Elements
+        let miningIndicator, miningFill;
+        let energyValue, mineralValue, creditsValue, healthFill;
+        let inventoryGrid, upgradesList;
+
+        // Initialize the game
+        async function initGame() {
+            // Show loading screen
+            document.getElementById('loadingScreen').style.display = 'flex';
+            
+            // Create canvas
+            canvas = document.createElement('canvas');
+            canvas.id = 'renderCanvas';
+            document.getElementById('gameContainer').appendChild(canvas);
+            
+            // Initialize Babylon.js engine
+            engine = new BABYLON.Engine(canvas, true, {
+                preserveDrawingBuffer: true,
+                stencil: true
+            });
+            
+            // Create scene
+            scene = new BABYLON.Scene(engine);
+            scene.clearColor = new BABYLON.Color4(0, 0, 0.1, 1);
+            
+            // Enable physics
+            scene.enablePhysics(new BABYLON.Vector3(0, 0, 0), new BABYLON.AmmoJSPlugin());
+            
+            // Create camera
+            createCamera();
+            
+            // Create lighting
+            createLighting();
+            
+            // Create environment
+            await createEnvironment();
+            
+            // Create player ship
+            createPlayerShip();
+            
+            // Create asteroids
+            createAsteroids(50);
+            
+            // Create space hazards
+            createSpaceHazards();
+            
+            // Setup UI
+            setupUI();
+            
+            // Setup controls
+            setupControls();
+            
+            // Setup audio
+            setupAudio();
+            
+            // Hide loading screen
+            document.getElementById('loadingScreen').style.display = 'none';
+            
+            // Start render loop
+            engine.runRenderLoop(() => {
+                if (scene && gameState.gameActive) {
+                    scene.render();
+                    updateGame();
+                }
+            });
+            
+            // Handle resize
+            window.addEventListener('resize', () => {
+                engine.resize();
+            });
+        }
+
+        function createCamera() {
+            // Create ArcRotateCamera for third-person view
+            camera = new BABYLON.ArcRotateCamera(
+                "camera",
+                -Math.PI / 2,
+                Math.PI / 3,
+                20,
+                BABYLON.Vector3.Zero(),
+                scene
+            );
+            
+            camera.attachControl(canvas, true);
+            camera.wheelPrecision = 50;
+            camera.minZ = 0.1;
+            camera.maxZ = 10000;
+            
+            // Lower camera speed for better control
+            camera.panningSensibility = 1000;
+            camera.angularSensibilityX = 1000;
+            camera.angularSensibilityY = 1000;
+        }
+
+        function createLighting() {
+            // Hemispheric light for ambient lighting
+            const hemisphericLight = new BABYLON.HemisphericLight(
+                "hemisphericLight",
+                new BABYLON.Vector3(0, 1, 0),
+                scene
+            );
+            hemisphericLight.intensity = 0.5;
+            
+            // Directional light for sun-like lighting
+            const directionalLight = new BABYLON.DirectionalLight(
+                "directionalLight",
+                new BABYLON.Vector3(0, -1, -1),
+                scene
+            );
+            directionalLight.intensity = 0.8;
+            directionalLight.shadowEnabled = true;
+            
+            // Point light for ship glow
+            const shipLight = new BABYLON.PointLight(
+                "shipLight",
+                new BABYLON.Vector3(0, 0, 0),
+                scene
+            );
+            shipLight.intensity = 2;
+            shipLight.diffuse = new BABYLON.Color3(0.1, 0.6, 1);
+        }
+
+        async function createEnvironment() {
+            // Create starfield background
+            const starfield = BABYLON.MeshBuilder.CreateSphere("starfield", {diameter: 10000}, scene);
+            const starfieldMaterial = new BABYLON.StandardMaterial("starfieldMaterial", scene);
+            
+            // Create star texture
+            const starTexture = new BABYLON.DynamicTexture("starTexture", 2048, scene, true);
+            const ctx = starTexture.getContext();
+            
+            // Draw stars
+            ctx.fillStyle = "#000000";
+            ctx.fillRect(0, 0, 2048, 2048);
+            
+            for (let i = 0; i < 2000; i++) {
+                const x = Math.random() * 2048;
+                const y = Math.random() * 2048;
+                const size = Math.random() * 2 + 0.5;
+                const brightness = Math.random() * 150 + 100;
+                
+                ctx.fillStyle = `rgb(${brightness}, ${brightness}, ${brightness})`;
+                ctx.beginPath();
+                ctx.arc(x, y, size, 0, Math.PI * 2);
+                ctx.fill();
+            }
+            
+            starTexture.update();
+            starfieldMaterial.emissiveTexture = starTexture;
+            starfieldMaterial.backFaceCulling = false;
+            starfield.material = starfieldMaterial;
+            
+            // Create nebula effects
+            createNebulaEffects();
+            
+            // Create floating space dust
+            createSpaceDust();
+        }
+
+        function createNebulaEffects() {
+            // Create colorful nebula clouds
+            const nebulaColors = [
+                new BABYLON.Color3(0.5, 0.2, 0.8), // Purple
+                new BABYLON.Color3(0.2, 0.5, 0.8), // Blue
+                new BABYLON.Color3(0.8, 0.2, 0.5), // Pink
+                new BABYLON.Color3(0.2, 0.8, 0.5)  // Green
+            ];
+            
+            for (let i = 0; i < 4; i++) {
+                const nebula = BABYLON.MeshBuilder.CreateSphere(`nebula${i}`, {
+                    diameter: 200 + Math.random() * 300
+                }, scene);
+                
+                nebula.position = new BABYLON.Vector3(
+                    (Math.random() - 0.5) * 2000,
+                    (Math.random() - 0.5) * 1000,
+                    (Math.random() - 0.5) * 2000
+                );
+                
+                const material = new BABYLON.StandardMaterial(`nebulaMat${i}`, scene);
+                material.emissiveColor = nebulaColors[i];
+                material.alpha = 0.05 + Math.random() * 0.1;
+                material.specularColor = new BABYLON.Color3(0, 0, 0);
+                nebula.material = material;
+                
+                // Make nebula slowly rotate
+                scene.registerBeforeRender(() => {
+                    nebula.rotation.y += 0.0001;
+                });
+            }
+        }
+
+        function createSpaceDust() {
+            // Create particle system for space dust
+            const particleSystem = new BABYLON.ParticleSystem("spaceDust", 2000, scene);
+            
+            particleSystem.particleTexture = new BABYLON.Texture("https://www.babylonjs-playground.com/textures/flare.png", scene);
+            particleSystem.emitter = new BABYLON.Vector3(0, 0, 0);
+            particleSystem.minEmitBox = new BABYLON.Vector3(-1000, -500, -1000);
+            particleSystem.maxEmitBox = new BABYLON.Vector3(1000, 500, 1000);
+            
+            particleSystem.color1 = new BABYLON.Color4(0.7, 0.8, 1.0, 0.1);
+            particleSystem.color2 = new BABYLON.Color4(0.8, 0.9, 1.0, 0.1);
+            particleSystem.colorDead = new BABYLON.Color4(0, 0, 0, 0.0);
+            
+            particleSystem.minSize = 0.1;
+            particleSystem.maxSize = 0.5;
+            
+            particleSystem.minLifeTime = 10;
+            particleSystem.maxLifeTime = 20;
+            
+            particleSystem.emitRate = 100;
+            particleSystem.blendMode = BABYLON.ParticleSystem.BLENDMODE_ONEONE;
+            particleSystem.gravity = new BABYLON.Vector3(0, 0, 0);
+            particleSystem.direction1 = new BABYLON.Vector3(-1, -1, -1);
+            particleSystem.direction2 = new BABYLON.Vector3(1, 1, 1);
+            
+            particleSystem.minAngularSpeed = 0;
+            particleSystem.maxAngularSpeed = Math.PI;
+            
+            particleSystem.minEmitPower = 0;
+            particleSystem.maxEmitPower = 0;
+            
+            particleSystem.updateSpeed = 0.01;
+            
+            particleSystem.start();
+        }
+
+        function createPlayerShip() {
+            // Create ship body
+            const shipBody = BABYLON.MeshBuilder.CreateCylinder("shipBody", {
+                height: 3,
+                diameterTop: 0.5,
+                diameterBottom: 2,
+                tessellation: 6
+            }, scene);
+            
+            // Create ship cockpit
+            const cockpit = BABYLON.MeshBuilder.CreateSphere("cockpit", {
+                diameter: 1.5,
+                segments: 16
+            }, scene);
+            cockpit.position.y = 1;
+            
+            // Create ship wings
+            const leftWing = BABYLON.MeshBuilder.CreateBox("leftWing", {
+                width: 0.5,
+                height: 1,
+                depth: 3
+            }, scene);
+            leftWing.position.x = -2;
+            leftWing.position.y = -0.5;
+            leftWing.rotation.z = Math.PI / 6;
+            
+            const rightWing = leftWing.clone("rightWing");
+            rightWing.position.x = 2;
+            rightWing.rotation.z = -Math.PI / 6;
+            
+            // Create engines
+            const engineLeft = BABYLON.MeshBuilder.CreateCylinder("engineLeft", {
+                height: 2,
+                diameter: 0.8
+            }, scene);
+            engineLeft.position = new BABYLON.Vector3(-1.5, -1.5, -1);
+            engineLeft.rotation.x = Math.PI / 2;
+            
+            const engineRight = engineLeft.clone("engineRight");
+            engineRight.position.x = 1.5;
+            
+            // Merge all parts into one ship mesh
+            ship = BABYLON.Mesh.MergeMeshes([
+                shipBody, cockpit, leftWing, rightWing, engineLeft, engineRight
+            ], true, false, null, false, true);
+            ship.name = "playerShip";
+            
+            // Create ship material
+            const shipMaterial = new BABYLON.StandardMaterial("shipMaterial", scene);
+            shipMaterial.diffuseColor = new BABYLON.Color3(0.1, 0.3, 0.6);
+            shipMaterial.specularColor = new BABYLON.Color3(0.5, 0.6, 0.7);
+            shipMaterial.emissiveColor = new BABYLON.Color3(0, 0.1, 0.2);
+            ship.material = shipMaterial;
+            
+            // Position ship
+            ship.position = new BABYLON.Vector3(0, 0, 20);
+            
+            // Create engine glow
+            createEngineGlow();
+            
+            // Setup ship physics
+            ship.physicsImpostor = new BABYLON.PhysicsImpostor(
+                ship,
+                BABYLON.PhysicsImpostor.BoxImpostor,
+                { mass: 100, friction: 0.1, restitution: 0.3 },
+                scene
+            );
+            
+            // Make camera follow ship
+            camera.lockedTarget = ship;
+        }
+
+        function createEngineGlow() {
+            // Create particle system for engine thrust
+            const engineParticles = new BABYLON.ParticleSystem("engineParticles", 1000, scene);
+            
+            engineParticles.particleTexture = new BABYLON.Texture("https://www.babylonjs-playground.com/textures/flare.png", scene);
+            engineParticles.emitter = ship.position;
+            
+            engineParticles.minEmitBox = new BABYLON.Vector3(-0.5, -0.5, -0.5);
+            engineParticles.maxEmitBox = new BABYLON.Vector3(0.5, 0.5, 0.5);
+            
+            engineParticles.color1 = new BABYLON.Color4(0.1, 0.6, 1, 1);
+            engineParticles.color2 = new BABYLON.Color4(0.8, 0.9, 1, 1);
+            
+            engineParticles.minSize = 0.1;
+            engineParticles.maxSize = 0.5;
+            
+            engineParticles.minLifeTime = 0.3;
+            engineParticles.maxLifeTime = 0.8;
+            
+            engineParticles.emitRate = 300;
+            engineParticles.blendMode = BABYLON.ParticleSystem.BLENDMODE_ADD;
+            
+            engineParticles.direction1 = new BABYLON.Vector3(0, 0, -10);
+            engineParticles.direction2 = new BABYLON.Vector3(0, 0, -15);
+            
+            engineParticles.minAngularSpeed = 0;
+            engineParticles.maxAngularSpeed = Math.PI;
+            
+            engineParticles.minEmitPower = 1;
+            engineParticles.maxEmitPower = 3;
+            
+            engineParticles.updateSpeed = 0.01;
+            
+            // Link particle emitter to ship
+            engineParticles.emitter = ship;
+            engineParticles.start();
+        }
+
+        function createAsteroids(count) {
+            const asteroidTypes = [
+                { size: 3, color: new BABYLON.Color3(0.4, 0.3, 0.2) }, // Common
+                { size: 5, color: new BABYLON.Color3(0.6, 0.4, 0.1) }, // Rare
+                { size: 8, color: new BABYLON.Color3(0.8, 0.6, 0) },  // Epic
+                { size: 12, color: new BABYLON.Color3(1, 0.8, 0) }    // Legendary
+            ];
+            
+            for (let i = 0; i < count; i++) {
+                const type = asteroidTypes[Math.floor(Math.random() * asteroidTypes.length)];
+                
+                // Create asteroid with random shape
+                const asteroid = BABYLON.MeshBuilder.CreatePolyhedron("asteroid" + i, {
+                    type: Math.floor(Math.random() * 3),
+                    size: type.size * (0.8 + Math.random() * 0.4)
+                }, scene);
+                
+                // Random position
+                asteroid.position = new BABYLON.Vector3(
+                    (Math.random() - 0.5) * 200,
+                    (Math.random() - 0.5) * 100,
+                    (Math.random() - 0.5) * 200 - 100
+                );
+                
+                // Create material
+                const material = new BABYLON.StandardMaterial("asteroidMat" + i, scene);
+                material.diffuseColor = type.color;
+                material.specularColor = new BABYLON.Color3(0.1, 0.1, 0.1);
+                
+                // Add texture for detail
+                const noiseTexture = new BABYLON.NoiseProceduralTexture("noise", 256, scene);
+                noiseTexture.animationSpeedFactor = 0;
+                noiseTexture.persistence = 0.5;
+                noiseTexture.brightness = 0.5;
+                noiseTexture.octaves = 4;
+                material.diffuseTexture = noiseTexture;
+                
+                asteroid.material = material;
+                
+                // Add physics
+                asteroid.physicsImpostor = new BABYLON.PhysicsImpostor(
+                    asteroid,
+                    BABYLON.PhysicsImpostor.SphereImpostor,
+                    { mass: type.size * 10, friction: 0.9, restitution: 0.3 },
+                    scene
+                );
+                
+                // Store asteroid data
+                asteroid.userData = {
+                    type: type,
+                    health: type.size * 10,
+                    mineralYield: Math.floor(type.size * (5 + Math.random() * 10)),
+                    mineralType: Math.floor(Math.random() * 4) // 0-3 for different mineral types
+                };
+                
+                // Add random rotation
+                asteroid.rotationQuaternion = new BABYLON.Quaternion();
+                asteroid.angularVelocity = new BABYLON.Vector3(
+                    (Math.random() - 0.5) * 0.1,
+                    (Math.random() - 0.5) * 0.1,
+                    (Math.random() - 0.5) * 0.1
+                );
+                
+                asteroids.push(asteroid);
+                
+                // Create asteroid glow for rare ones
+                if (type.size >= 5) {
+                    createAsteroidGlow(asteroid, type.color);
+                }
+            }
+        }
+
+        function createAsteroidGlow(asteroid, color) {
+            const glow = BABYLON.MeshBuilder.CreateSphere("glow", {
+                diameter: asteroid.getBoundingInfo().boundingSphere.radius * 2.2,
+                segments: 8
+            }, scene);
+            
+            glow.parent = asteroid;
+            
+            const glowMaterial = new BABYLON.StandardMaterial("glowMat", scene);
+            glowMaterial.emissiveColor = color;
+            glowMaterial.alpha = 0.1;
+            glowMaterial.diffuseColor = new BABYLON.Color3(0, 0, 0);
+            glowMaterial.specularColor = new BABYLON.Color3(0, 0, 0);
+            glow.material = glowMaterial;
+        }
+
+        function createSpaceHazards() {
+            // Create meteor showers
+            for (let i = 0; i < 20; i++) {
+                const meteor = BABYLON.MeshBuilder.CreateSphere("meteor" + i, {
+                    diameter: 1 + Math.random() * 3,
+                    segments: 8
+                }, scene);
+                
+                meteor.position = new BABYLON.Vector3(
+                    (Math.random() - 0.5) * 300,
+                    (Math.random() - 0.5) * 150,
+                    (Math.random() - 0.5) * 300
+                );
+                
+                const material = new BABYLON.StandardMaterial("meteorMat", scene);
+                material.emissiveColor = new BABYLON.Color3(0.8, 0.3, 0.1);
+                meteor.material = material;
+                
+                meteor.userData = {
+                    type: 'meteor',
+                    damage: 10,
+                    speed: 0.5 + Math.random() * 1
+                };
+                
+                hazards.push(meteor);
+            }
+            
+            // Create energy fields
+            for (let i = 0; i < 10; i++) {
+                const energyField = BABYLON.MeshBuilder.CreateSphere("energyField" + i, {
+                    diameter: 15 + Math.random() * 20,
+                    segments: 16
+                }, scene);
+                
+                energyField.position = new BABYLON.Vector3(
+                    (Math.random() - 0.5) * 250,
+                    (Math.random() - 0.5) * 120,
+                    (Math.random() - 0.5) * 250
+                );
+                
+                const material = new BABYLON.StandardMaterial("energyFieldMat", scene);
+                material.emissiveColor = new BABYLON.Color3(0.1, 0.6, 0.8);
+                material.alpha = 0.1;
+                energyField.material = material;
+                
+                energyField.userData = {
+                    type: 'energy_field',
+                    damage: 2,
+                    drainRate: 5
+                };
+                
+                hazards.push(energyField);
+            }
+        }
+
+        function createMiningLaser() {
+            // Create laser beam
+            miningLaser = BABYLON.MeshBuilder.CreateCylinder("miningLaser", {
+                height: 50,
+                diameter: 0.1
+            }, scene);
+            
+            miningLaser.isVisible = false;
+            
+            const laserMaterial = new BABYLON.StandardMaterial("laserMat", scene);
+            laserMaterial.emissiveColor = new BABYLON.Color3(0, 1, 1);
+            laserMaterial.diffuseColor = new BABYLON.Color3(0, 0.5, 1);
+            laserMaterial.specularColor = new BABYLON.Color3(1, 1, 1);
+            laserMaterial.alpha = 0.8;
+            miningLaser.material = laserMaterial;
+        }
+
+        function setupUI() {
+            // Cache UI elements
+            energyValue = document.getElementById('energyValue');
+            mineralValue = document.getElementById('mineralValue');
+            creditsValue = document.getElementById('creditsValue');
+            healthFill = document.getElementById('healthFill');
+            miningIndicator = document.getElementById('miningIndicator');
+            miningFill = document.getElementById('miningFill');
+            inventoryGrid = document.getElementById('inventoryGrid');
+            upgradesList = document.getElementById('upgradesList');
+            
+            // Initialize inventory slots
+            for (let i = 0; i < 12; i++) {
+                const slot = document.createElement('div');
+                slot.className = 'inventory-slot';
+                slot.innerHTML = '<div style="color: #666; font-size: 0.8em;">Empty</div>';
+                inventoryGrid.appendChild(slot);
+            }
+            
+            // Initialize upgrades
+            const upgrades = [
+                { id: 'laser_upgrade', name: 'Laser Power', cost: 200, level: 1, maxLevel: 5 },
+                { id: 'energy_upgrade', name: 'Energy Capacity', cost: 300, level: 1, maxLevel: 5 },
+                { id: 'shield_upgrade', name: 'Shield Strength', cost: 500, level: 1, maxLevel: 5 },
+                { id: 'radar_upgrade', name: 'Radar Range', cost: 400, level: 1, maxLevel: 5 },
+                { id: 'storage_upgrade', name: 'Mineral Storage', cost: 600, level: 1, maxLevel: 5 }
+            ];
+            
+            upgrades.forEach(upgrade => {
+                const item = document.createElement('div');
+                item.className = 'upgrade-item';
+                item.innerHTML = `
+                    <div style="font-weight: bold; margin-bottom: 5px;">${upgrade.name}</div>
+                    <div style="font-size: 0.9em; color: #8a8ac4;">Level ${upgrade.level}/${upgrade.maxLevel}</div>
+                    <div class="upgrade-cost">Cost: ${upgrade.cost} credits</div>
+                `;
+                item.onclick = () => purchaseUpgrade(upgrade.id);
+                upgradesList.appendChild(item);
+            });
+            
+            // Setup action buttons
+            document.getElementById('miningLaserBtn').onclick = () => activateMiningLaser();
+            document.getElementById('shieldBtn').onclick = () => activateShield();
+            document.getElementById('boostBtn').onclick = () => activateBoost();
+            document.getElementById('radarBtn').onclick = () => activateRadar();
+        }
+
+        function setupControls() {
+            // Keyboard controls
+            scene.onKeyboardObservable.add((kbInfo) => {
+                if (kbInfo.type === BABYLON.KeyboardEventTypes.KEYDOWN) {
+                    switch (kbInfo.event.key.toLowerCase()) {
+                        case 'e':
+                            toggleInventory();
+                            break;
+                        case 'u':
+                            toggleUpgrades();
+                            break;
+                        case 'escape':
+                            togglePause();
+                            break;
+                        case ' ':
+                            // Space for quick mining
+                            activateMiningLaser();
+                            break;
+                    }
+                }
+            });
+            
+            // Mouse controls for mining
+            scene.onPointerDown = (evt) => {
+                if (evt.button === 0) { // Left click
+                    activateMiningLaser();
+                }
+            };
+            
+            scene.onPointerUp = (evt) => {
+                if (evt.button === 0) {
+                    deactivateMiningLaser();
+                }
+            };
+            
+            // WASD movement
+            const keys = {};
+            scene.onKeyboardObservable.add((kbInfo) => {
+                keys[kbInfo.event.key.toLowerCase()] = kbInfo.type === BABYLON.KeyboardEventTypes.KEYDOWN;
+            });
+            
+            // Movement update loop
+            scene.onBeforeRenderObservable.add(() => {
+                if (!gameState.gameActive) return;
+                
+                const moveSpeed = gameState.boostActive ? 0.3 : 0.1;
+                
+                if (keys['w'] || keys['arrowup']) {
+                    ship.position.z += moveSpeed;
+                }
+                if (keys['s'] || keys['arrowdown']) {
+                    ship.position.z -= moveSpeed;
+                }
+                if (keys['a'] || keys['arrowleft']) {
+                    ship.position.x -= moveSpeed;
+                }
+                if (keys['d'] || keys['arrowright']) {
+                    ship.position.x += moveSpeed;
+                }
+                if (keys['q']) {
+                    ship.position.y -= moveSpeed;
+                }
+                if (keys['e']) {
+                    ship.position.y += moveSpeed;
+                }
+            });
+        }
+
+        function setupAudio() {
+            // Background music (placeholder - would need actual music file)
+            const bgMusic = document.getElementById('backgroundMusic');
+            bgMusic.volume = 0.3;
+            
+            // Preload sound effects
+            const sounds = ['laserSound', 'miningSound', 'explosionSound', 'collectSound', 'upgradeSound'];
+            sounds.forEach(soundId => {
+                const sound = document.getElementById(soundId);
+                sound.load();
+            });
+        }
+
+        function updateGame() {
+            if (!gameState.gameActive) return;
+            
+            // Update game time
+            gameState.gameTime += 1/60;
+            
+            // Update energy regeneration
+            if (gameState.energy < gameState.maxEnergy) {
+                gameState.energy += 0.1;
+                if (gameState.energy > gameState.maxEnergy) {
+                    gameState.energy = gameState.maxEnergy;
+                }
+            }
+            
+            // Update UI
+            updateUI();
+            
+            // Update asteroids
+            updateAsteroids();
+            
+            // Update hazards
+            updateHazards();
+            
+            // Update minerals
+            updateMinerals();
+            
+            // Check collisions
+            checkCollisions();
+            
+            // Check game over
+            if (gameState.health <= 0) {
+                gameOver();
+            }
+            
+            // Update missions
+            updateMissions();
+        }
+
+        function updateUI() {
+            energyValue.textContent = Math.floor(gameState.energy);
+            mineralValue.textContent = gameState.minerals;
+            creditsValue.textContent = gameState.credits;
+            healthFill.style.width = `${(gameState.health / gameState.maxHealth) * 100}%`;
+        }
+
+        function updateAsteroids() {
+            asteroids.forEach(asteroid => {
+                // Slowly rotate asteroids
+                asteroid.rotation.x += asteroid.angularVelocity.x;
+                asteroid.rotation.y += asteroid.angularVelocity.y;
+                asteroid.rotation.z += asteroid.angularVelocity.z;
+                
+                // Keep asteroids within bounds
+                const bounds = 200;
+                if (Math.abs(asteroid.position.x) > bounds) {
+                    asteroid.physicsImpostor.setLinearVelocity(
+                        new BABYLON.Vector3(-asteroid.physicsImpostor.getLinearVelocity().x * 0.5, 0, 0)
+                    );
+                }
+                if (Math.abs(asteroid.position.z) > bounds) {
+                    asteroid.physicsImpostor.setLinearVelocity(
+                        new BABYLON.Vector3(0, 0, -asteroid.physicsImpostor.getLinearVelocity().z * 0.5)
+                    );
+                }
+            });
+        }
+
+        function updateHazards() {
+            hazards.forEach((hazard, index) => {
+                if (hazard.userData.type === 'meteor') {
+                    // Move meteors
+                    hazard.position.z += hazard.userData.speed;
+                    
+                    // Reset position if out of bounds
+                    if (hazard.position.z > 200) {
+                        hazard.position.z = -200;
+                        hazard.position.x = (Math.random() - 0.5) * 300;
+                        hazard.position.y = (Math.random() - 0.5) * 150;
+                    }
+                    
+                    // Make meteors pulse
+                    const scale = 1 + Math.sin(gameState.gameTime * 2) * 0.2;
+                    hazard.scaling = new BABYLON.Vector3(scale, scale, scale);
+                }
+            });
+        }
+
+        function updateMinerals() {
+            // Update mineral collection
+            minerals.forEach((mineral, index) => {
+                // Float animation
+                mineral.position.y += Math.sin(gameState.gameTime * 2 + index) * 0.01;
+                
+                // Spin slowly
+                mineral.rotation.y += 0.01;
+                
+                // Check if player is near to collect
+                if (mineral.position.subtract(ship.position).length() < 5) {
+                    collectMineral(mineral);
+                    minerals.splice(index, 1);
+                    mineral.dispose();
+                }
+            });
+        }
+
+        function checkCollisions() {
+            // Check hazard collisions
+            hazards.forEach(hazard => {
+                const distance = hazard.position.subtract(ship.position).length();
+                const hazardRadius = hazard.getBoundingInfo().boundingSphere.radius;
+                
+                if (distance < hazardRadius + 5) {
+                    if (hazard.userData.type === 'meteor') {
+                        takeDamage(hazard.userData.damage);
+                        createExplosion(hazard.position);
+                        hazard.position.z = -200; // Reset meteor
+                    } else if (hazard.userData.type === 'energy_field') {
+                        gameState.energy -= hazard.userData.drainRate * 0.1;
+                        if (gameState.energy < 0) gameState.energy = 0;
+                    }
+                }
+            });
+        }
+
+        function activateMiningLaser() {
+            if (gameState.energy < 10) return;
+            
+            // Create raycast from camera to mouse position
+            const ray = scene.createPickingRay(
+                scene.pointerX,
+                scene.pointerY,
+                BABYLON.Matrix.Identity(),
+                camera
+            );
+            
+            const hit = scene.pickWithRay(ray);
+            
+            if (hit.pickedMesh && hit.pickedMesh.name.startsWith('asteroid')) {
+                // Show mining indicator
+                miningIndicator.style.opacity = '1';
+                
+                // Mine the asteroid
+                mineAsteroid(hit.pickedMesh);
+                
+                // Play mining sound
+                playSound('miningSound');
+                
+                // Drain energy
+                gameState.energy -= 0.5;
+                
+                // Create mining laser visual
+                createLaserBeam(hit.pickedPoint);
+            } else {
+                // Hide mining indicator if not mining
+                miningIndicator.style.opacity = '0';
+            }
+        }
+
+        function deactivateMiningLaser() {
+            miningIndicator.style.opacity = '0';
+            
+            if (miningLaser) {
+                miningLaser.isVisible = false;
+            }
+        }
+
+        function mineAsteroid(asteroid) {
+            if (!asteroid.userData || asteroid.userData.health <= 0) return;
+            
+            // Apply damage
+            const damage = gameState.miningPower;
+            asteroid.userData.health -= damage;
+            
+            // Update mining progress bar
+            const maxHealth = asteroid.userData.type.size * 10;
+            const progress = ((maxHealth - asteroid.userData.health) / maxHealth) * 100;
+            miningFill.style.width = `${progress}%`;
+            
+            // Check if asteroid is destroyed
+            if (asteroid.userData.health <= 0) {
+                destroyAsteroid(asteroid);
+            }
+        }
+
+        function destroyAsteroid(asteroid) {
+            // Create explosion effect
+            createExplosion(asteroid.position);
+            
+            // Spawn minerals
+            spawnMinerals(asteroid.position, asteroid.userData.mineralYield, asteroid.userData.mineralType);
+            
+            // Update stats
+            gameState.missions.asteroidsMined++;
+            gameState.credits += asteroid.userData.mineralYield * 2;
+            
+            // Play explosion sound
+            playSound('explosionSound');
+            
+            // Remove asteroid
+            const index = asteroids.indexOf(asteroid);
+            if (index > -1) {
+                asteroids.splice(index, 1);
+                asteroid.dispose();
+            }
+            
+            // Create new asteroid after delay
+            setTimeout(() => {
+                createAsteroids(1);
+            }, 5000);
+            
+            // Show notification
+            showNotification(`Asteroid destroyed! +${asteroid.userData.mineralYield * 2} credits`, 'success');
+        }
+
+        function spawnMinerals(position, count, type) {
+            const mineralColors = [
+                new BABYLON.Color3(0.4, 0.4, 1), // Common - Blue
+                new BABYLON.Color3(1, 0.4, 1),   // Rare - Pink
+                new BABYLON.Color3(1, 0.8, 0),   // Epic - Gold
+                new BABYLON.Color3(0, 1, 0.8)    // Legendary - Cyan
+            ];
+            
+            const mineralNames = ['Common', 'Rare', 'Epic', 'Legendary'];
+            
+            for (let i = 0; i < count; i++) {
+                const mineral = BABYLON.MeshBuilder.CreateIcoSphere("mineral", {
+                    radius: 0.3,
+                    subdivisions: 2
+                }, scene);
+                
+                // Random position around asteroid
+                mineral.position = position.add(new BABYLON.Vector3(
+                    (Math.random() - 0.5) * 5,
+                    (Math.random() - 0.5) * 5,
+                    (Math.random() - 0.5) * 5
+                ));
+                
+                // Add physics
+                mineral.physicsImpostor = new BABYLON.PhysicsImpostor(
+                    mineral,
+                    BABYLON.PhysicsImpostor.SphereImpostor,
+                    { mass: 1, friction: 0.1, restitution: 0.5 },
+                    scene
+                );
+                
+                // Apply random velocity
+                mineral.physicsImpostor.setLinearVelocity(new BABYLON.Vector3(
+                    (Math.random() - 0.5) * 2,
+                    (Math.random() - 0.5) * 2,
+                    (Math.random() - 0.5) * 2
+                ));
+                
+                // Create material
+                const material = new BABYLON.StandardMaterial("mineralMat", scene);
+                material.diffuseColor = mineralColors[type];
+                material.emissiveColor = mineralColors[type];
+                material.specularColor = new BABYLON.Color3(1, 1, 1);
+                material.emissiveIntensity = 0.3;
+                mineral.material = material;
+                
+                // Store mineral data
+                mineral.userData = {
+                    type: type,
+                    name: mineralNames[type],
+                    value: (type + 1) * 10
+                };
+                
+                minerals.push(mineral);
+                
+                // Add glow effect
+                const glow = BABYLON.MeshBuilder.CreateSphere("mineralGlow", {
+                    diameter: 0.7,
+                    segments: 8
+                }, scene);
+                glow.parent = mineral;
+                
+                const glowMaterial = new BABYLON.StandardMaterial("mineralGlowMat", scene);
+                glowMaterial.emissiveColor = mineralColors[type];
+                glowMaterial.alpha = 0.2;
+                glowMaterial.diffuseColor = new BABYLON.Color3(0, 0, 0);
+                glow.material = glowMaterial;
+            }
+        }
+
+        function collectMineral(mineral) {
+            if (!mineral.userData) return;
+            
+            // Add to inventory
+            gameState.minerals += mineral.userData.value;
+            gameState.missions.mineralsCollected += mineral.userData.value;
+            
+            // Play collection sound
+            playSound('collectSound');
+            
+            // Show notification
+            showNotification(`Collected ${mineral.userData.name} Mineral! +${mineral.userData.value} minerals`, 'success');
+            
+            // Update inventory display
+            updateInventory();
+        }
+
+        function createLaserBeam(target) {
+            if (!miningLaser) {
+                createMiningLaser();
+            }
+            
+            // Position laser between ship and target
+            const direction = target.subtract(ship.position);
+            const distance = direction.length();
+            const midPoint = ship.position.add(direction.scale(0.5));
+            
+            miningLaser.position = midPoint;
+            miningLaser.scaling = new BABYLON.Vector3(1, distance, 1);
+            miningLaser.lookAt(target);
+            miningLaser.isVisible = true;
+            
+            // Hide after short delay
+            setTimeout(() => {
+                if (miningLaser) {
+                    miningLaser.isVisible = false;
+                }
+            }, 100);
+        }
+
+        function createExplosion(position) {
+            // Create explosion particle system
+            const explosion = new BABYLON.ParticleSystem("explosion", 1000, scene);
+            
+            explosion.particleTexture = new BABYLON.Texture("https://www.babylonjs-playground.com/textures/flare.png", scene);
+            explosion.emitter = position;
+            
+            explosion.color1 = new BABYLON.Color4(1, 0.5, 0, 1);
+            explosion.color2 = new BABYLON.Color4(1, 0.8, 0, 1);
+            explosion.colorDead = new BABYLON.Color4(0, 0, 0, 0);
+            
+            explosion.minSize = 0.1;
+            explosion.maxSize = 1;
+            
+            explosion.minLifeTime = 0.3;
+            explosion.maxLifeTime = 0.8;
+            
+            explosion.emitRate = 1000;
+            explosion.manualEmitCount = 100;
+            
+            explosion.blendMode = BABYLON.ParticleSystem.BLENDMODE_ADD;
+            
+            explosion.direction1 = new BABYLON.Vector3(-1, -1, -1);
+            explosion.direction2 = new BABYLON.Vector3(1, 1, 1);
+            
+            explosion.minEmitPower = 5;
+            explosion.maxEmitPower = 10;
+            
+            explosion.updateSpeed = 0.01;
+            
+            explosion.start();
+            
+            // Stop after 0.5 seconds
+            setTimeout(() => {
+                explosion.stop();
+                explosion.dispose();
+            }, 500);
+        }
+
+        function activateShield() {
+            if (gameState.energy < 30) return;
+            
+            gameState.shieldActive = true;
+            gameState.energy -= 30;
+            
+            // Visual effect
+            const shield = BABYLON.MeshBuilder.CreateSphere("shield", {
+                diameter: 12,
+                segments: 16
+            }, scene);
+            
+            shield.parent = ship;
+            
+            const shieldMaterial = new BABYLON.StandardMaterial("shieldMat", scene);
+            shieldMaterial.emissiveColor = new BABYLON.Color3(0, 0.5, 1);
+            shieldMaterial.alpha = 0.2;
+            shieldMaterial.wireframe = true;
+            shield.material = shieldMaterial;
+            
+            // Shield lasts for 5 seconds
+            setTimeout(() => {
+                gameState.shieldActive = false;
+                shield.dispose();
+            }, 5000);
+            
+            showNotification("Shield activated!", 'success');
+        }
+
+        function activateBoost() {
+            if (gameState.energy < 20) return;
+            
+            gameState.boostActive = true;
+            gameState.energy -= 20;
+            
+            // Visual effect - increase engine particles
+            const engineParticles = scene.getParticleSystemByName("engineParticles");
+            if (engineParticles) {
+                engineParticles.emitRate = 1000;
+                engineParticles.minEmitPower = 5;
+                engineParticles.maxEmitPower = 10;
+            }
+            
+            // Boost lasts for 3 seconds
+            setTimeout(() => {
+                gameState.boostActive = false;
+                
+                // Reset engine particles
+                if (engineParticles) {
+                    engineParticles.emitRate = 300;
+                    engineParticles.minEmitPower = 1;
+                    engineParticles.maxEmitPower = 3;
+                }
+            }, 3000);
+            
+            showNotification("Boost activated!", 'success');
+        }
+
+        function activateRadar() {
+            if (gameState.energy < 15) return;
+            
+            gameState.radarActive = true;
+            gameState.energy -= 15;
+            
+            // Highlight nearby asteroids and minerals
+            const radarRadius = 50;
+            
+            asteroids.forEach(asteroid => {
+                const distance = asteroid.position.subtract(ship.position).length();
+                if (distance < radarRadius) {
+                    // Create highlight effect
+                    const highlight = asteroid.clone("radarHighlight");
+                    highlight.scaling = asteroid.scaling.multiply(new BABYLON.Vector3(1.2, 1.2, 1.2));
+                    
+                    const highlightMat = new BABYLON.StandardMaterial("highlightMat", scene);
+                    highlightMat.emissiveColor = new BABYLON.Color3(0, 1, 0);
+                    highlightMat.alpha = 0.3;
+                    highlight.material = highlightMat;
+                    
+                    // Remove highlight after 3 seconds
+                    setTimeout(() => {
+                        highlight.dispose();
+                    }, 3000);
+                }
+            });
+            
+            // Radar pulse effect
+            const radarPulse = BABYLON.MeshBuilder.CreateSphere("radarPulse", {
+                diameter: 1,
+                segments: 16
+            }, scene);
+            
+            radarPulse.position = ship.position.clone();
+            
+            const pulseMat = new BABYLON.StandardMaterial("pulseMat", scene);
+            pulseMat.emissiveColor = new BABYLON.Color3(0, 1, 0);
+            pulseMat.alpha = 0.5;
+            radarPulse.material = pulseMat;
+            
+            // Animate pulse expansion
+            let pulseSize = 1;
+            const pulseInterval = setInterval(() => {
+                pulseSize += 5;
+                radarPulse.scaling = new BABYLON.Vector3(pulseSize, pulseSize, pulseSize);
+                pulseMat.alpha = 0.5 * (100 - pulseSize) / 100;
+                
+                if (pulseSize >= 100) {
+                    clearInterval(pulseInterval);
+                    radarPulse.dispose();
+                }
+            }, 16);
+            
+            showNotification("Radar scan complete!", 'success');
+        }
+
+        function takeDamage(amount) {
+            if (gameState.shieldActive) {
+                amount *= 0.5; // Shield reduces damage by 50%
+                showNotification("Shield absorbed damage!", 'warning');
+            }
+            
+            gameState.health -= amount;
+            
+            if (gameState.health <= 0) {
+                gameState.health = 0;
+            }
+            
+            // Screen shake effect
+            camera.position.addInPlace(new BABYLON.Vector3(
+                (Math.random() - 0.5) * 0.5,
+                (Math.random() - 0.5) * 0.5,
+                (Math.random() - 0.5) * 0.5
+            ));
+            
+            // Damage sound
+            playSound('explosionSound');
+        }
+
+        function purchaseUpgrade(upgradeId) {
+            const upgrades = {
+                laser_upgrade: { cost: 200, effect: () => gameState.miningPower++ },
+                energy_upgrade: { cost: 300, effect: () => gameState.maxEnergy += 50 },
+                shield_upgrade: { cost: 500, effect: () => gameState.maxHealth += 20 },
+                radar_upgrade: { cost: 400, effect: () => {} },
+                storage_upgrade: { cost: 600, effect: () => {} }
+            };
+            
+            const upgrade = upgrades[upgradeId];
+            
+            if (gameState.credits >= upgrade.cost) {
+                gameState.credits -= upgrade.cost;
+                upgrade.effect();
+                gameState.missions.upgradesBought++;
+                
+                playSound('upgradeSound');
+                showNotification("Upgrade purchased!", 'success');
+                updateUI();
+            } else {
+                showNotification("Not enough credits!", 'error');
+            }
+        }
+
+        function updateInventory() {
+            // Simple inventory display
+            const slots = document.querySelectorAll('.inventory-slot');
+            
+            // Clear slots
+            slots.forEach(slot => {
+                slot.innerHTML = '<div style="color: #666; font-size: 0.8em;">Empty</div>';
+            });
+            
+            // Fill with minerals (simplified)
+            if (gameState.minerals > 0) {
+                slots[0].innerHTML = `
+                    <div class="mineral-item mineral-common">💎</div>
+                    <div style="font-size: 0.9em;">Minerals</div>
+                    <div style="font-size: 0.8em; color: #8a8ac4;">${gameState.minerals}</div>
+                `;
+            }
+        }
+
+        function updateMissions() {
+            const missions = document.getElementById('missionsList');
+            missions.innerHTML = `
+                <div class="mission-item">🎯 Mine asteroids (${gameState.missions.asteroidsMined}/5)</div>
+                <div class="mission-item">💎 Collect minerals (${gameState.missions.mineralsCollected}/100)</div>
+                <div class="mission-item">🚀 Upgrade ship (${gameState.missions.upgradesBought}/1)</div>
+            `;
+        }
+
+        function showNotification(message, type) {
+            const notification = document.createElement('div');
+            notification.className = `notification ${type}`;
+            notification.innerHTML = message;
+            document.body.appendChild(notification);
+            
+            // Show
+            setTimeout(() => notification.classList.add('show'), 10);
+            
+            // Hide after 3 seconds
+            setTimeout(() => {
+                notification.classList.remove('show');
+                setTimeout(() => notification.remove(), 300);
+            }, 3000);
+        }
+
+        function playSound(soundId) {
+            try {
+                const sound = document.getElementById(soundId);
+                sound.currentTime = 0;
+                sound.play();
+            } catch (e) {
+                // Sound play failed
+            }
+        }
+
+        // Game state management
+        function startGame() {
+            document.getElementById('startScreen').style.display = 'none';
+            gameState.gameActive = true;
+            gameState.gameTime = 0;
+            
+            // Start background music
+            const bgMusic = document.getElementById('backgroundMusic');
+            bgMusic.play().catch(e => console.log("Audio play failed:", e));
+        }
+
+        function toggleInventory() {
+            document.getElementById('inventoryPanel').classList.toggle('show');
+            updateInventory();
+        }
+
+        function toggleUpgrades() {
+            document.getElementById('upgradePanel').classList.toggle('show');
+        }
+
+        function togglePause() {
+            const pauseMenu = document.getElementById('pauseMenu');
+            pauseMenu.classList.toggle('show');
+            gameState.gameActive = !pauseMenu.classList.contains('show');
+        }
+
+        function resumeGame() {
+            document.getElementById('pauseMenu').classList.remove('show');
+            gameState.gameActive = true;
+        }
+
+        function showStartScreen() {
+            document.getElementById('pauseMenu').classList.remove('show');
+            document.getElementById('gameOverScreen').classList.remove('show');
+            document.getElementById('startScreen').style.display = 'flex';
+            gameState.gameActive = false;
+        }
+
+        function gameOver() {
+            gameState.gameActive = false;
+            
+            // Update final stats
+            document.getElementById('finalMinerals').textContent = gameState.minerals;
+            document.getElementById('finalCredits').textContent = gameState.credits;
+            document.getElementById('finalAsteroids').textContent = gameState.missions.asteroidsMined;
+            
+            const minutes = Math.floor(gameState.gameTime / 60);
+            const seconds = Math.floor(gameState.gameTime % 60);
+            document.getElementById('finalTime').textContent = `${minutes}:${seconds.toString().padStart(2, '0')}`;
+            
+            // Show game over screen
+            document.getElementById('gameOverScreen').classList.add('show');
+        }
+
+        function restartGame() {
+            // Reset game state
+            gameState = {
+                energy: 100,
+                maxEnergy: 100,
+                minerals: 0,
+                credits: 500,
+                health: 100,
+                maxHealth: 100,
+                miningPower: 1,
+                miningSpeed: 1,
+                shieldActive: false,
+                boostActive: false,
+                radarActive: false,
+                inventory: [],
+                upgrades: [],
+                missions: {
+                    asteroidsMined: 0,
+                    mineralsCollected: 0,
+                    upgradesBought: 0
+                },
+                gameTime: 0,
+                gameActive: true
+            };
+            
+            // Clear existing objects
+            asteroids.forEach(asteroid => asteroid.dispose());
+            minerals.forEach(mineral => mineral.dispose());
+            hazards.forEach(hazard => hazard.dispose());
+            
+            asteroids = [];
+            minerals = [];
+            hazards = [];
+            
+            // Reset ship position
+            ship.position = new BABYLON.Vector3(0, 0, 20);
+            ship.physicsImpostor.setLinearVelocity(BABYLON.Vector3.Zero());
+            
+            // Create new asteroids
+            createAsteroids(50);
+            
+            // Create new hazards
+            createSpaceHazards();
+            
+            // Update UI
+            updateUI();
+            
+            // Hide game over screen
+            document.getElementById('gameOverScreen').classList.remove('show');
+        }
+
+        // Initialize game when page loads
+        window.addEventListener('DOMContentLoaded', () => {
+            // Start loading
+            setTimeout(() => {
+                initGame();
+            }, 1000);
+            
+            // Start button event
+            document.getElementById('startButton').onclick = startGame;
+        });
+
+    </script>
+</body>
+</html>
