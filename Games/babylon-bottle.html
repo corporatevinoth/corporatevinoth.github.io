@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1.0,viewport-fit=cover" />
+  <title>BabylonJS Bottle Shooter - Demo</title>
+  <style>
+    html,body{height:100%;margin:0;background:#000;color:#fff;font-family:system-ui,Segoe UI,Roboto,Arial,sans-serif}
+    #renderCanvas{width:100%;height:100%;display:block;touch-action:none}
+    #ui{position:fixed;left:12px;top:12px;color:#fff;z-index:100;display:flex;gap:12px;align-items:center}
+    #score{font-weight:700;margin-left:6px}
+    #startBtn{padding:10px 14px;border-radius:8px;background:#ff6b6b;border:none;color:#fff;font-weight:600}
+    #hint{font-size:13px;opacity:0.85}
+  </style>
+</head>
+<body>
+  <canvas id="renderCanvas"></canvas>
+  <div id="ui">
+    <div>Score:<span id="score">0</span></div>
+    <button id="startBtn">Start</button>
+    <div id="hint">Tap bottles to break • Mobile + Desktop</div>
+  </div>
+
+  <!-- BabylonJS CDN -->
+  <script src="https://cdn.babylonjs.com/babylon.js"></script>
+  <script>
+    (function(){
+      const canvas = document.getElementById('renderCanvas');
+      const engine = new BABYLON.Engine(canvas, true, { preserveDrawingBuffer: true, stencil: true });
+      let scene = null;
+      let score = 0;
+      const bottles = [];
+
+      function createScene() {
+        const s = new BABYLON.Scene(engine);
+        s.clearColor = new BABYLON.Color4(0.04,0.06,0.08,1);
+
+        // Camera
+        const camera = new BABYLON.UniversalCamera('camera', new BABYLON.Vector3(0,2.2,-10), s);
+        camera.setTarget(new BABYLON.Vector3(0,1,0));
+        camera.attachControl(canvas, true);
+        camera.speed = 0.6;
+
+        // Light
+        const light = new BABYLON.HemisphericLight('h', new BABYLON.Vector3(0.3,1,0.1), s);
+        light.intensity = 0.9;
+
+        // Ground
+        const ground = BABYLON.MeshBuilder.CreateGround('ground',{width:60,height:60},s);
+        const gmat = new BABYLON.StandardMaterial('gmat', s);
+        gmat.diffuseColor = new BABYLON.Color3(0.08,0.4,0.12);
+        ground.material = gmat;
+
+        // Back wall
+        const wall = BABYLON.MeshBuilder.CreateBox('wall',{width:60,height:20,depth:2},s);
+        wall.position = new BABYLON.Vector3(0,10,-30);
+        wall.material = new BABYLON.StandardMaterial('wmat', s);
+        wall.material.diffuseColor = new BABYLON.Color3(0.45,0.25,0.12);
+
+        // Create bottles (primitives)
+        const cols = 6; const rows = 3; let idx = 0;
+        for(let r=0;r<rows;r++){
+          for(let c=0;c<cols;c++){
+            const bottle = BABYLON.MeshBuilder.CreateCylinder('bottle_'+idx,{height:1.6,diameterTop:0.28,diameterBottom:0.42,tessellation:18}, s);
+            bottle.position = new BABYLON.Vector3((c - (cols-1)/2)*1.5, 0.9 + Math.random()*0.3, -8 - r*2 + Math.random()*0.4);
+            bottle.rotation.y = Math.random() * Math.PI * 2;
+            const mat = new BABYLON.StandardMaterial('bm'+idx, s);
+            const colors = ['#ff4d4d','#4dff88','#4db8ff','#ffd24d','#d86bff'];
+            mat.diffuseColor = BABYLON.Color3.FromHexString(colors[idx % colors.length]);
+            mat.alpha = 0.95;
+            mat.specularColor = new BABYLON.Color3(0.9,0.9,0.9);
+            bottle.material = mat;
+
+            // simple 'bottle' top to look nicer
+            const neck = BABYLON.MeshBuilder.CreateCylinder('neck_'+idx,{height:0.5,diameterTop:0.14,diameterBottom:0.2,tessellation:12}, s);
+            neck.parent = bottle;
+            neck.position.y = 0.95;
+            neck.material = mat;
+
+            bottles.push(bottle);
+            idx++;
+          }
+        }
+
+        // Particle system for break effect
+        const particleSystem = new BABYLON.ParticleSystem('ps', 200, s);
+        particleSystem.particleTexture = new BABYLON.Texture('https://playground.babylonjs.com/textures/flare.png', s);
+        particleSystem.minSize = 0.04; particleSystem.maxSize = 0.12;
+        particleSystem.minLifeTime = 0.3; particleSystem.maxLifeTime = 0.9;
+        particleSystem.emitRate = 0;
+        particleSystem.blendMode = BABYLON.ParticleSystem.BLENDMODE_ADD;
+
+        // click / touch handler
+        s.onPointerObservable.add((pointerInfo) => {
+          if(pointerInfo.type === BABYLON.PointerEventTypes.POINTERDOWN){
+            const pick = pointerInfo.pickInfo;
+            if(pick.hit && pick.pickedMesh){
+              const picked = pick.pickedMesh;
+              if(picked.name && picked.name.indexOf('bottle_') === 0){
+                // play pop animation then dispose and spawn particles
+                const mesh = picked;
+                // prevent double-hit
+                mesh.isPickable = false;
+
+                // emit particles at mesh position
+                particleSystem.emitter = mesh.position.clone();
+                particleSystem.emitRate = 120;
+                setTimeout(()=> particleSystem.emitRate = 0, 120);
+
+                // scale & fade then remove
+                const anim = new BABYLON.Animation('pop', 'scaling', 60, BABYLON.Animation.ANIMATIONTYPE_VECTOR3, BABYLON.Animation.ANIMATIONLOOPMODE_CONSTANT);
+                const keys = [];
+                keys.push({frame:0, value: mesh.scaling.clone()});
+                keys.push({frame:8, value: mesh.scaling.multiplyByFloats(1.6,1.6,1.6)});
+                keys.push({frame:20, value: new BABYLON.Vector3(0.01,0.01,0.01)});
+                anim.setKeys(keys);
+                mesh.animations = [anim];
+                s.beginAnimation(mesh, 0, 20, false, 1, ()=>{
+                  try{ mesh.dispose(); }catch(e){}
+                });
+
+                score++;
+                document.getElementById('score').textContent = score;
+              }
+            }
+          }
+        });
+
+        // subtle camera bob
+        s.registerBeforeRender(()=>{
+          camera.position.y = 1.9 + Math.sin(performance.now()*0.0012)*0.03;
+        });
+
+        return s;
+      }
+
+      // Start button initializes scene on user gesture
+      document.getElementById('startBtn').addEventListener('click', ()=>{
+        if(scene) return;
+        scene = createScene();
+        engine.runRenderLoop(()=>{ if(scene) scene.render(); });
+        window.addEventListener('resize', ()=> engine.resize());
+        document.getElementById('startBtn').style.display = 'none';
+      });
+
+      // friendly autoplay fallback: start on first tap anywhere (mobile)
+      document.addEventListener('touchstart', function once(){ if(!scene){ document.getElementById('startBtn').click(); } document.removeEventListener('touchstart', once); });
+
+    })();
+  </script>
+</body>
+</html>
