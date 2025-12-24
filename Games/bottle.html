@@ -1147,19 +1147,23 @@
             lockOrientation();
         }
         
-        function requestFullscreen() {
-            const elem = document.documentElement;
-            if (elem.requestFullscreen) {
-                elem.requestFullscreen().catch(err => {
-                    console.log('Fullscreen error:', err);
-                });
-            } else if (elem.webkitRequestFullscreen) { /* Safari */
-                elem.webkitRequestFullscreen();
-            } else if (elem.msRequestFullscreen) { /* IE11 */
-                elem.msRequestFullscreen();
-            }
+       function requestFullscreen() {
+    try {
+        const elem = document.documentElement;
+        if (elem.requestFullscreen && document.fullscreenEnabled) {
+            elem.requestFullscreen().catch(err => {
+                console.log('Fullscreen not available');
+            });
+        } else if (elem.webkitRequestFullscreen && document.webkitFullscreenEnabled) {
+            elem.webkitRequestFullscreen();
+        } else if (elem.msRequestFullscreen && document.msFullscreenEnabled) {
+            elem.msRequestFullscreen();
         }
-        
+    } catch (err) {
+        // Silently fail if fullscreen not allowed
+        console.log('Fullscreen not available on this page');
+    }
+}
         function lockOrientation() {
             if (screen.orientation && screen.orientation.lock) {
                 screen.orientation.lock('landscape').catch(err => {
