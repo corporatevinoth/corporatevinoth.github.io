@@ -611,6 +611,9 @@
             SCORE: <span id="score">0</span>
         </div>
         <div class="hud-item">
+            TIME: <span id="timeDisplay">90</span>s
+        </div>
+        <div class="hud-item">
             <div id="ammoDisplay">
                 <span id="ammoCount">12</span>/12
                 <div class="ammo-bar">
@@ -714,6 +717,9 @@
         let slowMotionActive = false;
         let slowMotionTime = 5; // 5 seconds
         let gameTimer = null;
+        
+        // Particles list - FIXED: Added missing variable declaration
+        let particlesList = [];
         
         // Mobile Controls
         let joystickActive = false;
@@ -1407,6 +1413,7 @@
             gameTimer = setInterval(() => {
                 if (gameActive) {
                     gameTime--;
+                    // FIXED: Added timeDisplay element update
                     document.getElementById('timeDisplay').textContent = gameTime;
                     
                     if (gameTime <= 0) {
@@ -1585,7 +1592,7 @@
                     }
                 });
                 
-                // Update particles
+                // Update particles - FIXED: particlesList is now defined
                 particlesList.forEach((particle, index) => {
                     particle.userData.life -= deltaTime;
                     
